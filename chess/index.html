@@ -218,6 +218,13 @@
     padding: 0 2px; font-size: .95rem;
   }
   .player .name { font-weight: 800; white-space: nowrap; opacity: .6; }
+  #pTop { position: relative; }
+  .botsay { position: absolute; left: 40px; top: calc(100% + 2px); z-index: 30; max-width: min(64%, 250px); padding: 6px 11px; opacity: .94; border-radius: 4px 16px 16px 16px;
+    background: #fff; color: #1b1b2a; font-weight: 800; font-size: .82rem; line-height: 1.2; box-shadow: 0 6px 16px rgba(0,0,0,.35); pointer-events: none; transition: opacity .3s; }
+  .botsay::before { content: ""; position: absolute; left: 10px; top: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: #fff; }
+  .botsay.hidden { display: block; opacity: 0; }
+  .botsay.pop { animation: sayPop .35s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes sayPop { from { transform: scale(.6) translateY(-6px); opacity: 0; } }
   .player.turn .name { opacity: 1; }
   .player .caps { flex: 1; display: flex; align-items: center; overflow: hidden; white-space: nowrap; }
   .player .caps .pc { font-size: 19px; margin-right: -3px; }
@@ -606,7 +613,7 @@
     <button class="pill icon" id="menuBtn" aria-label="Menu">☰</button>
       </div>
   <div class="mid">
-    <div class="player" id="pTop"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
+    <div class="player" id="pTop"><span class="name"></span><span class="caps"></span><span class="clock"></span><div id="botSay" class="botsay hidden" aria-live="polite"></div></div>
     <div id="evalbar" class="hidden"><div class="fill"></div><div class="txt"></div></div>
     <div id="boardWrap">
       <div id="board"></div>
@@ -793,6 +800,8 @@
     <button class="opt" data-pref="msgPolicy"><i class="sic" style="--ic:#9ad0ff">✉</i><span>Who can message me</span><b></b></button>
     <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
+    <button class="opt" data-pref="botTalk"><i class="sic" style="--ic:#7fd3ff">💬</i><span>Bots chat during games</span><b></b></button>
+    <button class="opt" data-pref="botVoice"><i class="sic" style="--ic:#9be37d">🗣️</i><span>Bot voices</span><b></b></button>
     <button class="opt" data-pref="autoFlip"><i class="sic" style="--ic:#9fd0ff">⇅</i><span>2 players: flip each turn</span><b></b></button>
     <button class="btn" data-act="settingsDone">Done</button>
   </div></div>
@@ -5172,7 +5181,7 @@ function engineFactory() {
   };
   const PREFS = {
     sound: [true, false], legal: [true, false], coords: [true, false],
-    animate: [true, false], ratings: [true, false], rateFx: [true, false], introMusic: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
+    animate: [true, false], ratings: [true, false], rateFx: [true, false], introMusic: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], botTalk: [true, false], botVoice: [true, false], autoFlip: [false, true],
   };
   const prefs0 = store.get("chess-prefs", {});
   const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo", moveSound: "wood", shape: "classic" }, prefs0);
@@ -6004,6 +6013,183 @@ function engineFactory() {
 
   function stopAI() { cancelSearch("ai"); thinking = false; aiToken++; }
 
+  // ================= Talking bots =================
+  // Bots chat in a bubble during the game and speak with a generated voice (browser text-to-speech).
+  // Every bot's voice is generated: no real person's voice is copied. Bots of real people only say
+  // general chess chat in their category's style, never made-up quotes.
+  const TALK = {
+    generic: {
+      start: ["Good luck, have fun!", "Let's play!", "Ready when you are.", "Alright, show me what you've got."],
+      botCapture: ["I'll take that, thank you!", "Yoink!", "That piece looked lonely.", "Mine now.", "Thanks for the gift!"],
+      youCapture: ["Hey! I needed that.", "Ouch, nice one.", "Okay, I didn't see that.", "Hmm, that hurts."],
+      check: ["Check!", "Check. Watch your king!", "Your king looks nervous."],
+      gotChecked: ["Whoa, check!", "Okay, okay, I'll move my king.", "Hey, leave my king alone!"],
+      blunder: ["Are you sure about that?", "Hmm... I think you dropped something.", "Oops! That looks like a mistake.", "I'll be taking advantage of that."],
+      great: ["Ooh, good move.", "Nice! You found it.", "Okay, that was strong."],
+      brilliant: ["WOW! That was brilliant!", "No way... brilliant move!", "Incredible. I did not see that coming!"],
+      win: ["Good game! Want a rematch?", "GG! You fought well.", "That was fun. Try again?"],
+      lose: ["You got me! Well played.", "GG, you deserved that win!", "Wow, nice job beating me!"],
+      draw: ["A draw! Good game.", "Fair enough, let's call it even.", "Nobody wins this time. GG!"],
+    },
+    bots: {},
+    youtubers: {
+      start: ["What's up everybody, let's play!", "Okay chat, let's see what this opponent's got!", "Time to make some content!"],
+      botCapture: ["And I just take it! Free piece!", "Thank you very much, I'll take that!", "That's going in the highlights!"],
+      blunder: ["Ohhh no, that's a blunder!", "Chat, did you see that?!", "That piece was just hanging!"],
+      brilliant: ["NO WAY! That's brilliant!", "Clip it! That was insane!"],
+      win: ["GG! Like and subscribe for more!", "And that's the game! GG!"],
+      lose: ["Wow, you got me! GG!", "Okay, that one's going in the 'I got destroyed' video. GG!"],
+    },
+    top: {
+      start: ["Good luck.", "Let's have a good game.", "Interesting. Let's begin."],
+      botCapture: ["That should be enough.", "A small advantage. I'll take it.", "Material is material."],
+      youCapture: ["Hm. Well calculated.", "I see. Good."],
+      blunder: ["That was a mistake.", "Inaccurate. I'll punish that.", "You'll regret that one."],
+      great: ["Precise.", "Good move. Strong."],
+      brilliant: ["Brilliant. Very impressive.", "I missed that. Excellent move."],
+      win: ["Good game. Keep studying.", "Well played, but not enough today."],
+      lose: ["Well played. You earned it.", "Impressive. Good game."],
+    },
+    legends: {
+      start: ["Shall we begin?", "A fine day for a game of chess.", "Let us see what you have learned."],
+      botCapture: ["A pawn is a pawn, and a piece is a piece.", "I believe this is mine now.", "Material, my friend."],
+      youCapture: ["Ah, you have sharp eyes.", "Well spotted."],
+      check: ["Check, my friend.", "Your king is in danger."],
+      blunder: ["Ah, a careless move.", "Chess forgives no mistakes.", "You should have looked once more."],
+      brilliant: ["Magnificent! A move worthy of the masters.", "Bravo! Truly brilliant."],
+      win: ["A fine game. Study the classics!", "Well fought. Come back stronger."],
+      lose: ["Bravo! You have defeated me.", "Splendid play. My congratulations."],
+    },
+    football: {
+      start: ["Kickoff! Let's go!", "Game time. Let's play some chess!", "Huddle up, it's go time!"],
+      botCapture: ["Interception!", "Sacked! I'll take that piece.", "Turnover!"],
+      youCapture: ["Ah, you broke through my line!", "Nice tackle."],
+      check: ["Blitz! Check!", "Pressure on the quarterback! Check!"],
+      blunder: ["Fumble!", "Flag on the play! That's a mistake."],
+      brilliant: ["Touchdown move! Brilliant!", "That's a highlight reel play!"],
+      win: ["Touchdown! Good game!", "That's the game. GG!"],
+      lose: ["You won the championship! GG!", "Great game plan. You got me."],
+    },
+    soccer: {
+      start: ["Kick-off! Let's play!", "Let's go! Good luck!", "The whistle blows. Let's play!"],
+      botCapture: ["Tackle won!", "I steal the ball! I mean, the piece.", "Intercepted!"],
+      youCapture: ["Nice tackle!", "Ah, you took the ball off me."],
+      check: ["Shot on goal! Check!", "Pressure on the keeper! Check!"],
+      blunder: ["Own goal!", "That's a red card move!"],
+      brilliant: ["GOLAZO! Brilliant move!", "What a strike! Brilliant!"],
+      win: ["Goal! Full time, good game!", "And that's full time. GG!"],
+      lose: ["You scored the winner! Well played!", "Full time. You deserved it!"],
+    },
+    engines: {
+      start: ["Engine online. Calculating.", "Initializing. Good luck, human.", "Searching one million positions."],
+      botCapture: ["Material gained.", "Capture complete.", "Evaluation improving."],
+      youCapture: ["Material lost. Recalculating.", "Unexpected. Adjusting."],
+      check: ["Check.", "King under attack."],
+      gotChecked: ["Check detected. Responding."],
+      blunder: ["Error detected in your play.", "Evaluation: winning.", "Mistake identified."],
+      great: ["Strong move detected."],
+      brilliant: ["Brilliant move detected. Rare.", "Impressive. Probability was low."],
+      win: ["Checkmate. Game over.", "Result: victory. Good game, human."],
+      lose: ["Error. Error. I have been defeated.", "Impossible... Well played, human."],
+      draw: ["Draw. Evaluation equal."],
+    },
+  };
+  // Personal lines for the made-up bots (from their bios)
+  const OWN_LINES = {
+    "Jayden": { start: ["Hi! Is the horsey the one that jumps?", "I just learned how to play! Let's go!"], botCapture: ["Yay, I got one!"], lose: ["Aww, you're really good!"] },
+    "Mia": { start: ["My queen is coming out early. Just so you know!"], botCapture: ["My queen strikes again!"] },
+    "Leo": { start: ["Let's go fast fast fast!"], botCapture: ["Ooh shiny, I'll take it!"] },
+    "Priya": { start: ["Watch out for my knights!"], botCapture: ["Knight fork! Did you see it?"] },
+    "Marcus": { start: ["Let's run this play!"], botCapture: ["Touchdown! I mean, capture!"] },
+    "Sofia": { start: ["Nice and tidy. Let's play carefully."] },
+    "Kenji": { start: ["I did ten puzzles this morning. Ready!"], botCapture: ["Pinned and won!"] },
+    "Viktor": { start: ["Back in my day, we played with wooden pieces. Let's play."] },
+    "Orion": { start: ["The stars say I'm winning today."] },
+  };
+  const talkPrefs = () => mode === "cpu" && prefs.botTalk;
+  let talkUntil = 0, lastLines = [], talkTimer = null;
+  function pickLine(ev) {
+    const b = LEVELS[level], own = OWN_LINES[b.name] || {}, cat = TALK[b.cat] || {};
+    const pool = [...(own[ev] || []), ...(cat[ev] || []), ...((own[ev] || cat[ev]) ? [] : TALK.generic[ev] || [])];
+    const fresh = pool.filter(l => !lastLines.includes(l));
+    const list = fresh.length ? fresh : pool;
+    return list.length ? list[Math.floor(Math.random() * list.length)] : null;
+  }
+  function botSay(ev, force) {
+    if (!talkPrefs()) return;
+    const now = Date.now();
+    if (!force && now < talkUntil) return;
+    const line = pickLine(ev); if (!line) return;
+    lastLines = [line, ...lastLines].slice(0, 6);
+    talkUntil = now + 2600;
+    const el = $("botSay");
+    el.textContent = line; el.classList.remove("hidden"); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    clearTimeout(talkTimer); talkTimer = setTimeout(() => el.classList.add("hidden"), Math.max(2600, line.length * 75));
+    speak(line, level);
+  }
+  // ---- generated voices ----
+  let voices = [];
+  const loadVoices = () => { try { voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); } catch (e) { voices = []; } };
+  if ("speechSynthesis" in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+  const FEM_V = /female|samantha|victoria|karen|moira|tessa|fiona|zira|susan|serena|allison|ava|kate|libby|sonia|aria|jenny|hazel|emma|joanna|salli|kendra/i;
+  const MALE_V = /\bmale|daniel|alex\b|fred|david|mark|george|ryan|guy|tom\b|oliver|rishi|aaron|arthur|gordon|james|matthew|brian|christopher|eric/i;
+  function voiceFor(i) {
+    const b = LEVELS[i], P = PEOPLE[b.name] || {}, hash = [...b.name].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
+    const fem = !!P.fem, set = voices.filter(v => (fem ? FEM_V : MALE_V).test(v.name) && !(fem ? MALE_V : FEM_V).test(v.name.replace(/female/i, "")));
+    const list = set.length ? set : voices;
+    const kid = b.cat === "bots" && b.elo <= 300;
+    let pitch = fem ? 1.12 : .92, rate = 1;
+    if (kid) { pitch = 1.45; rate = 1.08; }
+    if (b.cat === "engines") { pitch = .3; rate = .92; }
+    if (b.cat === "legends") { pitch -= .06; rate = .9; }
+    if (b.cat === "youtubers") rate = 1.1;
+    if (b.cat === "football" || b.cat === "soccer") rate = 1.05;
+    pitch += ((hash % 9) - 4) * .025;
+    return { voice: list.length ? list[hash % list.length] : null, pitch, rate };
+  }
+  function speak(text, i) {
+    if (!prefs.sound || !prefs.botVoice || !("speechSynthesis" in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text), v = voiceFor(i);
+      if (v.voice) u.voice = v.voice;
+      u.pitch = Math.max(0, Math.min(2, v.pitch)); u.rate = v.rate; u.volume = .95; u.lang = v.voice ? v.voice.lang : "en-US";
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+  let speechUnlocked = false;
+  function unlockSpeech() {   // phones only allow speech after a tap
+    if (speechUnlocked || !("speechSynthesis" in window)) return;
+    speechUnlocked = true;
+    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+  }
+  const PV = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
+  function talkAfterMove(prevState, m) {
+    if (!talkPrefs() || result) return;
+    const mover = prevState.turn, bot = mover !== humanColor;
+    const cap = m.flag === "ep" ? 1 : prevState.b[m.to] ? PV[prevState.b[m.to].toLowerCase()] : 0;
+    if (bot) {
+      if (E.inCheck(state)) botSay("check");
+      else if (cap >= 3 && Math.random() < .7) botSay("botCapture");
+    } else {
+      if (E.inCheck(state) && Math.random() < .5) botSay("gotChecked");
+      else if (cap >= 3 && Math.random() < .6) botSay("youCapture");
+    }
+  }
+  function talkRated(i, h) {
+    if (!talkPrefs() || result || !h || !h.cls) return;
+    if (history[i].state.turn !== humanColor || i < history.length - 2) return;
+    if (h.cls === "brilliant") botSay("brilliant", true);
+    else if (h.cls === "great" && Math.random() < .7) botSay("great");
+    else if ((h.cls === "blunder" || h.cls === "miss") && Math.random() < .8) botSay("blunder");
+    else if (h.cls === "mistake" && Math.random() < .35) botSay("blunder");
+  }
+  function talkEnd() {
+    if (!talkPrefs() || !result) return;
+    const win = humanColor === "w" ? "1-0" : "0-1", loss = humanColor === "w" ? "0-1" : "1-0";
+    setTimeout(() => botSay(result.code === win ? "lose" : result.code === loss ? "win" : "draw", true), 350);
+  }
+
   function newGame(opts, replay) {
     puz = null; lrn = null; flashSq = null; gameRec = null; gameStartAt = Date.now();
     online = null;
@@ -6029,6 +6215,8 @@ function engineFactory() {
     cursor = isFlipped() ? 12 : 52;
     lastTick = performance.now();
     hideAll(); save(); refresh(); requestEval();
+    $("botSay").classList.add("hidden"); talkUntil = 0;
+    if (mode === "cpu" && !replay) setTimeout(() => botSay("start", true), 700);
     maybeAI();
   }
 
@@ -6048,6 +6236,7 @@ function engineFactory() {
       save();
       refresh(prefs.animate ? m : null);
       if (result && mode !== "online" && !(rv && rv.retry)) recordGame();
+      if (!(rv && rv.retry)) { if (result) talkEnd(); else talkAfterMove(history[history.length - 1].state, m); }
       if (result) sound("end"); else if (E.inCheck(state)) sound("check"); else sound(captured ? "capture" : "move");
       requestEval();
     }
@@ -6088,7 +6277,7 @@ function engineFactory() {
   function endGame(title, text, code) {
     setTimeout(() => recordGame(), 0);
     stopAI();
-    setResult(title, text, code); awardPawns(); save(); sound("end"); refresh();
+    setResult(title, text, code); awardPawns(); save(); sound("end"); refresh(); talkEnd();
     setTimeout(showOver, 500);
   }
 
@@ -6547,6 +6736,7 @@ function engineFactory() {
   // ================= Sound (synthesized, no files) =================
   let actx = null;
   function audioUnlock() {
+    unlockSpeech();
     if (actx) { if (actx.state === "suspended") actx.resume(); return; }
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
   }
@@ -6768,6 +6958,7 @@ function engineFactory() {
     if (gen !== judgeGen) judgeLoop();
   }
   function onRated(i, h) {
+    talkRated(i, h);
     const showing = viewIdx === null ? history.length : viewIdx;
     if (showing === i + 1 && prefs.rateFx) popEntry = h;   // calm fade-in of the square + badge
     refresh();
