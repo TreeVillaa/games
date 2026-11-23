@@ -287,6 +287,10 @@
   .pc.w { color: #fff; -webkit-text-stroke: 1.3px #222; text-shadow: 0 2px 2px rgba(0,0,0,.35); }
   .pc.b { color: #1b1b1b; -webkit-text-stroke: .6px #000; text-shadow: 0 2px 2px rgba(0,0,0,.25); }
   .sq.ghosted .pc { opacity: .3; }
+  .sq.ghostmove .pc { visibility: hidden; }
+  .pslide { position: absolute; z-index: 6; display: grid; place-items: center; pointer-events: none;
+    transition: transform 320ms cubic-bezier(.3,.7,.25,1); will-change: transform; filter: drop-shadow(0 6px 4px rgba(0,0,0,.25)); }
+  .pslide .pc { width: 90%; height: 90%; }
   .sq.dot::after {
     content: ""; position: absolute; width: 32%; height: 32%; border-radius: 50%;
     background: rgba(0,0,0,.16); pointer-events: none; z-index: 2;
@@ -5911,6 +5915,7 @@ function engineFactory() {
       if (t) cls.push(s.b[sq] ? "cap" : "dot");   // en passant lands on an empty square, so it shows a dot too
       if (showCursor && sq === cursor && !ov && mode) cls.push("cur");
       if (drag && drag.moved && sq === drag.sq) cls.push("ghosted");
+      if (animating && animating.sqs.has(sq)) cls.push("ghostmove");
       if (drag && drag.moved && sq === drag.over && sq !== drag.sq) cls.push("hover");
       if (mode === "learn" && lrn && lrn.stars && lrn.stars.has(sq)) cls.push("goal");
       if (flashSq && flashSq.sq === sq) cls.push(flashSq.good ? "good" : "bad");
@@ -5960,16 +5965,35 @@ function engineFactory() {
     if (rv) $("status").textContent = rv.retry ? "🔁 Find a better move" : "📊 Game Review";
   }
 
+  // Calm slide: a copy of the piece glides from the old square to the new one on its own layer
+  // (so board redraws can't cut it short), while the real piece stays hidden until it lands.
+  let animating = null;   // { sqs: Set of squares whose piece is hidden while sliding, t: timer }
+  const SLIDE_MS = 320;
   function animate(m, flipped) {
-    const toVi = flipped ? 63 - m.to : m.to, fromVi = flipped ? 63 - m.from : m.from;
-    const pc = sqEls[toVi].querySelector(".pc"); if (!pc) return;
-    const size = boardEl.clientWidth / 8;
-    const dx = ((fromVi & 7) - (toVi & 7)) * size, dy = ((fromVi >> 3) - (toVi >> 3)) * size;
-    pc.style.zIndex = 5;
-    pc.style.transform = `translate(${dx}px, ${dy}px)`;
-    pc.getBoundingClientRect();
-    pc.style.transition = "transform .17s ease-out";
-    pc.style.transform = "";
+    if (animating) finishSlide();
+    const wrap = $("boardWrap"), size = boardEl.clientWidth / 8, vis = sq => (flipped ? 63 - sq : sq);
+    const legs = [[m.from, m.to]];
+    if (m.flag === "castle") legs.push({ 62: [63, 61], 58: [56, 59], 6: [7, 5], 2: [0, 3] }[m.to]);
+    animating = { sqs: new Set(legs.map(l => l[1])), clones: [] };
+    for (const [from, to] of legs) {
+      const toEl = sqEls[vis(to)], pc = toEl.querySelector(".pc"); if (!pc) continue;
+      const fv = vis(from), tv = vis(to);
+      const c = document.createElement("div");
+      c.className = "pslide"; c.innerHTML = pc.outerHTML;
+      c.style.cssText = `left:${(fv & 7) * size}px;top:${(fv >> 3) * size}px;width:${size}px;height:${size}px`;
+      wrap.appendChild(c); animating.clones.push(c);
+      toEl.classList.add("ghostmove");
+      c.getBoundingClientRect();   // start from the old square...
+      c.style.transform = `translate(${((tv & 7) - (fv & 7)) * size}px, ${((tv >> 3) - (fv >> 3)) * size}px)`;   // ...and glide
+    }
+    animating.t = setTimeout(finishSlide, SLIDE_MS + 30);
+  }
+  function finishSlide() {
+    if (!animating) return;
+    clearTimeout(animating.t);
+    animating.clones.forEach(c => c.remove());
+    animating = null;
+    sqEls.forEach(e => e.classList.remove("ghostmove"));
   }
 
   // ---------- touch / mouse: tap or drag ----------
@@ -6023,9 +6047,10 @@ function engineFactory() {
   function goTo(i) {
     if (!history.length) return;
     i = Math.max(0, Math.min(history.length, i));
+    const prev = viewIdx === null ? history.length : viewIdx;
     viewIdx = i === history.length ? null : i;
     selected = -1;
-    refresh(); requestEval();
+    refresh(prefs.animate && i === prev + 1 ? history[i - 1].move : null); requestEval();
     const h = history[i - 1];
     if (h) sound(h.state.b[h.move.to] || h.move.flag === "ep" ? "capture" : "move");
   }
