@@ -455,6 +455,29 @@
   .tip b { display: block; margin-bottom: 3px; }
   .tip p { margin: 0; font-size: .92rem; opacity: .9; line-height: 1.35; max-width: none; }
 
+  /* ---- Game Review ---- */
+  #moves.hidden { display: none; }
+  .rvpanel { width: var(--board); display: flex; flex-direction: column; gap: 5px; }
+  .rvpanel.hidden { display: none; }
+  .rvcoach { display: flex; gap: 10px; align-items: center; min-height: 60px; padding: 7px 10px; border-radius: 14px;
+    background: rgba(0,0,0,.3); border-left: 5px solid var(--rc, #888); text-align: left; }
+  .rvcoach .rvb { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #fff;
+    background: var(--rc, #888); border: 2px solid #fff; letter-spacing: -1px; font-size: .9rem; }
+  .rvcoach .rvt { flex: 1; font-size: .86rem; line-height: 1.25; }
+  .rvcoach .rvt b { font-size: .98rem; }
+  .rvcoach .rve { flex: none; font-weight: 900; font-variant-numeric: tabular-nums; font-size: .85rem; padding: 3px 7px; border-radius: 8px; }
+  .rvgraph { width: 100%; height: 40px; border-radius: 8px; background: #2c2c34; cursor: pointer; touch-action: manipulation; }
+  .rvbar { display: flex; gap: 4px; }
+  .rvbar .pill { flex: 1; min-width: 0; padding: 6px 2px; min-height: 42px; font-size: .95rem; }
+  .rvbar .pill.wide2 { flex: 1.8; font-size: .85rem; white-space: nowrap; }
+  .rvsum { display: flex; gap: 8px; }
+  .rvsum > div { flex: 1; background: rgba(255,255,255,.1); border-radius: 14px; padding: 10px 6px; }
+  .rvsum .acc { font-size: 2rem; font-weight: 900; }
+  .rvtable { width: 100%; border-collapse: collapse; font-weight: 800; font-size: .9rem; }
+  .rvtable td { padding: 3px 4px; text-align: center; }
+  .rvtable td:first-child { text-align: left; }
+  .rvkey { display: flex; flex-direction: column; gap: 6px; max-height: 26vh; overflow-y: auto; }
+
   /* ---- Intro / loading screen ---- */
   #splash {
     position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -546,6 +569,19 @@
     </div>
     <div class="player" id="pBot"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
     <div id="moves"></div>
+    <div id="reviewPanel" class="rvpanel hidden">
+      <div class="rvcoach" id="rvCoach"></div>
+      <svg id="rvGraph" class="rvgraph" viewBox="0 0 200 40" preserveAspectRatio="none"></svg>
+      <div class="rvbar">
+        <button class="pill" data-act="rvStart" aria-label="Start">⏮</button>
+        <button class="pill" data-act="rvPrev" aria-label="Previous">◀</button>
+        <button class="pill" data-act="rvNext" aria-label="Next">▶</button>
+        <button class="pill" data-act="rvEnd" aria-label="End">⏭</button>
+        <button class="pill wide2" data-act="rvMistake" aria-label="Next mistake">⚠️ Next</button>
+        <button class="pill" data-act="rvRetry" id="rvRetryBtn" aria-label="Retry">🔁</button>
+        <button class="pill" data-act="rvExit" aria-label="Close">✕</button>
+      </div>
+    </div>
   </div>
   <div class="bar bottom" id="mainBar">
     <button class="pill" id="backBtn" aria-label="Previous move"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg></button>
@@ -658,6 +694,12 @@
   <div class="sheet"><h2 class="ttl">🎓 Learn Chess</h2><div id="learnBody"></div></div>
 </div>
 
+<div class="overlay hidden" id="reviewOv">
+  <div class="sheet" style="margin-top:0"><h2 class="ttl">📊 Game Review</h2><div id="reviewBody"></div>
+    <button class="btn play" data-act="rvBegin">▶ Start Review</button>
+    <button class="btn alt" data-act="rvClose">Back</button></div>
+</div>
+
 <div class="overlay hidden" id="pauseOv">
   <h2>Menu</h2>
   <div class="menu">
@@ -704,7 +746,7 @@
   <div class="stats" id="overStats"></div>
   <div class="menu">
     <button class="btn" data-act="rematch">Rematch</button>
-    <button class="btn alt" data-act="review">🔎 Review the game</button>
+    <button class="btn alt" data-act="review">📊 Game Review</button>
     <button class="btn alt" data-act="pgn">📋 Copy game (PGN)</button>
     <button class="btn alt" data-act="newgame">🆕 New game</button>
   </div>
@@ -5529,7 +5571,7 @@ function engineFactory() {
   }
 
   function save() {
-    if (mode === "puzzle" || mode === "learn") return;
+    if (mode === "puzzle" || mode === "learn" || rv) return;
     if (mode === "online") return;
     if (!mode) return;
     store.set("chess-game", {
@@ -5728,6 +5770,7 @@ function engineFactory() {
     refresh();
   }
   function doHumanMove(m, animate = true) {
+    if (rv && rv.retry) return retryMove(m);
     if (mode === "learn") return learnMove(m);
     const was = prefs.animate; if (!animate) prefs.animate = false;
     applyMove(m);
@@ -5768,7 +5811,7 @@ function engineFactory() {
   function layout() {
     const app = $("app");
     const H = app.clientHeight, Wd = app.clientWidth;
-    const extra = 50 * 2 + 34 * 2 + 40 + (prefs.evalbar ? 17 : 0) + 34;
+    const extra = (rv ? 112 : 0) + 50 * 2 + 34 * 2 + 40 + (prefs.evalbar ? 17 : 0) + 34;
     const fr = document.documentElement.classList.contains("framed") ? 1.07 : 1;
     const avail = Math.min((Wd - 8) / fr, (H - extra) / fr, 640);
     document.documentElement.style.setProperty("--board", Math.max(200, Math.floor(avail / 8) * 8) + "px");
@@ -5818,7 +5861,7 @@ function engineFactory() {
   function squareCenter(sq, flipped) { const vi = flipped ? 63 - sq : sq; return [(vi & 7) + 0.5, (vi >> 3) + 0.5]; }
   function paintArrows(flipped) {
     const svg = $("arrows");
-    if (!hintArrow || viewIdx !== null) { svg.innerHTML = ""; return; }
+    if (!hintArrow || (viewIdx !== null && !rv)) { svg.innerHTML = ""; return; }
     const [x1, y1] = squareCenter(hintArrow.from, flipped), [x2, y2] = squareCenter(hintArrow.to, flipped);
     const ang = Math.atan2(y2 - y1, x2 - x1), len = Math.hypot(x2 - x1, y2 - y1) - 0.35;
     const ex = x1 + Math.cos(ang) * len, ey = y1 + Math.sin(ang) * len;
@@ -5854,7 +5897,8 @@ function engineFactory() {
     const last = shownLast();
     const ov = openOverlay();
     const lastEntry = history[(live ? history.length : viewIdx) - 1];
-    const rated = prefs.ratings && lastEntry && lastEntry.cls ? lastEntry : null;
+    const rated = (prefs.ratings || rv) && lastEntry && lastEntry.cls ? lastEntry : null;
+    if (rv && !rv.retry) hintArrow = reviewArrow();
     for (let vi = 0; vi < 64; vi++) {
       const sq = flipped ? 63 - vi : vi, el = sqEls[vi];
       el.dataset.sq = sq;
@@ -5907,10 +5951,13 @@ function engineFactory() {
     const noNav = cpu || mode === "puzzle" || mode === "learn";
     $("backBtn").classList.toggle("hidden", noNav); $("fwdBtn").classList.toggle("hidden", noNav);
     $("rewindBtn").classList.toggle("hidden", !cpu); $("rewindBtn").disabled = !history.length;
-    $("mainBar").classList.toggle("hidden", rewinding); $("rewindBar").classList.toggle("hidden", !rewinding);
+    $("mainBar").classList.toggle("hidden", rewinding || !!rv); $("rewindBar").classList.toggle("hidden", !rewinding || !!rv);
+    $("moves").classList.toggle("hidden", !!rv); $("reviewPanel").classList.toggle("hidden", !rv);
+    if (rv) paintReviewPanel();
     $("rwStartBtn").disabled = $("rwBackBtn").disabled = viewIdx === 0;
     $("hintBtn").disabled = !canAct() || mode === "online";
     $("status").classList.toggle("wrap", mode === "puzzle" || mode === "learn");
+    if (rv) $("status").textContent = rv.retry ? "🔁 Find a better move" : "📊 Game Review";
   }
 
   function animate(m, flipped) {
@@ -6226,11 +6273,11 @@ function engineFactory() {
   }
   async function judgeLoop() {
     if (mode === "puzzle" || mode === "learn") return;
-    if (judging || !prefs.ratings || !mode) return;
+    if (judging || (!prefs.ratings && !rv) || !mode) return;
     judging = true;
     const gen = judgeGen;
     try {
-      while (gen === judgeGen && prefs.ratings) {
+      while (gen === judgeGen && (prefs.ratings || rv)) {
         const i = history.findIndex(h => !h.cls);
         if (i < 0) break;
         const h = history[i], afterState = positionAt(i + 1);
@@ -6242,6 +6289,9 @@ function engineFactory() {
           second = await searchP(h.state, { ...JUDGE, exclude: [[h.move.from, h.move.to, h.move.promo || ""]] });
         if (gen !== judgeGen || history[i] !== h) continue;
         Object.assign(h, classify(i, h, before, after, afterState, second));
+        const pick = r => (r ? { from: r.from, to: r.to, promo: r.promo || "" } : null);
+        h.best = pick(before.best); h.bestScore = before.score; h.reply = pick(after.best);
+        h.evalW = afterState.turn === "w" ? after.score : -after.score;   // White's view, after this move
         onRated(i, h);
       }
     } catch (e) { /* rating is a bonus; never break the game */ }
@@ -6254,6 +6304,7 @@ function engineFactory() {
     refresh();
     popEntry = null;
     if (!$("overOv").classList.contains("hidden")) paintStats();
+    if (rv && !$("reviewOv").classList.contains("hidden")) paintReviewSummary();
   }
   function paintStats() {
     const el = $("overStats");
@@ -6507,6 +6558,7 @@ function engineFactory() {
       if (a === "signup") return doSignup();
       if (a === "socialRetry") return openSocial();
       if (a === "lesson") return startLesson(+arg);
+      if (a === "rvJump") return beginReview(+arg + 1);
       if (a === "lbMore") { const j = await api("leaderboard", { offset: soc.lb.list.length }); soc.lb.list.push(...j.list); soc.lb.total = j.total; paintLeaderboard(); return; }
       if (a === "block") { if (!confirm("Block this user? They won't be able to message, friend or challenge you.")) return; await api("block", { name: arg }); toast("User blocked."); return openUser(arg); }
       if (a === "unblock") { await api("unblock", { name: arg }); toast("User unblocked."); return openUser(arg); }
@@ -6917,8 +6969,150 @@ function engineFactory() {
     } else toast(L.info);
   }
 
+  // ================= Game Review (like Chess.com) =================
+  // Summary (accuracy + counts + your bad moves), then a review board with coach comments,
+  // the best-move arrow, an evaluation graph, "next mistake" and "retry".
+  let rv = null;   // { retry: {i, snap} | null }
+  const PIECE_NAME = { p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king" };
+  const BAD = ["inaccuracy", "mistake", "miss", "blunder"];
+  const sideName = side => (mode === "cpu" ? (side === humanColor ? "You" : LEVELS[level].name) : mode === "online" && online ? (side === humanColor ? "You" : online.opp.name) : side === "w" ? "White" : "Black");
+  const mySides = () => (mode === "cpu" || mode === "online" ? [humanColor] : ["w", "b"]);
+  const sanOf = (s, mv) => { try { const m = E.legalMoves(s).find(x => x.from === mv.from && x.to === mv.to && (x.promo || "") === (mv.promo || "")); return m ? E.toSAN(s, m) : ""; } catch (e) { return ""; } };
+  function accuracyOf(side) {
+    const done = history.filter(h => h.state.turn === side && h.cls);
+    if (!done.length) return null;
+    return done.reduce((a, h) => a + Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * (h.loss || 0) * 100) - 3.1669)), 0) / done.length;
+  }
+  function openReview() {
+    if (!history.length) { toast("No moves to review yet."); return; }
+    rv = { retry: null }; judgeLoop(); paintReviewSummary(); show("reviewOv");
+  }
+  function paintReviewSummary() {
+    const total = history.length, done = history.filter(h => h.cls).length;
+    const sides = ["w", "b"];
+    let h = `<div class="rvsum">${sides.map(sd => { const a = accuracyOf(sd); return `<div><div class="soc-sub" style="justify-content:center">${sd === "w" ? "⚪" : "⚫"} ${esc(sideName(sd))}</div><div class="acc">${a == null ? "…" : a.toFixed(1)}</div><small>Accuracy</small></div>`; }).join("")}</div>`;
+    if (done < total) h += `<p class="netnote">Analyzing your game… ${done} / ${total} moves</p>`;
+    h += `<table class="rvtable"><tr><td></td><td>${esc(sideName("w"))}</td><td>${esc(sideName("b"))}</td></tr>`;
+    for (const k of CLS_ORDER) {
+      const cw = history.filter(x => x.cls === k && x.state.turn === "w").length, cb = history.filter(x => x.cls === k && x.state.turn === "b").length;
+      h += `<tr><td><i class="mb" style="--bc:${CLS[k].color}">${CLS[k].sym}</i> ${CLS[k].label.replace(/[!]+$/, "").replace(" move", "")}</td><td style="color:${CLS[k].color}">${cw}</td><td style="color:${CLS[k].color}">${cb}</td></tr>`;
+    }
+    h += `</table>`;
+    const bad = history.map((x, i) => ({ x, i })).filter(({ x }) => mySides().includes(x.state.turn) && BAD.includes(x.cls));
+    h += `<div class="lbl" style="text-align:left;margin:8px 2px 4px">${mode === "two" ? "Bad moves" : "Your bad moves"} (${bad.length})</div>`;
+    h += bad.length ? `<div class="rvkey">${bad.map(({ x, i }) => `<button class="urow" data-dact="rvJump" data-arg="${i}"><i class="mb" style="--bc:${CLS[x.cls].color}">${CLS[x.cls].sym}</i><span class="un">${Math.floor(i / 2) + 1}${i % 2 ? "…" : "."} ${esc(x.san)} <small style="opacity:.75">· ${CLS[x.cls].label}</small></span><span>›</span></button>`).join("")}</div>`
+      : `<p class="netnote">${done < total ? "Still checking…" : "No inaccuracies, mistakes or blunders. Great game! 🎉"}</p>`;
+    $("reviewBody").innerHTML = h;
+  }
+  function beginReview(i) {
+    hideAll(); layout(); viewIdx = null; rvGo(i);
+  }
+  function rvGo(i) { if (!rv) return; i = Math.max(0, Math.min(history.length, i)); goTo(i); }
+  function rvStep(d) { const cur = viewIdx === null ? history.length : viewIdx; rvGo(cur + d); }
+  function rvNextMistake() {
+    const cur = viewIdx === null ? history.length : viewIdx;
+    const idx = history.findIndex((x, i) => i + 1 > cur && mySides().includes(x.state.turn) && BAD.includes(x.cls));
+    if (idx < 0) { const first = history.findIndex(x => mySides().includes(x.state.turn) && BAD.includes(x.cls)); if (first < 0) { toast("No mistakes to show!"); return; } rvGo(first + 1); return; }
+    rvGo(idx + 1);
+  }
+  function exitReview() { if (rv && rv.retry) endRetry(); rv = null; hintArrow = null; viewIdx = null; layout(); refresh(); if (result) showOver(); }
+  function shownEntry() { const cur = viewIdx === null ? history.length : viewIdx; return { cur, h: history[cur - 1] }; }
+  function reviewArrow() {
+    const { h } = shownEntry();
+    if (!h || !h.best || !h.cls || h.cls === "book" || (h.best.from === h.move.from && h.best.to === h.move.to)) return null;
+    return { from: h.best.from, to: h.best.to };
+  }
+  function coachText(h) {
+    const best = h.best ? sanOf(h.state, h.best) : "", who = sideName(h.state.turn), you = who === "You";
+    const after = E.makeMove(h.state, h.move);
+    let why = "";
+    if (h.reply) {
+      const rm = E.legalMoves(after).find(x => x.from === h.reply.from && x.to === h.reply.to);
+      if (rm) {
+        const n2 = E.makeMove(after, rm);
+        if (!E.legalMoves(n2).length && E.inCheck(n2)) why = " This allows checkmate!";
+        else if (after.b[rm.to]) why = ` This lets ${you ? "your opponent" : "them"} take the ${PIECE_NAME[after.b[rm.to].toLowerCase()]} on ${E.sqName(rm.to)}.`;
+      }
+    }
+    switch (h.cls) {
+      case "brilliant": return `<b>${esc(h.san)} is brilliant!!</b> A clever sacrifice that works.`;
+      case "great": return `<b>${esc(h.san)} is a great move!</b> The only good move here.`;
+      case "best": return `<b>${esc(h.san)} is the best move.</b> Exactly what the engine wanted.`;
+      case "excellent": return `<b>${esc(h.san)} is excellent.</b>${best ? ` The top move was ${esc(best)}.` : ""}`;
+      case "good": return `<b>${esc(h.san)} is a good move.</b>${best ? ` ${esc(best)} was a little stronger.` : ""}`;
+      case "book": return `<b>${esc(h.san)} is a book move.</b> A well-known opening move.`;
+      case "inaccuracy": return `<b>${esc(h.san)} is an inaccuracy.</b>${why}${best ? ` Better was <b>${esc(best)}</b>.` : ""}`;
+      case "mistake": return `<b>${esc(h.san)} is a mistake.</b>${why}${best ? ` Best was <b>${esc(best)}</b>.` : ""}`;
+      case "miss": return `<b>${esc(h.san)} is a miss.</b> Your opponent slipped up, but this didn't punish it.${best ? ` <b>${esc(best)}</b> would have won.` : ""}`;
+      case "blunder": return `<b>${esc(h.san)} is a blunder.</b>${why}${best ? ` Best was <b>${esc(best)}</b>.` : ""}`;
+    }
+    return `<b>${esc(h.san)}</b>`;
+  }
+  const evalText = cp => (cp == null ? "" : Math.abs(cp) > MATE - 1000 ? (cp > 0 ? "M" : "-M") + Math.max(1, Math.ceil((MATE - Math.abs(cp)) / 2)) : (cp > 0 ? "+" : "") + (cp / 100).toFixed(1));
+  function paintReviewPanel() {
+    const { cur, h } = shownEntry(), el = $("rvCoach");
+    if (rv.retry) {
+      el.style.setProperty("--rc", "#5b8fc7");
+      el.innerHTML = `<span class="rvb">🔁</span><span class="rvt">${rv.retry.msg || `<b>Try again!</b> Find a better move than ${esc(rv.retry.snap.history[rv.retry.i].san)}. Tap 🔁 to go back.`}</span>`;
+    } else if (!h) {
+      el.style.setProperty("--rc", "#888");
+      el.innerHTML = `<span class="rvb">♟</span><span class="rvt"><b>Let's review your game!</b> Tap ▶ to go move by move, or ⚠️ to jump to your mistakes.</span>`;
+    } else if (!h.cls) {
+      el.style.setProperty("--rc", "#888");
+      el.innerHTML = `<span class="rvb">…</span><span class="rvt"><b>${esc(h.san)}</b> Still analyzing this move…</span>`;
+    } else {
+      const k = CLS[h.cls], e = h.evalW;
+      el.style.setProperty("--rc", k.color);
+      el.innerHTML = `<span class="rvb">${k.sym}</span><span class="rvt">${Math.floor((cur - 1) / 2) + 1}${(cur - 1) % 2 ? "…" : "."} ${coachText(h)}</span><span class="rve" style="background:${e >= 0 ? "#f4f4f4" : "#222"};color:${e >= 0 ? "#222" : "#f4f4f4"}">${evalText(e)}</span>`;
+    }
+    $("rvRetryBtn").disabled = !rv.retry && (!h || !BAD.includes(h.cls));
+    // evaluation graph: white area = White is better
+    const n = history.length, W = 200, H = 40, x = i => (n ? (i / n) * W : 0), y = cp => { const c = Math.abs(cp) > MATE - 1000 ? Math.sign(cp) * 1000 : Math.max(-1000, Math.min(1000, cp)); return H / 2 - (Math.tanh(c / 400) * H) / 2; };
+    let pts = `0,${H / 2}`;
+    history.forEach((m, i) => { pts += ` ${x(i + 1).toFixed(1)},${y(m.evalW == null ? 0 : m.evalW).toFixed(1)}`; });
+    let g = `<rect width="${W}" height="${H}" fill="#2c2c34"/><polygon points="0,${H} ${pts} ${W},${y(history.length && history[n - 1].evalW != null ? history[n - 1].evalW : 0).toFixed(1)} ${W},${H}" fill="#e9e9e9"/><line x1="0" y1="${H / 2}" x2="${W}" y2="${H / 2}" stroke="#888" stroke-width=".5"/>`;
+    history.forEach((m, i) => { if (BAD.includes(m.cls)) g += `<circle cx="${x(i + 1).toFixed(1)}" cy="${y(m.evalW || 0).toFixed(1)}" r="2.2" fill="${CLS[m.cls].color}" stroke="#fff" stroke-width=".6" vector-effect="non-scaling-stroke"/>`; });
+    g += `<line x1="${x(cur).toFixed(1)}" y1="0" x2="${x(cur).toFixed(1)}" y2="${H}" stroke="#3fa9ff" stroke-width="1.5" vector-effect="non-scaling-stroke"/>`;
+    $("rvGraph").innerHTML = g;
+    $("rvGraph").style.visibility = rv.retry ? "hidden" : "";
+  }
+  $("rvGraph").addEventListener("click", e => {
+    if (!rv || rv.retry) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    rvGo(Math.round(((e.clientX - r.left) / r.width) * history.length));
+  });
+  // Retry: go back to before the bad move and try another one.
+  function rvRetry() {
+    const { cur, h } = shownEntry();
+    if (!h || !BAD.includes(h.cls)) { toast("Retry works on inaccuracies, mistakes and blunders."); return; }
+    const i = cur - 1;
+    rv.retry = { i, snap: { state, history, result, moves, viewIdx, humanColor, clocks }, msg: "" };
+    state = history[i].state; history = history.slice(0, i); result = null; viewIdx = null; hintArrow = null; selected = -1;
+    if (mode === "cpu" || mode === "online") humanColor = state.turn;
+    moves = E.legalMoves(state); refresh();
+  }
+  function retryMove(m) {
+    const r = rv.retry, h = r.snap.history[r.i], n = E.makeMove(state, m);
+    let score;
+    if (!E.legalMoves(n).length) score = E.inCheck(n) ? MATE : 0;
+    else { const x = E.search(n, { maxDepth: 3, qd: 4, timeMs: 500 }); score = x ? -x.score : 0; }
+    const loss = Math.max(0, winChance(h.bestScore) - winChance(score));
+    const good = loss <= 0.03 || (h.best && h.best.from === m.from && h.best.to === m.to);
+    const san = E.toSAN(state, m);
+    r.msg = good ? `<b>✅ ${esc(san)} is a great choice!</b> Much better than ${esc(h.san)}.` : `<b>❌ ${esc(san)} isn't the best.</b> Try another move${h.best ? `, or look at the arrow` : ""}.`;
+    const before = state;
+    state = n; flashSq = { sq: m.to, good }; refresh(prefs.animate ? m : null); sound(good ? "good" : "bad");
+    setTimeout(() => { if (!rv || !rv.retry) return; state = before; moves = E.legalMoves(state); flashSq = null; if (!good && h.best) hintArrow = { from: h.best.from, to: h.best.to }; refresh(); }, 1100);
+  }
+  function endRetry() {
+    const r = rv.retry; if (!r) return;
+    ({ state, history, result, moves, viewIdx, humanColor, clocks } = r.snap);
+    rv.retry = null; flashSq = null; hintArrow = null; selected = -1;
+    rvGo(r.i + 1);
+  }
+
   // ================= Overlays + menus =================
-  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -7095,7 +7289,16 @@ function engineFactory() {
       case "styleBoards": case "stylePieces": case "styleSounds": case "styleShapes": styleTab = { styleBoards: "boards", stylePieces: "pieces", styleSounds: "sounds", styleShapes: "shapes" }[a]; paintStyle(); show("styleOv"); break;
       case "styleDone": paintOptions(); show("settingsOv"); break;
       case "settingsDone": if (settingsReturn === "setupOv" || !mode) showSetup(); else { hideAll(); refresh(); } break;
-      case "review": hideAll(); goTo(0); break;
+      case "review": openReview(); break;
+      case "rvBegin": beginReview(0); break;
+      case "rvClose": rv = null; layout(); showOver(); break;
+      case "rvStart": rvGo(0); break;
+      case "rvPrev": rvStep(-1); break;
+      case "rvNext": rvStep(1); break;
+      case "rvEnd": rvGo(history.length); break;
+      case "rvMistake": rvNextMistake(); break;
+      case "rvRetry": if (rv && rv.retry) endRetry(); else rvRetry(); break;
+      case "rvExit": exitReview(); break;
       case "pgn": copyPGN(); break;
       case "resign": hideAll(); if (mode === "online") onlineResign(); else resign(); break;
       case "social": openSocial(); break;
@@ -7173,11 +7376,18 @@ function engineFactory() {
         else if (ov === "chatOv" && btn === "B") act("chatBack");
         else if ((ov === "puzzleOv" || ov === "learnOv") && btn === "B") act("toStart");
         else if (ov === "puzDoneOv" && btn === "B") act("puzzles");
+        else if (ov === "reviewOv" && btn === "B") act("rvClose");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
       return;
     }
+    if (rv && !rv.retry) {   // Game Review: A next move, LB/RB step, Y next mistake, X retry, B exit
+      if (btn === "A" || btn === "RB") rvStep(1); else if (btn === "LB") rvStep(-1);
+      else if (btn === "Y") rvNextMistake(); else if (btn === "X") rvRetry(); else if (btn === "B" || btn === "START") exitReview();
+      return;
+    }
+    if (rv && rv.retry && btn === "B") { endRetry(); return; }
     if (btn === "A") {
       if (viewIdx !== null && mode === "cpu") { playFromHere(); return; }
       if (viewIdx !== null) { viewIdx = null; refresh(); requestEval(); return; }
@@ -7241,7 +7451,7 @@ function engineFactory() {
   let lastClockPaint = 0;
   function tickClock(now) {
     const dt = now - lastTick; lastTick = now;
-    if (!clocks || result || !mode || history.length === 0 || openOverlay()) return;
+    if (!clocks || result || rv || !mode || history.length === 0 || openOverlay()) return;
     if (mode === "online" && (!online || online.ended || history.length < 2)) return;
     clocks[state.turn] -= dt;
     if (clocks[state.turn] <= 0) {
