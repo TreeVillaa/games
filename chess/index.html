@@ -106,7 +106,8 @@
   .botstrip::-webkit-scrollbar { display: none; }
   .botstrip .chip { flex: none; width: 86px; min-height: 96px; gap: 4px; padding-top: 8px; }
   .botstrip .chip .bn { font-size: .74rem; opacity: 1; white-space: normal; line-height: 1.05; text-align: center; max-width: 100%; overflow-wrap: normal; hyphens: auto; }
-  .botcats { margin-bottom: 6px; }
+  .botcats { margin-bottom: 6px; flex-wrap: wrap; }
+  .botcats .chip { flex: 1 1 28%; }
   .botcats .chip { min-height: 40px; font-size: .85rem; }
   .bc-name { line-height: 1.1; }
   .catpill { background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 9px; font-size: .74rem; font-weight: 900; }
@@ -582,7 +583,7 @@
   <div class="sheet">
     <h2 class="ttl"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</h2>
     <div class="botcard" id="botCard"></div>
-    <div class="sect strip"><div class="lbl">Choose a bot</div><div class="chips botcats" id="botCats"></div><div class="chips botstrip" id="levelChips"></div></div>
+    <div class="sect strip"><div class="lbl">Choose a bot</div><input class="sinput" id="botSearch" placeholder="🔍 Search all bots…" autocomplete="off" autocapitalize="off" spellcheck="false" style="margin-bottom:8px"><div class="chips botcats" id="botCats"></div><div class="chips botstrip" id="levelChips"></div></div>
     <div class="sect"><div class="lbl">Play as</div><div class="chips" id="colorChips"></div></div>
     <div class="sect"><div class="lbl">Time</div><div class="chips" id="botCat"></div><div class="chips sub" id="botTimes"></div></div>
     <button class="btn play" data-act="startBots">Start game</button>
@@ -5175,7 +5176,7 @@ function engineFactory() {
   // face: [skin, hair colour, hair style, shirt, extras] — extras: g = glasses, b = beard
   const SK = ["#f6d5bd", "#eab894", "#c98e62", "#a26a42", "#6e4529", "#f1cfa8"];
   const BOT_CATS = [
-    { id: "bots", label: "Bots" }, { id: "youtubers", label: "YouTubers" }, { id: "top", label: "Top players" }, { id: "legends", label: "Legends" }, { id: "engines", label: "Engines" },
+    { id: "bots", label: "Bots" }, { id: "youtubers", label: "YouTubers" }, { id: "top", label: "Top players" }, { id: "legends", label: "Legends" }, { id: "football", label: "Football" }, { id: "soccer", label: "Soccer" }, { id: "engines", label: "Engines" },
   ];
   const LEVELS = [
     // ---- fun bots ----
@@ -5266,11 +5267,52 @@ function engineFactory() {
     BOT("Simon Williams", 2540, "youtubers", "The 'Ginger GM'. English grandmaster who just loves to attack.", [SK[0], "#e65100", "short", "#2e7d32", "b"]),
     BOT("Ben Finegold", 2550, "youtubers", "Grandmaster and teacher famous for one rule: never play f6!", [SK[0], "#9e9e9e", "bald", "#5d4037", "g"]),
     BOT("Alexandra Kosteniuk", 2561, "youtubers", "Women's World Champion (2008) who shares chess with fans online.", [SK[0], "#e6c36a", "long", "#e91e63"]),
+    // ---- famous YouTubers & creators (bots with their names, not the real people) ----
+    BOT("MrBeast", 1200, "youtubers", "Famous for giant challenge videos and huge giveaways. Would bet a million on this game.", [SK[0], "#5d4037", "short", "#1e88e5", "b"]),
+    BOT("Mark Rober", 1850, "youtubers", "Former NASA engineer who builds amazing science gadgets. Calculates every move like a rocket launch.", [SK[0], "#8d6e63", "short", "#ff7043"]),
+    BOT("Dude Perfect", 1000, "youtubers", "Trick-shot crew that never misses. Expect flashy moves!", [SK[1], "#3a2a1e", "cap", "#2e7d32"]),
+    BOT("MKBHD", 1650, "youtubers", "Tech reviewer known for super-crisp videos. Smooth, clean, no wasted moves.", [SK[4], "#111111", "short", "#d32f2f", "b"]),
+    BOT("PewDiePie", 1400, "youtubers", "One of the most-subscribed YouTubers ever. Calm but full of surprises.", [SK[0], "#c9a26a", "side", "#212121", "b"]),
+    BOT("IShowSpeed", 700, "youtubers", "High-energy streamer and huge soccer fan. Plays at maximum speed!", [SK[4], "#111111", "short", "#ffeb3b"]),
+    BOT("Markiplier", 1300, "youtubers", "Gaming YouTuber famous for horror games. Not scared of any opening.", [SK[0], "#d32f2f", "side", "#424242", "b"]),
+    BOT("Jacksepticeye", 1250, "youtubers", "Super-cheerful Irish YouTuber. Top of the morning... and top of the board.", [SK[0], "#2e7d32", "spiky", "#43a047", "b"]),
+    BOT("KSI", 1100, "youtubers", "YouTuber, boxer and musician from the Sidemen. Comes out swinging.", [SK[4], "#111111", "short", "#7b1fa2"]),
+    BOT("Kai Cenat", 900, "youtubers", "Record-breaking streamer. Every game is a big event.", [SK[4], "#111111", "curly", "#ff6f00"]),
+    BOT("Airrack", 1150, "youtubers", "Makes wild challenge videos and big stunts. Always going bigger.", [SK[0], "#3a2a1e", "short", "#00bcd4"]),
+    BOT("Preston", 950, "youtubers", "Gaming YouTuber who loves building and fire-coloured everything.", [SK[0], "#3a2a1e", "short", "#ff3d00"]),
+    // ---- football (NFL) stars ----
+    BOT("Patrick Mahomes", 2100, "football", "Superstar quarterback famous for no-look passes. Finds moves nobody else sees.", [SK[2], "#2b1b10", "curly", "#c62828"]),
+    BOT("Tom Brady", 2300, "football", "Seven-time Super Bowl champion. The GOAT never panics in the endgame.", [SK[0], "#8d6e63", "side", "#0d47a1"]),
+    BOT("Travis Kelce", 1600, "football", "All-Pro tight end with huge energy. Always open for a pass... or a fork.", [SK[0], "#8d6e63", "short", "#c62828", "b"]),
+    BOT("Josh Allen", 1750, "football", "Big-armed quarterback who loves to run it himself. Attacks every time.", [SK[0], "#5d4037", "short", "#1565c0", "b"]),
+    BOT("Lamar Jackson", 1900, "football", "MVP quarterback and lightning-fast runner. His pieces move just as fast.", [SK[3], "#111111", "short", "#4a148c"]),
+    BOT("Justin Jefferson", 1500, "football", "Star wide receiver famous for his touchdown dance.", [SK[3], "#111111", "curly", "#5e35b1"]),
+    BOT("Saquon Barkley", 1450, "football", "Powerful running back who can hurdle defenders. Jumps over your pawns like a knight.", [SK[4], "#111111", "short", "#00695c", "b"]),
+    BOT("Jalen Hurts", 1800, "football", "Calm, tough quarterback and Super Bowl MVP. Never rattled.", [SK[4], "#111111", "curly", "#004d40", "b"]),
+    BOT("Joe Burrow", 1700, "football", "Cool-headed quarterback with style. Ice in his veins.", [SK[0], "#c9a26a", "side", "#ff6f00"]),
+    BOT("Jerry Rice", 2000, "football", "Legendary receiver with more records than anyone. Never stops working.", [SK[4], "#111111", "bald", "#b71c1c"]),
+    BOT("Peyton Manning", 2200, "football", "Legendary quarterback famous for studying everything. Omaha!", [SK[0], "#8d6e63", "short", "#1a237e"]),
+    // ---- soccer stars ----
+    BOT("Lionel Messi", 2450, "soccer", "World Cup winner and eight-time Ballon d'Or champion. Dribbles past your whole army.", [SK[0], "#5d4037", "short", "#64b5f6", "b"]),
+    BOT("Cristiano Ronaldo", 2400, "soccer", "Five-time Ballon d'Or winner and all-time top international scorer. SIUUU!", [SK[1], "#111111", "short", "#c62828"]),
+    BOT("Kylian Mbappé", 2250, "soccer", "World Cup winner with incredible speed. Counter-attacks in a flash.", [SK[4], "#111111", "bald", "#1565c0"]),
+    BOT("Erling Haaland", 2150, "soccer", "Goal-scoring machine. Goes straight for your king.", [SK[0], "#e6c36a", "bun", "#4fc3f7"]),
+    BOT("Neymar Jr", 1950, "soccer", "Skillful Brazilian star full of tricks and flicks.", [SK[2], "#3a2a1e", "short", "#fdd835", "b"]),
+    BOT("Vinícius Jr", 2000, "soccer", "Brazilian winger with dazzling footwork. Loves a fast attack.", [SK[4], "#111111", "curly", "#ffffff"]),
+    BOT("Jude Bellingham", 2050, "soccer", "English midfielder who does it all: defend, create and score.", [SK[3], "#111111", "short", "#f5f5f5"]),
+    BOT("Mohamed Salah", 2100, "soccer", "Egyptian King with a lethal left foot. Sneaky from the side.", [SK[2], "#111111", "curly", "#c62828", "b"]),
+    BOT("Kevin De Bruyne", 2200, "soccer", "Master passer who sees every angle. Plans three moves ahead.", [SK[0], "#e6a157", "short", "#64b5f6"]),
+    BOT("Lamine Yamal", 1900, "soccer", "Teenage wonderkid with fearless dribbling.", [SK[2], "#111111", "curly", "#1a237e"]),
+    BOT("Luka Modrić", 2150, "soccer", "Ballon d'Or-winning midfield maestro. Controls the centre like a grandmaster.", [SK[0], "#c9a26a", "long", "#e53935"]),
+    BOT("Ronaldinho", 1850, "soccer", "Brazilian magician who always played with a smile.", [SK[3], "#111111", "long", "#fdd835"]),
+    BOT("Zinedine Zidane", 2300, "soccer", "French legend with elegant, unstoppable control.", [SK[1], "#111111", "bald", "#1565c0"]),
+    BOT("Pelé", 2350, "soccer", "Brazil's three-time World Cup winner, one of the greatest ever.", [SK[4], "#111111", "short", "#fdd835"]),
+    BOT("Diego Maradona", 2300, "soccer", "Argentina's legendary number 10 who could dribble past everyone.", [SK[1], "#111111", "curly", "#64b5f6"]),
     // ---- engines ----
     BOT("Stockfish 3999", 3999, "engines", "Engine mode. The second-hardest bot in the game: almost never makes a mistake.", ["#26c6da", "#00838f", "fish", "#102a43"]),
     BOT("Stockfish 4500", 4500, "engines", "Maximum power. The hardest bot there is. No mercy, no mistakes.", ["#ff5252", "#ffd740", "fish", "#1a0f0f"]),
   ];
-  { const order = ["bots", "youtubers", "top", "legends", "engines"]; LEVELS.sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat) || a.elo - b.elo); }
+  { const order = ["bots", "youtubers", "top", "legends", "football", "soccer", "engines"]; LEVELS.sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat) || a.elo - b.elo); }
   // Cartoon face for a bot, drawn as SVG.
   function faceSVG(i) {
     const [skin, hair, style, shirt, extra = ""] = LEVELS[i].face;
@@ -6132,10 +6174,13 @@ function engineFactory() {
     $(prefix + "Cat").innerHTML = TIME_CATS.map(c => chip(`cat:${key}:${c.id}`, `${c.label}<small>${c.sub}</small>`, c === cat)).join("");
     $(prefix + "Times").innerHTML = cat.id === "none" ? "" : cat.items.map(i => chip(`tm:${key}:${i}`, timeLabel(TIMES[i]), i === cur)).join("");
   }
+  let botQ = "";
+  $("botSearch").addEventListener("input", e => { botQ = e.target.value; paintSetupScreens(); });
   function paintSetupScreens() {
-    const cat = LEVELS[setup.level].cat;
-    $("botCats").innerHTML = BOT_CATS.map(c => chip("bcat:" + c.id, c.label, c.id === cat)).join("");
-    $("levelChips").innerHTML = LEVELS.map((L, i) => L.cat !== cat ? "" : chip("lv:" + i, `${avatarHTML(i)}<small class="bn">${L.name.length > 15 ? L.name.split(" ").slice(-1)[0] : L.name}</small><small class="be" style="color:${tierOf(L.elo).color}">${L.elo}</small>`, setup.level === i)).join("");
+    const cat = LEVELS[setup.level].cat, q = botQ.trim().toLowerCase();
+    const show = (L, i) => (q ? L.name.toLowerCase().includes(q) || BOT_CATS.find(c => c.id === L.cat).label.toLowerCase().includes(q) : L.cat === cat);
+    $("botCats").innerHTML = BOT_CATS.map(c => chip("bcat:" + c.id, c.label, !q && c.id === cat)).join("");
+    $("levelChips").innerHTML = (q && !LEVELS.some(show) ? `<div class="empty" style="width:100%">No bots found for "${esc(botQ)}"</div>` : "") + LEVELS.map((L, i) => !show(L, i) ? "" : chip("lv:" + i, `${avatarHTML(i)}<small class="bn">${L.name.length > 15 ? L.name.split(" ").slice(-1)[0] : L.name}</small><small class="be" style="color:${tierOf(L.elo).color}">${L.elo}</small>`, setup.level === i)).join("");
     const b = LEVELS[setup.level], t = tierOf(b.elo), wins = profile.wins[b.name] || 0;
     $("botCard").innerHTML = `<div class="bc-top">${avatarHTML(setup.level, "big")}<div class="bc-main">
         <div class="bc-name">${b.name}</div>
@@ -6167,7 +6212,7 @@ function engineFactory() {
     }
     if (kind === "ctc") { soc.ctc = a; renderUser(); return; }
     if (kind === "lv") setup.level = +a;
-    else if (kind === "bcat") { if (LEVELS[setup.level].cat !== a) setup.level = LEVELS.findIndex(L => L.cat === a); }
+    else if (kind === "bcat") { botQ = ""; $("botSearch").value = ""; if (LEVELS[setup.level].cat !== a) setup.level = LEVELS.findIndex(L => L.cat === a); }
     else if (kind === "col") setup.color = a;
     else if (kind === "cat") { const cat = TIME_CATS.find(x => x.id === b); if (!cat.items.includes(setup[a])) setup[a] = cat.items[cat.id === "rapid" ? 0 : Math.min(1, cat.items.length - 1)]; }
     else if (kind === "tm") setup[a] = +b;
