@@ -55,6 +55,30 @@
   .setgear .rookgear { width: 42px; height: 42px; }
   .setgear:active .rookgear .gear { transform: rotate(45deg); }
   .pill.focus { outline: 4px solid #3fa9ff; outline-offset: 3px; }
+  .backpill { position: absolute; top: max(14px, env(safe-area-inset-top)); left: 14px; gap: 6px; }
+  .backpill svg.arrow { width: 20px; height: 20px; }
+  .sheet { width: min(380px, 100%); display: flex; flex-direction: column; gap: 12px; margin-top: 56px; }
+  .ttl { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 1.9rem; margin: 0; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  .ttl .bicon { width: 40px; height: 40px; fill: #ffd84a; }
+  .ttl .bicon .cut { fill: #163f9e; }
+  .sect { background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.15); border-radius: 18px; padding: 10px; text-align: left; }
+  .lbl { font-weight: 900; font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; opacity: .85; margin: 0 0 8px 4px; color: #ffe36e; }
+  .chips { display: flex; gap: 7px; }
+  .chips.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); }
+  .chips.sub { margin-top: 8px; }
+  .chips.sub:empty { display: none; }
+  .chip {
+    flex: 1; min-width: 0; min-height: 50px; border: 0; border-radius: 13px; font: inherit; font-weight: 800; font-size: .92rem;
+    color: #fff; background: rgba(255,255,255,.15); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 1px; padding: 6px 3px; cursor: pointer; touch-action: manipulation; box-shadow: inset 0 -3px 0 rgba(0,0,0,.2); outline: none;
+  }
+  .chip:active { transform: translateY(2px); }
+  .chip small { font-size: .68rem; opacity: .85; font-weight: 700; white-space: nowrap; }
+  .chip b { font-size: 1.1rem; }
+  .chip.sel { background: linear-gradient(135deg, #ffe36e, #ffb21f); color: #0b1d4d; box-shadow: inset 0 -3px 0 rgba(150,90,0,.45); }
+  .chip.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
+  .chip .pc { font-size: 28px; }
+  .chip .rnd { font-size: 24px; font-weight: 900; line-height: 28px; }
   .btn.play { min-height: 64px; font-size: 1.3rem; gap: 12px; }
   .btn.play small { display: block; font-size: .8rem; font-weight: 700; opacity: .85; }
   .btn.play > span { text-align: left; line-height: 1.15; }
@@ -348,14 +372,32 @@
   <h1>♟️ Chess</h1>
   <div class="menu">
     <button class="btn" id="contBtn" data-act="continue">▶ Continue game</button>
-    <button class="opt" data-opt="level"><span>Bot strength</span><b></b></button>
-    <button class="opt" data-opt="color"><span>You play (vs bots)</span><b></b></button>
-    <button class="opt" data-opt="time"><span>Clock</span><b></b></button>
     <button class="btn play" data-act="playBots" id="startBtn"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</button>
     <button class="btn alt play" data-act="playLive"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg><span>Play Live<small>Same Device</small></span></button>
   </div>
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
   <button class="pill icon setgear" data-act="settings" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
+</div>
+
+<div class="overlay hidden" id="botOv">
+  <button class="pill backpill" data-act="toStart"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg><span>Back</span></button>
+  <div class="sheet">
+    <h2 class="ttl"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</h2>
+    <div class="sect"><div class="lbl">Bot strength</div><div class="chips grid3" id="levelChips"></div></div>
+    <div class="sect"><div class="lbl">Play as</div><div class="chips" id="colorChips"></div></div>
+    <div class="sect"><div class="lbl">Time</div><div class="chips" id="botCat"></div><div class="chips sub" id="botTimes"></div></div>
+    <button class="btn play" data-act="startBots">Start game</button>
+  </div>
+</div>
+
+<div class="overlay hidden" id="liveOv">
+  <button class="pill backpill" data-act="toStart"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg><span>Back</span></button>
+  <div class="sheet">
+    <h2 class="ttl"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg>Play Live</h2>
+    <p style="margin:-6px auto 0">Same device: take turns on this phone.</p>
+    <div class="sect"><div class="lbl">Time</div><div class="chips" id="liveCat"></div><div class="chips sub" id="liveTimes"></div></div>
+    <button class="btn alt play" data-act="startLive">Start game</button>
+  </div>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -737,9 +779,18 @@ function engineFactory() {
     { name: "Expert",   maxDepth: 4, qd: 5, noise: 0,   blunder: 0, time: 2500 },
     { name: "Master",   maxDepth: 9, qd: 6, noise: 0,   blunder: 0, time: 4000 },
   ];
-  const TIMES = [null, [1, 0], [3, 2], [5, 0], [10, 0], [15, 10], [30, 0]];
+  const TIMES = [null, [1, 0], [1, 1], [2, 1], [3, 0], [3, 2], [5, 0], [10, 0], [10, 5], [15, 10], [30, 0], [30, 20]];
+  const TIME_CATS = [
+    { id: "none", label: "No clock", sub: "Relax", items: [0] },
+    { id: "bullet", label: "Bullet", sub: "1–2 min", items: [1, 2, 3] },
+    { id: "blitz", label: "Blitz", sub: "3–5 min", items: [4, 5, 6] },
+    { id: "rapid", label: "Rapid", sub: "10–15 min", items: [7, 8, 9] },
+    { id: "classical", label: "Classical", sub: "30 min", items: [10, 11] },
+  ];
   const SETUP = { mode: ["cpu", "two"], level: [0, 1, 2, 3, 4, 5], color: ["w", "random", "b"], time: TIMES.map((_, i) => i) };
-  const setup = Object.assign({ mode: "cpu", level: 1, color: "w", time: 0 }, store.get("chess-setup", {}));
+  const setup = Object.assign({ mode: "cpu", level: 1, color: "w", time: 0, liveTime: 0 }, store.get("chess-setup", {}));
+  if (!TIMES.hasOwnProperty(setup.time)) setup.time = 0;
+  if (!TIMES.hasOwnProperty(setup.liveTime)) setup.liveTime = 0;
   const setupText = {
     mode: v => (v === "cpu" ? "🤖 Computer" : "👥 Friend"),
     level: v => `${v + 1} · ${LEVELS[v].name}`,
@@ -1439,8 +1490,36 @@ function engineFactory() {
     }).join("");
   }
 
+  // ================= Play Bots / Play Live setup screens =================
+  const chip = (key, html, sel) => `<button class="chip${sel ? " sel" : ""}" data-key="${key}">${html}</button>`;
+  const timeLabel = t => (t[1] ? `<b>${t[0]} | ${t[1]}</b><small>${t[0]} min + ${t[1]}s</small>` : `<b>${t[0]} min</b><small>no bonus</small>`);
+  function paintTime(prefix, key) {
+    const cur = setup[key], cat = TIME_CATS.find(c => c.items.includes(cur)) || TIME_CATS[0];
+    $(prefix + "Cat").innerHTML = TIME_CATS.map(c => chip(`cat:${key}:${c.id}`, `${c.label}<small>${c.sub}</small>`, c === cat)).join("");
+    $(prefix + "Times").innerHTML = cat.id === "none" ? "" : cat.items.map(i => chip(`tm:${key}:${i}`, timeLabel(TIMES[i]), i === cur)).join("");
+  }
+  function paintSetupScreens() {
+    $("levelChips").innerHTML = LEVELS.map((L, i) => chip("lv:" + i, `<b>${i + 1}</b><small>${L.name}</small>`, setup.level === i)).join("");
+    $("colorChips").innerHTML = [["w", `<span class="pc w">${glyph("k")}</span>`, "White"], ["random", `<span class="rnd">?</span>`, "Random"], ["b", `<span class="pc b">${glyph("k")}</span>`, "Black"]]
+      .map(([v, icon, name]) => chip("col:" + v, `${icon}<small>${name}</small>`, setup.color === v)).join("");
+    paintTime("bot", "time");
+    paintTime("live", "liveTime");
+  }
+  document.addEventListener("click", e => {
+    const c = e.target.closest(".chip"); if (!c) return;
+    const [kind, a, b] = c.dataset.key.split(":");
+    if (kind === "lv") setup.level = +a;
+    else if (kind === "col") setup.color = a;
+    else if (kind === "cat") { const cat = TIME_CATS.find(x => x.id === b); if (!cat.items.includes(setup[a])) setup[a] = cat.items[cat.id === "rapid" ? 0 : Math.min(1, cat.items.length - 1)]; }
+    else if (kind === "tm") setup[a] = +b;
+    store.set("chess-setup", setup);
+    paintSetupScreens();
+    const ov = openOverlay();
+    if (ov) { const i = buttonsOf(ov).findIndex(x => x.dataset.key === c.dataset.key); if (i >= 0) focusIdx = i; paintFocus(); }
+  });
+
   // ================= Overlays + menus =================
-  const OVERLAYS = ["setupOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["setupOv", "botOv", "liveOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -1551,8 +1630,11 @@ function engineFactory() {
     switch (a) {
       case "continue": { const d = loadSave(); if (d) newGame({ mode: d.mode, level: d.level, color: d.humanColor, time: d.timeIdx || 0 }, d); break; }
       case "start": newGame(setup); break;
-      case "playBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame(setup); break;
-      case "playLive": setup.mode = "two"; store.set("chess-setup", setup); newGame(setup); break;
+      case "playBots": paintSetupScreens(); show("botOv"); break;
+      case "playLive": paintSetupScreens(); show("liveOv"); break;
+      case "toStart": showSetup(); break;
+      case "startBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame({ mode: "cpu", level: setup.level, color: setup.color, time: setup.time }); break;
+      case "startLive": setup.mode = "two"; store.set("chess-setup", setup); newGame({ mode: "two", level: setup.level, color: "w", time: setup.liveTime }); break;
       case "resume": hideAll(); refresh(); break;
       case "rematch": newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
       case "newgame": showSetup(); break;
@@ -1587,9 +1669,22 @@ function engineFactory() {
     if (ov) {
       if (!wasHidden) {
         const bs = buttonsOf(ov), cur = bs[(focusIdx % bs.length + bs.length) % bs.length];
+        const rowOf = b => b.closest(".chips") || b;
         if (ov === "promoOv") focusIdx += dx || dy;
-        else if (dy) focusIdx += dy;
         else if (dx && cur && cur.matches(".opt")) { cycle(cur, dx); return; }
+        else if (cur) {
+          const rows = [];
+          for (const b of bs) if (rows[rows.length - 1] !== rowOf(b)) rows.push(rowOf(b));
+          const ri = rows.indexOf(rowOf(cur));
+          if (dy) {
+            const nr = rows[(ri + dy + rows.length) % rows.length];
+            const inRow = bs.filter(b => rowOf(b) === nr);
+            focusIdx = bs.indexOf(inRow.find(b => b.classList.contains("sel")) || inRow[0]);
+          } else if (dx) {
+            const inRow = bs.filter(b => rowOf(b) === rows[ri]);
+            if (inRow.length > 1) focusIdx = bs.indexOf(inRow[(inRow.indexOf(cur) + dx + inRow.length) % inRow.length]);
+          }
+        }
       }
       paintFocus(); return;
     }
@@ -1611,6 +1706,7 @@ function engineFactory() {
         else if (ov === "promoOv") { pendingPromo = null; selected = -1; hideAll(); refresh(); }
         else if (ov === "overOv" && btn === "B") act("review");
         else if (ov === "setupOv" && btn === "START") $("startBtn").click();
+        else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
       return;
