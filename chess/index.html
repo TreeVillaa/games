@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0b1d4d">
-<title>Chess</title>
+<title>XB Chess</title>
 <style>
   * { box-sizing: border-box; }
   :root { --light: #f0d9b5; --dark: #b58863; --lastTint: rgba(255,235,59,.42); --board: 320px; }
@@ -534,7 +534,7 @@
 <div id="app">
   <div class="bar">
     <a class="pill" href="../">← Games</a>
-    <div id="status">Chess</div>
+    <div id="status">XB CHESS</div>
     <button class="pill icon" id="menuBtn" aria-label="Menu">☰</button>
       </div>
   <div class="mid">
@@ -570,7 +570,7 @@
 <div id="toast"></div>
 
 <div class="overlay" id="setupOv">
-  <h1>♟️ Chess</h1>
+  <h1>♟️ XB CHESS</h1>
   <div class="menu">
     <button class="btn" id="contBtn" data-act="continue">▶ Continue game</button>
     <button class="btn play" data-act="playBots" id="startBtn"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</button>
@@ -5889,7 +5889,7 @@ function engineFactory() {
     paintEval();
 
     let st;
-    if (!mode) st = "Chess";
+    if (!mode) st = "XB CHESS";
     else if (!live) st = `${mode === "cpu" ? "Rewind:" : "🔎"} Move ${viewIdx} of ${history.length}`;
     else if (result) st = result.title;
     else if (thinking) st = `${LEVELS[level].name} is thinking…`;
