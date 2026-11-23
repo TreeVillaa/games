@@ -445,9 +445,9 @@
     box-shadow: 0 3px 8px rgba(0,0,0,.35);
   }
   .badge.lr em { right: auto; left: 115%; }
-  .badge.pop { animation: badgePop .55s cubic-bezier(.3,1.7,.5,1); }
+  .badge.pop { animation: badgePop .8s ease-out; }
   .badge.pop em { animation: labelShow 2s ease forwards; }
-  @keyframes badgePop { 0% { transform: scale(0) rotate(-30deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes badgePop { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   @keyframes labelShow { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
   .mb {
     display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%;
@@ -456,59 +456,10 @@
   }
   #moves .mv.cur .mb { box-shadow: 0 0 0 2px #1d1a36; }
 
-  /* ---- Brilliant celebration ---- */
-  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 8; display: grid; place-items: center; overflow: visible; }
-  .fx::before {
-    content: ""; position: absolute; left: 50%; top: 50%; width: 40%; height: 40%; border-radius: 50%;
-    transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(38,194,163,.85), rgba(38,194,163,0) 70%);
-    animation: fxGlow 1.4s ease-out forwards;
-  }
-  .fx-text {
-    position: relative; font-size: calc(var(--board) * .1); font-weight: 900; color: #fff;
-    background: var(--fc, linear-gradient(135deg, #2fd6b5, #1a9f86)); padding: .18em .65em; border-radius: 999px;
-    border: 4px solid #fff; box-shadow: 0 0 0 8px rgba(38,194,163,.35), 0 12px 30px rgba(0,0,0,.45);
-    animation: fxPop 2.2s ease forwards; white-space: nowrap;
-  }
-  .fx-text b { display: inline-block; margin-left: .25em; animation: fxWiggle .5s ease-in-out 3 .35s; }
-  .spark {
-    position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; border-radius: 3px; background: var(--c);
-    animation: spark 1.3s cubic-bezier(.15,.7,.3,1) forwards; animation-delay: var(--d); opacity: 0;
-  }
-  .spark.star { width: auto; height: auto; background: none; color: var(--c); font-size: 20px; }
-  @keyframes fxGlow { 0% { width: 10%; height: 10%; opacity: 1; } 100% { width: 190%; height: 190%; opacity: 0; } }
-  @keyframes fxPop {
-    0% { transform: scale(0) rotate(-14deg); opacity: 0; } 14% { transform: scale(1.25) rotate(4deg); opacity: 1; }
-    24% { transform: scale(1) rotate(0); } 82% { transform: scale(1); opacity: 1; } 100% { transform: scale(.7) translateY(-60%); opacity: 0; }
-  }
-  @keyframes fxWiggle { 50% { transform: rotate(-14deg) scale(1.2); } }
-  @keyframes spark {
-    0% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--r)) scale(.3); opacity: 0; }
-  }
   /* rated move: the square is tinted in the rating's colour (and flashes when the rating arrives) */
   .sq.rt { box-shadow: inset 0 0 0 200px color-mix(in srgb, var(--rc) 48%, transparent); }
-  .sq.rt.popsq { animation: sqFlash .9s ease-out; }
-  @keyframes sqFlash { 0% { box-shadow: inset 0 0 0 200px color-mix(in srgb, var(--rc) 95%, transparent), 0 0 18px var(--rc); } }
-  /* per-rating pop-ups (Brilliant has its own bigger one) */
-  .fx-good .fx-text, .fx-bad .fx-text { font-size: calc(var(--board) * .075); border-width: 3px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--fc) 35%, transparent), 0 10px 24px rgba(0,0,0,.4); }
-  .fx-good .fx-text { animation: fxPop 1.7s ease forwards; }
-  .fx-bad .fx-text { animation: fxDrop 1.8s ease forwards; }
-  .fx-good::before { background: radial-gradient(circle, color-mix(in srgb, var(--fc) 80%, transparent), transparent 70%); }
-  .fx-bad::before { display: none; }
-  .fx-ic {
-    display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; border-radius: 50%; margin-right: .3em; vertical-align: -.15em;
-    background: rgba(255,255,255,.28); font-size: .85em; letter-spacing: -1px;
-  }
-  .fall { position: absolute; top: 8%; font-weight: 900; font-size: 26px; color: var(--fc); text-shadow: 0 2px 4px rgba(0,0,0,.5); opacity: 0;
-    animation: fall 1.4s ease-in forwards; animation-delay: var(--d); left: var(--x); }
-  @keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(calc(var(--board) * .7)) rotate(var(--r)); opacity: 0; } }
-  @keyframes fxDrop {
-    0% { transform: translateY(-70%) rotate(-10deg) scale(.6); opacity: 0; } 14% { transform: translateY(0) rotate(5deg) scale(1.1); opacity: 1; }
-    22% { transform: rotate(-4deg) scale(1); } 30% { transform: rotate(2deg); } 36% { transform: rotate(0); } 82% { opacity: 1; transform: translateY(0); }
-    100% { transform: translateY(40%) scale(.85); opacity: 0; }
-  }
-  #boardWrap.shake { animation: shake .55s ease; }
-  @keyframes shake { 15%, 55% { transform: translateX(-7px) rotate(-1deg); } 35%, 75% { transform: translateX(7px) rotate(1deg); } 90% { transform: translateX(-2px); } }
+  .sq.rt.popsq { animation: sqFade 1.2s ease-out; }
+  @keyframes sqFade { 0% { box-shadow: inset 0 0 0 200px transparent; } }
 
   /* ---- game-over stats ---- */
   .stats { display: flex; flex-direction: column; gap: 8px; width: min(340px, 100%); margin-top: 8px; }
@@ -634,7 +585,7 @@
     <button class="opt" data-pref="coords"><i class="sic" style="--ic:#b8a4ff">a1</i><span>Coordinates</span><b></b></button>
     <button class="opt" data-pref="animate"><i class="sic" style="--ic:#ff9ecf">➜</i><span>Piece animation</span><b></b></button>
     <button class="opt" data-pref="ratings"><i class="sic" style="--ic:#2fd6b5">!!</i><span>Move ratings</span><b></b></button>
-    <button class="opt" data-pref="rateFx"><i class="sic" style="--ic:#7fba3c">★</i><span>Rating animations</span><b></b></button>
+    <button class="opt" data-pref="rateFx"><i class="sic" style="--ic:#7fba3c">★</i><span>Rating square animation</span><b></b></button>
     <button class="opt" data-pref="msgPolicy"><i class="sic" style="--ic:#9ad0ff">✉</i><span>Who can message me</span><b></b></button>
     <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
@@ -1872,59 +1823,11 @@ function engineFactory() {
     if (gen !== judgeGen) judgeLoop();
   }
   function onRated(i, h) {
-    const mover = h.state.turn;
-    const mine = mode === "two" || mover === humanColor;
     const showing = viewIdx === null ? history.length : viewIdx;
-    if (showing === i + 1) popEntry = h;
+    if (showing === i + 1 && prefs.rateFx) popEntry = h;   // calm fade-in of the square + badge
     refresh();
     popEntry = null;
-    // Animate the rating of your own recent moves (Brilliant gets the big celebration).
-    if (mine && viewIdx === null && i >= history.length - 2 && prefs.rateFx) { if (h.cls === "brilliant") celebrate(); else rateFx(h.cls); }
     if (!$("overOv").classList.contains("hidden")) paintStats();
-  }
-  function rateFx(cls) {
-    const k = CLS[cls]; if (!k) return;
-    const good = ["great", "best", "excellent", "good", "book"].includes(cls);
-    const wrap = $("boardWrap");
-    wrap.querySelectorAll(".fx").forEach(x => x.remove());
-    const fx = document.createElement("div");
-    fx.className = "fx " + (good ? "fx-good" : "fx-bad");
-    fx.style.setProperty("--fc", k.color);
-    let html = `<div class="fx-text"><span class="fx-ic">${k.sym}</span>${k.label.replace(/[!]+$/, "")}${cls === "great" ? "!" : ""}</div>`;
-    if (good) {
-      const n = cls === "great" ? 30 : cls === "book" ? 10 : 18;
-      for (let j = 0; j < n; j++) {
-        const a = Math.random() * Math.PI * 2, d = 0.25 + Math.random() * 0.35;
-        const star = j % 3 === 0;
-        html += `<span class="spark${star ? " star" : ""}" style="--dx:${(Math.cos(a) * d * wrap.clientWidth).toFixed(0)}px;--dy:${(Math.sin(a) * d * wrap.clientHeight).toFixed(0)}px;--r:${(Math.random() * 540 - 270).toFixed(0)}deg;--c:${j % 2 ? k.color : "#ffffff"};--d:${(Math.random() * 0.2).toFixed(2)}s">${star ? k.sym : ""}</span>`;
-      }
-    } else {
-      const n = cls === "blunder" ? 10 : cls === "inaccuracy" ? 4 : 7;
-      for (let j = 0; j < n; j++) html += `<span class="fall" style="--x:${(5 + Math.random() * 85).toFixed(0)}%;--d:${(Math.random() * 0.5).toFixed(2)}s;--r:${(Math.random() * 120 - 60).toFixed(0)}deg">${k.sym}</span>`;
-      if (cls === "blunder" || cls === "miss") { wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake"); setTimeout(() => wrap.classList.remove("shake"), 600); }
-    }
-    fx.innerHTML = html;
-    wrap.appendChild(fx);
-    setTimeout(() => fx.remove(), 2000);
-    sound(good ? "good" : "bad");
-  }
-  function celebrate() {
-    const wrap = $("boardWrap");
-    const fx = document.createElement("div");
-    fx.className = "fx";
-    let html = `<div class="fx-text">Brilliant<b>!!</b></div>`;
-    const colors = ["#2fd6b5", "#ffffff", "#ffd54a", "#7ef0d9", "#1a9f86"];
-    for (let k = 0; k < 44; k++) {
-      const a = Math.random() * Math.PI * 2, d = 0.35 + Math.random() * 0.45;
-      const dx = Math.cos(a) * d * wrap.clientWidth, dy = Math.sin(a) * d * wrap.clientHeight;
-      const star = k % 4 === 0;
-      html += `<span class="spark${star ? " star" : ""}" style="--dx:${dx.toFixed(0)}px;--dy:${dy.toFixed(0)}px;--r:${(Math.random() * 720 - 360).toFixed(0)}deg;--c:${colors[k % colors.length]};--d:${(Math.random() * 0.25).toFixed(2)}s">${star ? "✦" : ""}</span>`;
-    }
-    fx.innerHTML = html;
-    wrap.appendChild(fx);
-    setTimeout(() => fx.remove(), 2400);
-    sound("brilliant");
-    try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
   }
   function paintStats() {
     const el = $("overStats");
