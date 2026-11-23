@@ -261,12 +261,12 @@
   .pc.b { color: #1b1b1b; -webkit-text-stroke: .6px #000; text-shadow: 0 2px 2px rgba(0,0,0,.25); }
   .sq.ghosted .pc { opacity: .3; }
   .sq.dot::after {
-    content: ""; position: absolute; width: 30%; height: 30%; border-radius: 50%;
-    background: rgba(20,30,20,.3); pointer-events: none;
+    content: ""; position: absolute; width: 32%; height: 32%; border-radius: 50%;
+    background: rgba(0,0,0,.16); pointer-events: none; z-index: 2;
   }
   .sq.cap::after {
-    content: ""; position: absolute; inset: 3%; border-radius: 50%;
-    border: calc(var(--board) / 8 * .09) solid rgba(20,30,20,.3); pointer-events: none;
+    content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 2;
+    background: radial-gradient(closest-side, transparent 0 80%, rgba(0,0,0,.2) 81% 100%);
   }
   .coord { position: absolute; font-size: 10px; font-weight: 800; opacity: .75; pointer-events: none; }
   .coord.f { right: 3px; bottom: 1px; }
@@ -363,7 +363,7 @@
   .urow .un { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .urow .ue { font-variant-numeric: tabular-nums; font-weight: 900; }
   .urow.me { background: rgba(255,216,74,.25); border: 2px solid rgba(255,216,74,.7); }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: #4cd964; box-shadow: 0 0 6px #4cd964; flex: none; }
+  .ondot { width: 10px; height: 10px; border-radius: 50%; background: #4cd964; box-shadow: 0 0 6px #4cd964; flex: none; }
   .mini { border: 0; border-radius: 10px; min-width: 44px; min-height: 40px; font: inherit; font-weight: 900; cursor: pointer; color: #0b1d4d; outline: none; }
   .mini.ok { background: linear-gradient(135deg, #7ee08f, #3fb56b); } .mini.no { background: rgba(255,255,255,.25); color: #fff; }
   .mini.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
@@ -1231,6 +1231,7 @@ function engineFactory() {
   function applyMove(m, silent) {
     const san = E.toSAN(state, m, moves.length ? moves : null);
     const captured = !!state.b[m.to] || m.flag === "ep";
+    if (m.flag === "ep" && !silent) setTimeout(() => toast("En passant! ♟\uFE0E"), 50);
     const mover = state.turn;
     history.push({ state, move: m, san, clocks: clocks ? { ...clocks } : null });
     state = E.makeMove(state, m);
@@ -1510,7 +1511,7 @@ function engineFactory() {
       if (live && sq === selected) cls.push("sel");
       if (sq === checkSq) cls.push("check");
       const t = targets.find(m => m.to === sq);
-      if (t) cls.push(s.b[sq] || t.flag === "ep" ? "cap" : "dot");
+      if (t) cls.push(s.b[sq] ? "cap" : "dot");   // en passant lands on an empty square, so it shows a dot too
       if (showCursor && sq === cursor && !ov && mode) cls.push("cur");
       if (drag && drag.moved && sq === drag.sq) cls.push("ghosted");
       if (drag && drag.moved && sq === drag.over && sq !== drag.sq) cls.push("hover");
@@ -1975,7 +1976,7 @@ function engineFactory() {
     if (sInp) sInp.addEventListener("input", () => { soc.q = sInp.value; clearTimeout(soc.searchT); soc.searchT = setTimeout(loadTab, 300); });
     loadTab();
   }
-  const userRow = (u, extra = "", rank = 0) => `<button class="urow${net.me && u.key === net.me.key ? " me" : ""}" data-user="${esc(u.key)}">${rank ? `<span class="rk">${rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}</span>` : ""}${uav(u, "sm")}<span class="un">${esc(u.name)}</span>${u.online ? '<i class="dot" title="Online"></i>' : ""}<span class="ue" style="color:${tierOf(u.elo).color}">${u.elo}</span>${extra}</button>`;
+  const userRow = (u, extra = "", rank = 0) => `<button class="urow${net.me && u.key === net.me.key ? " me" : ""}" data-user="${esc(u.key)}">${rank ? `<span class="rk">${rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}</span>` : ""}${uav(u, "sm")}<span class="un">${esc(u.name)}</span>${u.online ? '<i class="ondot" title="Online"></i>' : ""}<span class="ue" style="color:${tierOf(u.elo).color}">${u.elo}</span>${extra}</button>`;
   async function loadTab() {
     const el = $("socList"); if (!el) return;
     try {
