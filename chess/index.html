@@ -316,6 +316,13 @@
     content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 2;
     background: radial-gradient(closest-side, transparent 0 80%, rgba(0,0,0,.2) 81% 100%);
   }
+  .sq.castle::after {
+    content: "🏰"; position: absolute; inset: 12%; border-radius: 50%; pointer-events: none; z-index: 2; display: grid; place-items: center;
+    font-size: calc(var(--board) / 8 * .32); box-shadow: inset 0 0 0 3px rgba(255,205,60,.95); background: rgba(255,215,80,.22);
+  }
+  #board .sq.castlerook { outline: 3px solid rgba(255,205,60,.95); outline-offset: -3px; }
+  #board .sq.eptake { outline: 3px solid rgba(255,70,70,.95); outline-offset: -3px; }
+  #board .sq.eptake .pc { filter: drop-shadow(0 0 4px rgba(255,60,60,.9)); }
   .coord { position: absolute; font-size: 10px; font-weight: 800; opacity: .75; pointer-events: none; }
   .coord.f { right: 3px; bottom: 1px; }
   .coord.r { left: 3px; top: 1px; }
@@ -6217,6 +6224,7 @@ function engineFactory() {
     const san = E.toSAN(state, m, moves.length ? moves : null);
     const captured = !!state.b[m.to] || m.flag === "ep";
     if (m.flag === "ep" && !silent) setTimeout(() => toast("En passant! ♟\uFE0E"), 50);
+    if (m.flag === "castle" && !silent) setTimeout(() => toast((m.to & 7) === 6 ? "🏰 Castled kingside!" : "🏰 Castled queenside!"), 50);
     const mover = state.turn;
     history.push({ state, move: m, san, clocks: clocks ? { ...clocks } : null });
     state = E.makeMove(state, m);
@@ -6351,8 +6359,11 @@ function engineFactory() {
 
   // ================= Board input =================
   function canAct() { return mode && !result && viewIdx === null && !thinking && humanTurn() && !pendingPromo && !(mode === "puzzle" && puz && puz.busy) && !(mode === "learn" && lrn && lrn.busy); }
+  // Rook square -> where the king lands when castling (so you can also tap/drag the king onto its rook).
+  const CASTLE_BY_ROOK = { 63: 62, 56: 58, 7: 6, 0: 2 };
   function tryMove(from, to, animate) {
-    const opts = moves.filter(m => m.from === from && m.to === to);
+    let opts = moves.filter(m => m.from === from && m.to === to);
+    if (!opts.length && CASTLE_BY_ROOK[to] !== undefined) opts = moves.filter(m => m.from === from && m.flag === "castle" && m.to === CASTLE_BY_ROOK[to]);
     if (!opts.length) return false;
     if (opts.length > 1) {
       if (prefs.autoQueen) doHumanMove(opts.find(o => o.promo === "q"), animate);
@@ -6512,7 +6523,9 @@ function engineFactory() {
       if (live && sq === selected) cls.push("sel");
       if (sq === checkSq) cls.push("check");
       const t = targets.find(m => m.to === sq);
-      if (t) cls.push(s.b[sq] ? "cap" : "dot");   // en passant lands on an empty square, so it shows a dot too
+      if (t) cls.push(t.flag === "castle" ? "castle" : t.flag === "ep" ? "cap" : s.b[sq] ? "cap" : "dot");
+      if (targets.some(m => m.flag === "castle" && CASTLE_BY_ROOK[sq] === m.to)) cls.push("castlerook");   // tap the rook to castle too
+      if (targets.some(m => m.flag === "ep" && sq === (m.to >> 3 === 2 ? m.to + 8 : m.to - 8))) cls.push("eptake");   // the pawn en passant captures
       if (showCursor && sq === cursor && !ov && mode) cls.push("cur");
       if (drag && drag.moved && sq === drag.sq) cls.push("ghosted");
       if (animating && animating.sqs.has(sq)) cls.push("ghostmove");
