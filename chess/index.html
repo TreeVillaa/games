@@ -192,15 +192,55 @@
   .swt { width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(255,255,255,.35); }
   .swt.sel { border: 3px solid #ffd84a; transform: scale(1.15); }
   .panel .btn { margin-top: 4px; }
-  .bottom .gbtn { flex-direction: column; gap: 0; padding: 4px 2px; line-height: 1; }
-  .gbtn small { font-size: .62rem; font-weight: 800; opacity: .85; margin-top: 2px; }
-  .gbtn .half { font-size: 1.15rem; font-weight: 900; }
-  .gbtn .flag { width: 19px; height: 19px; fill: currentColor; }
-  #barResign { background: linear-gradient(180deg, #e2554a, #b73329); color: #fff; }
-  #barDraw.sent { opacity: .55; }
-  #askOv p { max-width: 330px; text-align: center; font-weight: 700; line-height: 1.4; margin: 0 0 4px; }
-  #askOv .askicon { font-size: 3rem; line-height: 1; }
-  #askOv .elo { display: inline-block; margin-top: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.3); font-weight: 900; }
+  /* ---- game buttons: chunky 3D tiles ---- */
+  #mainBar { gap: 5px; padding-bottom: 4px; }
+  .bottom .gb {
+    position: relative; overflow: hidden; flex: 1; min-width: 0; flex-direction: column; gap: 2px; padding: 6px 2px 5px; line-height: 1;
+    border-radius: 16px; color: #fff; min-height: 56px;
+    background: linear-gradient(180deg, var(--c1), var(--c2));
+    box-shadow: 0 4px 0 color-mix(in srgb, var(--c2) 70%, #000), 0 7px 12px rgba(0,0,0,.35), inset 0 1.5px 0 rgba(255,255,255,.45), inset 0 -2px 0 rgba(0,0,0,.15);
+    transition: transform .08s, box-shadow .08s, filter .2s;
+  }
+  .bottom .gb::before { content: ""; position: absolute; left: 6%; right: 6%; top: 3px; height: 42%; border-radius: 12px 12px 40% 40%;
+    background: linear-gradient(rgba(255,255,255,.38), rgba(255,255,255,0)); pointer-events: none; }
+  .bottom .gb:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 color-mix(in srgb, var(--c2) 70%, #000), 0 2px 5px rgba(0,0,0,.3), inset 0 1.5px 0 rgba(255,255,255,.4); }
+  .bottom .gb:disabled { opacity: 1; filter: grayscale(.85) brightness(.7); }
+  .gb small { font-size: .62rem; font-weight: 900; letter-spacing: .02em; text-transform: uppercase; text-shadow: 0 1px 0 rgba(0,0,0,.3); position: relative; }
+  .gb .gi { width: 24px; height: 24px; fill: currentColor; filter: drop-shadow(0 1.5px 0 rgba(0,0,0,.3)); position: relative; }
+  .gb .halfb { font-size: 1.05rem; font-weight: 900; width: 26px; height: 24px; display: grid; place-items: center; border-radius: 50%; position: relative;
+    background: radial-gradient(circle at 35% 30%, #fff8d6, #ffe07a 60%, #f0a800); color: #6b3d00; box-shadow: 0 0 10px rgba(255,220,90,.9); }
+  #barDraw { animation: drawGlow 2.6s ease-in-out infinite; }
+  @keyframes drawGlow { 50% { filter: brightness(1.12) drop-shadow(0 0 6px rgba(255,210,70,.7)); } }
+  #barDraw.sent { animation: none; filter: grayscale(.6) brightness(.8); }
+  #barDraw.sent small::after { content: " ✓"; }
+  .flagw .cloth { transform-origin: 6.5px 8px; animation: flagWave 1.6s ease-in-out infinite; }
+  @keyframes flagWave { 0%, 100% { transform: skewY(0) scaleX(1); } 50% { transform: skewY(-6deg) scaleX(.92); } }
+  #barResign:active .cloth { animation-duration: .3s; }
+  #hintBtn:not(:disabled) .bulb { animation: bulbGlow 2.2s ease-in-out infinite; }
+  @keyframes bulbGlow { 50% { filter: drop-shadow(0 0 6px #fff7a8) drop-shadow(0 1.5px 0 rgba(0,0,0,.3)); } }
+  #undoBtn:active:not(:disabled) .spin { transform: rotate(-200deg); transition: transform .35s; }
+  #flipBtn:active .flipi { transform: rotate(180deg); transition: transform .3s; }
+  .rewind .pill { border-radius: 16px; background: linear-gradient(180deg, #5d7bff, #2c46b8); box-shadow: 0 4px 0 #1b2c78, 0 7px 12px rgba(0,0,0,.35), inset 0 1.5px 0 rgba(255,255,255,.4); }
+  .rewind .pill:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 #1b2c78, inset 0 1.5px 0 rgba(255,255,255,.4); }
+  .rewind .pill:disabled { opacity: 1; filter: grayscale(.85) brightness(.7); }
+  /* ---- resign / draw pop-up ---- */
+  #askOv { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  #askOv .askcard { position: relative; width: min(360px, 92vw); padding: 64px 20px 20px; margin-top: 50px; border-radius: 26px; text-align: center;
+    background: linear-gradient(160deg, #23306b, #121a3d); border: 2px solid var(--ak, #ffcf3f);
+    box-shadow: 0 0 0 4px rgba(0,0,0,.25), 0 0 40px color-mix(in srgb, var(--ak, #ffcf3f) 45%, transparent), 0 20px 40px rgba(0,0,0,.5);
+    animation: askIn .45s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes askIn { from { transform: scale(.6) translateY(30px); opacity: 0; } }
+  #askOv .askicon { position: absolute; left: 50%; top: -48px; transform: translateX(-50%); width: 100px; height: 100px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 3.2rem; line-height: 1; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--ak) 55%, #fff), var(--ak) 55%, color-mix(in srgb, var(--ak) 60%, #000));
+    box-shadow: 0 0 0 5px #121a3d, 0 0 30px var(--ak); animation: askIcon 1.6s ease-in-out infinite; }
+  @keyframes askIcon { 0%, 100% { transform: translateX(-50%) rotate(-6deg); } 50% { transform: translateX(-50%) rotate(6deg) scale(1.05); } }
+  #askOv h2 { margin: 0 0 6px; font-size: 1.6rem; }
+  #askOv p { max-width: 330px; margin: 0 auto 6px; text-align: center; font-weight: 700; line-height: 1.4; }
+  #askOv .elo { display: inline-block; margin-top: 8px; padding: 6px 16px; border-radius: 999px; background: rgba(0,0,0,.35); font-weight: 900; font-size: 1.15rem; border: 2px solid currentColor; }
+  #askOv .menu { width: 100%; margin-top: 14px; }
+  #askOv.k-resign #askYes { background: linear-gradient(180deg, #ff5a4e, #b8211a); color: #fff; box-shadow: 0 5px 0 #7a130e; }
+  #askOv.k-draw #askYes { background: linear-gradient(180deg, #ffd84a, #e08a00); color: #3a2400; box-shadow: 0 5px 0 #8a5300; }
+  #askOv.k-resign { --ak: #ff5a4e; } #askOv.k-draw { --ak: #ffcf3f; }
   .rewind .pill { flex-direction: column; gap: 1px; padding: 4px 2px; line-height: 1; }
   .rewind .pill small { font-size: .72rem; font-weight: 800; opacity: .85; }
   .rewind .pill .ic { display: block; height: 22px; }
@@ -645,14 +685,14 @@
     </div>
   </div>
   <div class="bar bottom" id="mainBar">
-    <button class="pill" id="backBtn" aria-label="Previous move"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg></button>
-    <button class="pill" id="fwdBtn" aria-label="Next move"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9h10V3.5L22 12l-10 8.5V15H2z"/></svg></button>
-    <button class="pill wide hidden" id="rewindBtn"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 4.5h13.5V1.2l7.3 5.3-7.3 5.3V8.5H1.5z"/><path d="M22.5 15.5H9v-3.3l-7.3 5.3L9 22.8v-3.3h13.5z"/></svg><span style="margin-left:7px">Rewind</span></button>
-    <button class="pill" id="hintBtn" aria-label="Hint">💡</button>
-    <button class="pill" id="undoBtn" aria-label="Take back">↶</button>
-    <button class="pill" id="flipBtn" aria-label="Flip board">⇅</button>
-    <button class="pill gbtn" data-act="draw" id="barDraw" aria-label="Offer a draw"><span class="half">½</span><small>Draw</small></button>
-    <button class="pill gbtn" data-act="resign" id="barResign" aria-label="Resign"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5h1.8v19H5z"/><path d="M7.5 3.5h11.8l-3 4.6 3 4.6H7.5z"/></svg><small>Resign</small></button>
+    <button class="pill gb" id="backBtn" aria-label="Previous move" style="--c1:#5c6b8a;--c2:#39445e"><svg class="gi" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 9.5H11V4L2.5 12 11 20v-5.5h10z"/></svg><small>Back</small></button>
+    <button class="pill gb" id="fwdBtn" aria-label="Next move" style="--c1:#5c6b8a;--c2:#39445e"><svg class="gi" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5h10V4l8.5 8-8.5 8v-5.5H3z"/></svg><small>Next</small></button>
+    <button class="pill gb hidden" id="rewindBtn" style="--c1:#4f7cff;--c2:#2848b8"><svg class="gi" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4a8 8 0 1 1-7.4 5h2.3A6 6 0 1 0 12 6v3L7 5l5-4z"/><path d="M11 8h2v4.4l3 1.8-1 1.7-4-2.4z"/></svg><small>Rewind</small></button>
+    <button class="pill gb" id="hintBtn" aria-label="Hint" style="--c1:#a35cff;--c2:#6a2bc4"><svg class="gi bulb" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/><rect x="8.5" y="18" width="7" height="1.8" rx=".9"/><rect x="9.5" y="20.6" width="5" height="1.8" rx=".9"/><path d="M10 9.5l2 2 2-2" fill="none" stroke="rgba(0,0,0,.35)" stroke-width="1.4" stroke-linecap="round"/></svg><small>Hint</small></button>
+    <button class="pill gb" id="undoBtn" aria-label="Take back" style="--c1:#3aa0ff;--c2:#1f63c6"><svg class="gi spin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 5A8 8 0 1 1 4.6 14h2.3a6 6 0 1 0 5.6-7v3.5L6.5 6l6-4.5z"/></svg><small>Undo</small></button>
+    <button class="pill gb" id="flipBtn" aria-label="Flip board" style="--c1:#22c3a6;--c2:#11826e"><svg class="gi flipi" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2l5 5H8.5v9h-3V7H2z"/><path d="M17 22l-5-5h3.5V8h3v9H22z"/></svg><small>Flip</small></button>
+    <button class="pill gb" data-act="draw" id="barDraw" aria-label="Offer a draw" style="--c1:#ffcf3f;--c2:#e08a00;color:#3a2400"><span class="halfb">½</span><small>Draw</small></button>
+    <button class="pill gb" data-act="resign" id="barResign" aria-label="Resign" style="--c1:#ff5a4e;--c2:#b8211a"><svg class="gi flagw" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="2.2" height="20" rx="1.1"/><path class="cloth" d="M6.5 3.5c3-1.6 5.5 1.6 8.5 0s4.5-.8 4.5-.8v9s-1.5-.8-4.5.8-5.5-1.6-8.5 0z"/></svg><small>Resign</small></button>
   </div>
   <!-- Rewind controls (games against the computer) -->
   <div class="bar bottom rewind hidden" id="rewindBar">
@@ -770,12 +810,14 @@
 </div>
 
 <div class="overlay hidden" id="askOv">
-  <div class="askicon" id="askIcon"></div>
-  <h2 id="askTitle"></h2>
-  <p id="askText"></p>
-  <div class="menu">
-    <button class="btn" data-act="askYes" id="askYes"></button>
-    <button class="btn alt" data-act="askNo" id="askNo"></button>
+  <div class="askcard">
+    <div class="askicon" id="askIcon"></div>
+    <h2 id="askTitle"></h2>
+    <p id="askText"></p>
+    <div class="menu">
+      <button class="btn" data-act="askYes" id="askYes"></button>
+      <button class="btn alt" data-act="askNo" id="askNo"></button>
+    </div>
   </div>
 </div>
 
@@ -8031,6 +8073,7 @@ function engineFactory() {
   function ask(o) {
     $("askIcon").textContent = o.icon || ""; $("askTitle").textContent = o.title; $("askText").innerHTML = o.html;
     $("askYes").textContent = o.yes; $("askNo").textContent = o.no;
+    $("askOv").classList.toggle("k-resign", o.icon === "🏳️"); $("askOv").classList.toggle("k-draw", o.icon === "🤝");
     askCb = { yes: o.onYes, no: o.onNo };
     show("askOv");
   }
