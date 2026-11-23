@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1b1640">
+<title>Game Shelf</title>
+<style>
+  :root {
+    --bg1: #1b1640;
+    --bg2: #3a1c71;
+    --text: #fff;
+    --muted: #c9c3ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text);
+    background: linear-gradient(160deg, var(--bg1), var(--bg2)) fixed;
+    min-height: 100vh;
+    padding: max(24px, env(safe-area-inset-top)) 16px max(32px, env(safe-area-inset-bottom));
+    -webkit-tap-highlight-color: transparent;
+  }
+  header { text-align: center; margin: 8px auto 28px; max-width: 640px; }
+  h1 {
+    font-size: clamp(2.2rem, 9vw, 3.4rem);
+    margin: 0;
+    letter-spacing: -0.02em;
+    text-shadow: 0 4px 0 rgba(0,0,0,.25);
+  }
+  h1 span { display: inline-block; animation: bob 2.4s ease-in-out infinite; }
+  @keyframes bob { 50% { transform: translateY(-6px) rotate(-6deg); } }
+  header p { color: var(--muted); margin: 8px 0 0; font-size: 1.05rem; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+    max-width: 960px;
+    margin: 0 auto;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-height: 120px;
+    padding: 20px;
+    border-radius: 24px;
+    color: #fff;
+    text-decoration: none;
+    background: var(--c, #ff5f6d);
+    box-shadow: 0 8px 0 rgba(0,0,0,.28), 0 14px 30px rgba(0,0,0,.25);
+    transition: transform .12s ease, box-shadow .12s ease;
+    touch-action: manipulation;
+  }
+  .card:hover { transform: translateY(-3px); }
+  .card:active { transform: translateY(6px); box-shadow: 0 2px 0 rgba(0,0,0,.28), 0 6px 14px rgba(0,0,0,.25); }
+  .card:focus-visible { outline: 4px solid #fff; outline-offset: 4px; }
+  .emoji {
+    font-size: 3.2rem;
+    line-height: 1;
+    flex: none;
+    width: 72px; height: 72px;
+    display: grid; place-items: center;
+    background: rgba(255,255,255,.22);
+    border-radius: 20px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 1.4rem; }
+  .card p { margin: 0; font-size: .98rem; opacity: .92; line-height: 1.35; }
+  .soon {
+    background: rgba(255,255,255,.08);
+    box-shadow: none;
+    border: 2px dashed rgba(255,255,255,.3);
+    pointer-events: none;
+  }
+  footer { text-align: center; color: var(--muted); margin-top: 32px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>🎮</span> Game Shelf</h1>
+  <p>Tap a game to play. Works best on your phone!</p>
+</header>
+
+<main class="grid" id="games"></main>
+
+<footer><span id="count"></span></footer>
+
+<script>
+  // ➕ To add a game: add one entry here. `folder` is the game's folder name.
+  const GAMES = [
+    {
+      folder: "block-dodge",
+      title: "Block Dodge",
+      emoji: "🟥",
+      blurb: "Slide left and right to dodge the falling blocks. How long can you last?",
+      color: "linear-gradient(135deg, #ff5f6d, #ffc371)"
+    }
+  ];
+
+  const grid = document.getElementById("games");
+  for (const g of GAMES) {
+    const a = document.createElement("a");
+    a.className = "card";
+    a.href = g.folder + "/";
+    a.style.setProperty("--c", g.color);
+    a.innerHTML = `<div class="emoji">${g.emoji}</div><div><h2></h2><p></p></div>`;
+    a.querySelector("h2").textContent = g.title;
+    a.querySelector("p").textContent = g.blurb;
+    grid.appendChild(a);
+  }
+  const soon = document.createElement("div");
+  soon.className = "card soon";
+  soon.innerHTML = `<div class="emoji">✨</div><div><h2>More soon…</h2><p>New games land here.</p></div>`;
+  grid.appendChild(soon);
+
+  document.getElementById("count").textContent =
+    GAMES.length + (GAMES.length === 1 ? " game" : " games") + " on the shelf";
+</script>
+</body>
+</html>

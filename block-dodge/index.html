@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14112e">
+<title>Block Dodge</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #14112e; color: #fff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  canvas { display: block; width: 100vw; height: 100vh; height: 100dvh; touch-action: none; }
+  .hud {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: max(12px, env(safe-area-inset-top)) 16px 12px;
+    pointer-events: none; font-weight: 700;
+  }
+  .hud .score { font-size: 2rem; text-shadow: 0 3px 0 rgba(0,0,0,.35); }
+  .hud .best { font-size: 1rem; opacity: .8; }
+  .home {
+    pointer-events: auto; color: #fff; text-decoration: none;
+    background: rgba(255,255,255,.14); padding: 8px 12px; border-radius: 12px; font-size: .95rem;
+  }
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    padding: 24px 16px; background: rgba(20,17,46,.72);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .overlay.hidden { display: none; }
+  .overlay h1 { font-size: clamp(2.4rem, 11vw, 3.6rem); margin: 0 0 8px; }
+  .overlay p { margin: 6px 0; font-size: 1.1rem; opacity: .9; max-width: 320px; line-height: 1.4; }
+  .overlay .big { font-size: 3rem; font-weight: 800; margin: 4px 0; }
+  button {
+    margin-top: 22px; font: inherit; font-size: 1.4rem; font-weight: 800;
+    color: #14112e; background: linear-gradient(135deg, #ffc371, #ff5f6d);
+    border: 0; border-radius: 20px; padding: 18px 44px;
+    box-shadow: 0 6px 0 #a3324a; touch-action: manipulation; cursor: pointer;
+  }
+  button:active { transform: translateY(4px); box-shadow: 0 2px 0 #a3324a; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="hud">
+  <a class="home" href="../">← Games</a>
+  <div class="score" id="score">0</div>
+  <div class="best" id="best">Best 0</div>
+</div>
+
+<div class="overlay" id="start">
+  <h1>🟥 Block Dodge</h1>
+  <p>Drag your finger to move. Dodge the falling blocks!</p>
+  <p style="opacity:.6;font-size:.95rem">(Arrow keys work too.)</p>
+  <button id="playBtn">Play</button>
+</div>
+
+<div class="overlay hidden" id="over">
+  <h1>Bonk! 💥</h1>
+  <p>Score</p>
+  <div class="big" id="finalScore">0</div>
+  <p id="newBest"></p>
+  <button id="againBtn">Play again</button>
+</div>
+
+<script>
+(() => {
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d");
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
+  const startEl = document.getElementById("start");
+  const overEl = document.getElementById("over");
+  const finalEl = document.getElementById("finalScore");
+  const newBestEl = document.getElementById("newBest");
+
+  const COLORS = ["#ff5f6d", "#ffc371", "#7afcff", "#a78bfa", "#5eead4", "#f472b6"];
+  let W = 0, H = 0, DPR = 1;
+  let state = "menu"; // menu | playing | over
+  let player, blocks, particles, score, elapsed, spawnTimer, lastT;
+  let targetX = null;
+  const keys = { left: false, right: false };
+
+  let best = 0;
+  try { best = Number(localStorage.getItem("blockDodgeBest")) || 0; } catch (e) {}
+  bestEl.textContent = "Best " + best;
+
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = window.innerWidth; H = window.innerHeight;
+    canvas.width = W * DPR; canvas.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    if (player) {
+      player.y = H - player.size - Math.max(40, H * 0.08);
+      player.x = Math.min(Math.max(player.x, 0), W - player.size);
+    }
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  function reset() {
+    const size = Math.max(36, Math.min(56, W * 0.11));
+    player = { x: W / 2 - size / 2, y: H - size - Math.max(40, H * 0.08), size };
+    blocks = []; particles = [];
+    score = 0; elapsed = 0; spawnTimer = 0.4;
+    targetX = null;
+    scoreEl.textContent = "0";
+  }
+
+  function start() {
+    reset();
+    state = "playing";
+    startEl.classList.add("hidden");
+    overEl.classList.add("hidden");
+    lastT = performance.now();
+  }
+
+  function gameOver() {
+    state = "over";
+    for (let i = 0; i < 30; i++) {
+      const a = Math.random() * Math.PI * 2, s = 120 + Math.random() * 320;
+      particles.push({ x: player.x + player.size / 2, y: player.y + player.size / 2,
+        vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 1, color: "#fff" });
+    }
+    if (navigator.vibrate) { try { navigator.vibrate(120); } catch (e) {} }
+    finalEl.textContent = score;
+    if (score > best) {
+      best = score;
+      try { localStorage.setItem("blockDodgeBest", String(best)); } catch (e) {}
+      bestEl.textContent = "Best " + best;
+      newBestEl.textContent = "🏆 New best!";
+    } else {
+      newBestEl.textContent = "Best: " + best;
+    }
+    setTimeout(() => { if (state === "over") overEl.classList.remove("hidden"); }, 650);
+  }
+
+  // Difficulty ramps with time survived
+  const fallSpeed = () => H * (0.35 + Math.min(elapsed, 90) * 0.012);
+  const spawnEvery = () => Math.max(0.22, 0.85 - elapsed * 0.012);
+
+  function spawn() {
+    const minS = Math.max(28, W * 0.07), maxS = Math.max(60, W * 0.17);
+    const size = minS + Math.random() * (maxS - minS);
+    blocks.push({
+      x: Math.random() * (W - size), y: -size, size,
+      speed: fallSpeed() * (0.8 + Math.random() * 0.5),
+      color: COLORS[(Math.random() * COLORS.length) | 0],
+      rot: 0, spin: (Math.random() - 0.5) * 2
+    });
+  }
+
+  function update(dt) {
+    if (state === "playing") {
+      elapsed += dt;
+      // movement: follow finger, or keys
+      const maxMove = W * 2.2 * dt;
+      if (targetX !== null) {
+        const want = targetX - player.size / 2;
+        const d = want - player.x;
+        player.x += Math.max(-maxMove, Math.min(maxMove, d));
+      } else {
+        const dir = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+        player.x += dir * W * 0.9 * dt;
+      }
+      player.x = Math.min(Math.max(player.x, 0), W - player.size);
+
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) { spawn(); spawnTimer = spawnEvery(); }
+
+      const pad = player.size * 0.12; // forgiving hitbox
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        const b = blocks[i];
+        b.y += b.speed * dt;
+        b.rot += b.spin * dt;
+        if (b.y > H) {
+          blocks.splice(i, 1);
+          score++;
+          scoreEl.textContent = score;
+          continue;
+        }
+        const bp = b.size * 0.1;
+        if (player.x + pad < b.x + b.size - bp && player.x + player.size - pad > b.x + bp &&
+            player.y + pad < b.y + b.size - bp && player.y + player.size - pad > b.y + bp) {
+          gameOver();
+          break;
+        }
+      }
+    }
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 600 * dt; p.life -= dt * 1.4;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+  }
+
+  function roundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  const stars = Array.from({ length: 60 }, () => ({ x: Math.random(), y: Math.random(), s: Math.random() * 1.6 + 0.4, v: Math.random() * 0.03 + 0.01 }));
+
+  function draw(dt) {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, "#14112e"); g.addColorStop(1, "#3a1c71");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "rgba(255,255,255,.55)";
+    for (const s of stars) {
+      s.y += s.v * dt; if (s.y > 1) s.y -= 1;
+      ctx.fillRect(s.x * W, s.y * H, s.s, s.s);
+    }
+
+    for (const b of blocks) {
+      ctx.save();
+      ctx.translate(b.x + b.size / 2, b.y + b.size / 2);
+      ctx.rotate(b.rot);
+      ctx.fillStyle = "rgba(0,0,0,.25)";
+      roundRect(-b.size / 2 + 4, -b.size / 2 + 6, b.size, b.size, b.size * 0.18); ctx.fill();
+      ctx.fillStyle = b.color;
+      roundRect(-b.size / 2, -b.size / 2, b.size, b.size, b.size * 0.18); ctx.fill();
+      ctx.restore();
+    }
+
+    if (player && state !== "over") {
+      const p = player;
+      ctx.fillStyle = "rgba(0,0,0,.3)";
+      roundRect(p.x + 3, p.y + 6, p.size, p.size, p.size * 0.3); ctx.fill();
+      ctx.fillStyle = "#ffffff";
+      roundRect(p.x, p.y, p.size, p.size, p.size * 0.3); ctx.fill();
+      // face
+      ctx.fillStyle = "#14112e";
+      const e = p.size * 0.09;
+      ctx.beginPath(); ctx.arc(p.x + p.size * 0.33, p.y + p.size * 0.42, e, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(p.x + p.size * 0.67, p.y + p.size * 0.42, e, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = Math.max(2, p.size * 0.06); ctx.strokeStyle = "#14112e"; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.arc(p.x + p.size / 2, p.y + p.size * 0.55, p.size * 0.18, 0.2 * Math.PI, 0.8 * Math.PI); ctx.stroke();
+    }
+
+    for (const pt of particles) {
+      ctx.globalAlpha = Math.max(0, pt.life);
+      ctx.fillStyle = pt.color;
+      ctx.fillRect(pt.x - 3, pt.y - 3, 6, 6);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop(t) {
+    const dt = Math.max(0, Math.min(0.05, (t - (lastT || t)) / 1000));
+    lastT = t;
+    update(dt);
+    draw(dt);
+    requestAnimationFrame(loop);
+  }
+  reset();
+  requestAnimationFrame(loop);
+
+  // Touch / mouse: player follows your finger's x position
+  function pointerX(e) { return e.clientX; }
+  canvas.addEventListener("pointerdown", e => { if (state === "playing") { targetX = pointerX(e); canvas.setPointerCapture(e.pointerId); } e.preventDefault(); });
+  canvas.addEventListener("pointermove", e => { if (state === "playing" && (e.buttons || e.pointerType === "touch")) targetX = pointerX(e); e.preventDefault(); });
+  const release = () => { targetX = null; };
+  canvas.addEventListener("pointerup", release);
+  canvas.addEventListener("pointercancel", release);
+  document.addEventListener("touchmove", e => e.preventDefault(), { passive: false });
+
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft" || e.key === "a") keys.left = true;
+    if (e.key === "ArrowRight" || e.key === "d") keys.right = true;
+    if ((e.key === " " || e.key === "Enter") && state !== "playing") start();
+  });
+  window.addEventListener("keyup", e => {
+    if (e.key === "ArrowLeft" || e.key === "a") keys.left = false;
+    if (e.key === "ArrowRight" || e.key === "d") keys.right = false;
+  });
+
+  document.getElementById("playBtn").addEventListener("click", start);
+  document.getElementById("againBtn").addEventListener("click", start);
+
+  // expose for automated tests
+  window.__blockDodge = { get state() { return state; }, get score() { return score; } };
+})();
+</script>
+</body>
+</html>
