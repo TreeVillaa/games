@@ -266,7 +266,9 @@
   .chip.tile { padding: 6px 4px 5px; gap: 4px; min-height: 0; }
   .chip.tile small { font-size: .72rem; }
   .minib { display: grid; grid-template-columns: repeat(3, 1fr); width: 84px; height: 84px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
-  .minib i { display: grid; place-items: center; background-size: 320% 320%; }
+  .minib i { display: grid; place-items: center; background-size: 240% 240%; min-width: 0; min-height: 0; overflow: hidden; }
+  .minif { display: block; padding: 5px; border-radius: 10px; background-size: 120px 120px; box-shadow: 0 2px 6px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.2); }
+  .minif .minib { width: 78px; height: 78px; border-radius: 3px; box-shadow: none; }
   .minib i svg.pcs, .minib i .pc { width: 92%; height: 92%; font-size: 22px; }
   .chip.tile.sel { outline: 3px solid #ffd84a; outline-offset: 2px; }
   .sndic { font-size: 2rem; line-height: 1.2; display: block; padding: 6px 0 2px; }
@@ -6932,8 +6934,16 @@ function engineFactory() {
   }));
   // ---------- Boards & Pieces picker ----------
   let styleTab = "boards";
-  const miniBoard = (b, pieces) => `<span class="minib">${pieces.map((p, i) => { const l = ((i % 3) + (i / 3 | 0)) % 2 === 0;
-      return `<i style="background-color:${l ? b.light : b.dark};background-image:${l ? b.lightImg : b.darkImg};background-position:${(i * 37) % 100}% ${(i * 53) % 100}%">${p}</i>`; }).join("")}</span>`;
+  // Small preview of a board (with its texture and frame). The texture CSS has quotes in it, so escape them for the style attribute.
+  const attr = v => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
+  const miniBoard = (b, pieces, n = 3) => {
+    const cells = Array.from({ length: n * n }, (_, i) => {
+      const l = ((i % n) + ((i / n) | 0)) % 2 === 0, p = pieces[i] || "";
+      return `<i style="background-color:${l ? b.light : b.dark};background-image:${attr(l ? b.lightImg : b.darkImg)};background-position:${(i * 37) % 100}% ${(i * 53) % 100}%">${p}</i>`;
+    }).join("");
+    const grid = `<span class="minib" style="grid-template-columns:repeat(${n},1fr);grid-template-rows:repeat(${n},1fr)">${cells}</span>`;
+    return b.frame ? `<span class="minif" style="background-color:${b.frame};background-image:${attr(b.frameImg)}">${grid}</span>` : grid;
+  };
   function paintStyle() {
     $("styleTitle").textContent = { boards: "Boards", pieces: "Pieces", shapes: "Piece Shapes", sounds: "Move Sounds" }[styleTab];
     $("styleTabs").innerHTML = chip("st:boards", "Boards", styleTab === "boards") + chip("st:pieces", "Pieces", styleTab === "pieces") + chip("st:shapes", "Shapes", styleTab === "shapes") + chip("st:sounds", "Sounds", styleTab === "sounds");
@@ -6943,7 +6953,7 @@ function engineFactory() {
       : styleTab === "sounds"
       ? SOUNDS.map(x => chip("sn:" + x.id, `<span class="sndic">${x.icon}</span><small>${x.name}</small>`, prefs.moveSound === x.id))
       : styleTab === "boards"
-      ? BOARDS.map(b => chip("bd:" + b.id, miniBoard(b, ["", pieceHTML("k"), "", pieceHTML("P"), "", pieceHTML("n"), "", pieceHTML("Q"), ""]) + `<small>${b.name}</small>`, prefs.board === b.id))
+      ? BOARDS.map(b => chip("bd:" + b.id, miniBoard(b, ["", "", pieceHTML("k"), "", "", "", "", "", "", "", "", "", "", pieceHTML("Q"), "", ""], 4) + `<small>${b.name}</small>`, prefs.board === b.id))
       : PIECESETS.map(ps => chip("ps:" + ps.id, miniBoard(boardById(prefs.board), [pieceHTML("k", ps.id), pieceHTML("q", ps.id), pieceHTML("n", ps.id), "", "", "", pieceHTML("N", ps.id), pieceHTML("Q", ps.id), pieceHTML("K", ps.id)]) + `<small>${ps.name}</small>`, prefs.pieces === ps.id));
     let h = "";
     for (let i = 0; i < tiles.length; i += 3) h += `<div class="chips">${tiles.slice(i, i + 3).join("")}</div>`;
