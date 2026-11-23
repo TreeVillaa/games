@@ -309,8 +309,8 @@ const TC = { bullet: { name: "bullet", base: 60000, inc: 0 }, blitz: { name: "bl
 const pub = u => ({ name: u.name, key: u.key, elo: u.elo, w: u.w, l: u.l, d: u.d, created: u.created, online: Date.now() - (u.seen || 0) < 60000, look: u.look || null });
 // A player's character (built in the game's "Add user" screen). Only known fields and safe values are kept.
 const LOOK_FIELDS = { s: /^(k[1-7]|ea|sa)$/, f: /^(oval|square|long|round|narrow)$/, hs: /^(short|side|messy|slick|buzz|receding|shaved|bald|curly|hightop|afro|long|longcurly|bob|bun|manbun|locs|quiff|spiky)$/,
-  h: /^#[0-9a-f]{6}$/i, e: /^#[0-9a-f]{6}$/i, b: /^(none|stubble|short|full|mus)$/, g: /^(none|thin|round|thick|shades)$/, c: /^(hoodie|tee|sweater|shirt|polo|suit|blazer|jersey|top)$/,
-  cc: /^#[0-9a-f]{6}$/i, bw: /^(slim|regular|broad)$/, x: /^(none|cap|band|phones)$/, xc: /^#[0-9a-f]{6}$/i, sm: /^[0-2]$/, fem: /^[01]$/ };
+  h: /^#[0-9a-f]{6}$/i, e: /^#[0-9a-f]{6}$/i, b: /^(none|(stubble|short|full|mus)(,(stubble|short|full|mus))?)$/, g: /^(none|(thin|round|thick|shades|headshades)(,(thin|round|thick|shades|headshades))?)$/, c: /^(hoodie|tee|sweater|shirt|polo|suit|blazer|jersey|top)$/,
+  cc: /^#[0-9a-f]{6}$/i, bw: /^(slim|regular|broad)$/, x: /^(none|(cap|beanie|band|phones|chain|earring)(,(cap|beanie|band|phones|chain|earring))?)$/, xc: /^#[0-9a-f]{6}$/i, sm: /^[0-2]$/, fem: /^[01]$/ };
 function cleanLook(l) {
   if (!l || typeof l !== "object") return null;
   const out = {};
