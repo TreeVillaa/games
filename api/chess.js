@@ -289,8 +289,11 @@ function engineFactory() {
 const E = engineFactory();
 
 /* ---------------- database (Upstash Redis REST) ---------------- */
-const DB_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-const DB_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+// The Upstash database settings. Vercel may add them with a custom prefix (e.g. STORAGE_KV_REST_API_URL),
+// so any variable ending in KV_REST_API_URL / REDIS_REST_URL (and the matching token) is accepted.
+const envEnding = ends => { for (const e of ends) { if (process.env[e]) return process.env[e]; const k = Object.keys(process.env).find(n => n.endsWith("_" + e) && process.env[n]); if (k) return process.env[k]; } return undefined; };
+const DB_URL = envEnding(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL", "REDIS_REST_URL"]);
+const DB_TOKEN = envEnding(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN", "REDIS_REST_TOKEN"]);
 async function r(...cmd) {
   const res = await fetch(DB_URL, { method: "POST", headers: { Authorization: `Bearer ${DB_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify(cmd.map(String)) });
   const j = await res.json();

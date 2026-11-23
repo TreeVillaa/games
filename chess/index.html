@@ -482,6 +482,7 @@
   .plusb.fr { background: rgba(255,255,255,.12); box-shadow: none; font-size: 1.1rem; }
   .plusb.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
   .offnote { text-align: left; background: rgba(255,180,60,.18); border: 2px solid rgba(255,190,80,.7); border-radius: 14px; padding: 10px 12px; font-size: .88rem; line-height: 1.35; margin-bottom: 10px; }
+  .offnote ol.setup { margin: 6px 0 0; padding-left: 20px; } .offnote ol.setup li { margin: 2px 0; }
   .offnote .mini { display: block; margin: 8px 0 0; min-height: 38px; width: auto; padding: 0 14px; }
   .su-err.big { margin: 10px 0 6px; font-size: .95rem; text-align: center; }
   .su-err.big:empty { display: none; }
@@ -7320,7 +7321,10 @@ function engineFactory() {
       else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p><button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
     }
   }
-  const offlineNote = () => !soc.offline ? "" : `<div class="offnote">⚠️ <b>${soc.offline === "offline" ? "You're offline." : "Online accounts aren't switched on yet."}</b> ${soc.offline === "offline" ? "Connect to the internet to create your user." : "The game owner needs to connect the online database in Vercel. You can still build your character now!"}<button class="mini" data-dact="socialRetry">🔄 Try again</button></div>`;
+  const offlineNote = () => !soc.offline ? "" : `<div class="offnote">⚠️ <b>${soc.offline === "offline" ? "You're offline." : soc.offline === "no_server" ? "The game server isn't running yet." : "The online database isn't connected yet."}</b>
+    ${soc.offline === "offline" ? "Connect to the internet to create your user." : soc.offline === "no_server" ? "The site was deployed without its server part. Redeploy the games project in Vercel." : "Leaderboard, friend requests and messages turn on once the owner connects it:"}
+    ${soc.offline === "not_configured" ? `<ol class="setup"><li>vercel.com → your <b>games</b> project → <b>Storage</b></li><li><b>Create Database</b> → <b>Upstash for Redis</b> (free)</li><li><b>Connect</b> it to the games project</li><li><b>Deployments</b> → newest → <b>⋯</b> → <b>Redeploy</b></li></ol>` : ""}
+    <button class="mini" data-dact="socialRetry">🔄 Try again</button></div>`;
   function renderSignup(msg, open) {
     if (!open && !msg) {
       $("socialBody").innerHTML = offlineNote() + `<div class="sect" style="text-align:center"><div class="lbl">No user yet</div>
