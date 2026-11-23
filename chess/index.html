@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#1d1a36">
+<meta name="theme-color" content="#0b1d4d">
 <title>Chess</title>
 <style>
   * { box-sizing: border-box; }
@@ -13,7 +13,13 @@
   html[data-theme="purple"] { --light: #ece4f7; --dark: #9b7fc9; --lastL: #f3e98a; --lastD: #c6b04f; }
   html, body {
     margin: 0; height: 100%; overflow: hidden;
-    background: linear-gradient(160deg, #1d1a36, #2f2457); color: #fff;
+    color: #fff;
+    background:
+      radial-gradient(120% 55% at 90% 112%, rgba(255,196,40,.55), transparent 62%),
+      radial-gradient(90% 45% at 0% -5%, rgba(90,170,255,.4), transparent 60%),
+      conic-gradient(rgba(255,255,255,.05) 25%, transparent 0 50%, rgba(255,255,255,.05) 0 75%, transparent 0) 0 0 / 56px 56px,
+      linear-gradient(165deg, #0a1b4a 0%, #13378c 55%, #24479c 78%, #6f6a3e 100%);
+    background-color: #0b1d4d;
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-user-select: none; user-select: none;
     -webkit-tap-highlight-color: transparent;
@@ -39,6 +45,46 @@
   .pill:disabled { opacity: .3; }
   .bottom .pill { flex: 1; padding: 10px 4px; font-size: 1.05rem; }
   .bar.hidden, .pill.hidden { display: none; }
+  .rookgear { width: 30px; height: 30px; display: block; fill: currentColor; }
+  .rookgear .rook { stroke: var(--gap, #2a4aa0); stroke-width: 2.4; paint-order: stroke; stroke-linejoin: round; }
+  #settingsBtn { color: #ffd84a; padding: 6px; background: linear-gradient(135deg, rgba(255,216,74,.25), rgba(90,170,255,.25)); --gap: #1d3f93; }
+  #settingsBtn:active .rookgear .gear { transform: rotate(45deg); }
+  .rookgear .gear { transform-origin: 32px 29px; transition: transform .3s; }
+  .bar .pill.icon { padding: 8px; min-width: 48px; }
+  #status { font-size: 1rem; }
+
+  /* ---- Settings screen ---- */
+  .set-head { display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
+  .set-head .rookgear { width: 50px; height: 50px; color: #ffd84a; --gap: #163f9e; filter: drop-shadow(0 4px 0 rgba(0,0,0,.25)); animation: spinIn .6s ease-out; }
+  .set-head h2 { margin: 0; font-size: 2rem; text-shadow: 0 3px 0 rgba(0,0,0,.25); }
+  @keyframes spinIn { from { transform: rotate(-120deg) scale(.6); opacity: 0; } }
+  .panel {
+    width: min(360px, 100%); margin-top: 10px; padding: 14px; border-radius: 24px;
+    background: linear-gradient(160deg, rgba(40,110,240,.92), rgba(16,52,150,.95));
+    border: 3px solid rgba(255,216,74,.7); box-shadow: 0 10px 0 rgba(0,0,0,.25), 0 18px 40px rgba(0,0,0,.35);
+  }
+  .panel .menu { margin-top: 0; width: 100%; gap: 7px; }
+  .panel .opt { background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.12); min-height: 48px; padding: 5px 10px; justify-content: flex-start; font-size: .98rem; }
+  .panel .opt span { flex: 1; }
+  .panel .opt:nth-child(odd) { background: rgba(120,190,255,.16); }
+  .sic {
+    width: 31px; height: 31px; flex: none; border-radius: 11px; display: grid; place-items: center;
+    background: var(--ic); color: #0b1d4d; font-style: normal; font-weight: 900; font-size: 1.05rem;
+    box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
+  }
+  .opt b.sw { width: 54px; height: 30px; border-radius: 15px; background: rgba(0,0,0,.3); position: relative; flex: none; transition: background .2s; }
+  .opt b.sw::before { content: none; }
+  .opt b.sw::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+    background: #fff; opacity: 1; box-shadow: 0 2px 4px rgba(0,0,0,.35); transition: transform .2s;
+  }
+  .opt b.sw.on { background: linear-gradient(135deg, #ffe36e, #ffb21f); }
+  .opt b.sw.on::after { transform: translateX(24px); }
+  .opt b.swatches::before, .opt b.swatches::after { content: none; }
+  .opt b.swatches { gap: 6px; }
+  .swt { width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(255,255,255,.35); }
+  .swt.sel { border: 3px solid #ffd84a; transform: scale(1.15); }
+  .panel .btn { margin-top: 4px; }
   .rewind .pill { flex-direction: column; gap: 1px; padding: 4px 2px; line-height: 1; }
   .rewind .pill small { font-size: .72rem; font-weight: 800; opacity: .85; }
   .rewind .pill .ic { display: block; height: 22px; }
@@ -141,7 +187,10 @@
     position: fixed; inset: 0; display: flex; flex-direction: column;
     align-items: center; justify-content: center; text-align: center;
     padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
-    background: rgba(20,17,46,.88);
+    background:
+      conic-gradient(rgba(255,214,90,.11) 25%, transparent 0 50%, rgba(255,214,90,.11) 0 75%, transparent 0) 0 0 / 64px 64px,
+      radial-gradient(110% 60% at 100% 105%, rgba(255,190,40,.55), transparent 65%),
+      linear-gradient(160deg, rgba(10,30,90,.95), rgba(22,72,175,.93) 60%, rgba(40,80,170,.93));
     backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 10; overflow-y: auto;
   }
   .overlay.hidden { display: none; }
@@ -153,14 +202,16 @@
   .menu.row { flex-direction: row; justify-content: center; }
   .btn, .opt {
     font: inherit; font-size: 1.12rem; font-weight: 800;
-    color: #1d1a36; background: linear-gradient(135deg, #ffe29f, #ffa99f);
+    color: #0b1d4d; background: linear-gradient(135deg, #ffe36e, #ffb21f);
     border: 0; border-radius: 16px; padding: 12px 18px; min-height: 52px;
-    box-shadow: 0 5px 0 #9c5a4a; touch-action: manipulation; cursor: pointer; outline: none;
+    box-shadow: 0 5px 0 #a8670a; touch-action: manipulation; cursor: pointer; outline: none;
   }
-  .btn.alt { background: linear-gradient(135deg, #c9c3ff, #8ec5fc); box-shadow: 0 5px 0 #4b4f9c; }
-  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #4b4f9c; }
+  .btn.alt { color: #fff; background: linear-gradient(135deg, #5fb0ff, #2b63dd); box-shadow: 0 5px 0 #173e94; }
+  .btn:active { transform: translateY(3px); box-shadow: 0 2px 0 #173e94; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn .rookgear { width: 26px; height: 26px; }
   .opt {
-    background: rgba(255,255,255,.12); color: #fff; box-shadow: none;
+    background: rgba(255,255,255,.13); color: #fff; box-shadow: none; border: 2px solid rgba(255,255,255,.14);
     display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 1.02rem; text-align: left;
   }
   .opt:active { background: rgba(255,255,255,.2); }
@@ -249,7 +300,8 @@
   <div class="bar">
     <a class="pill" href="../">← Games</a>
     <div id="status">Chess</div>
-    <button class="pill" id="menuBtn" aria-label="Menu">☰</button>
+    <button class="pill icon" id="menuBtn" aria-label="Menu">☰</button>
+    <button class="pill icon" id="settingsBtn" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
   </div>
   <div class="mid">
     <div class="player" id="pTop"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
@@ -290,7 +342,7 @@
     <button class="opt" data-opt="color"><span>You play</span><b></b></button>
     <button class="opt" data-opt="time"><span>Clock</span><b></b></button>
     <button class="btn" data-act="start" id="startBtn">Start game</button>
-    <button class="btn alt" data-act="settings">⚙️ Settings</button>
+    <button class="btn alt" data-act="settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg>Settings</button>
   </div>
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
 </div>
@@ -301,26 +353,26 @@
     <button class="btn" data-act="resume">Resume</button>
     <button class="btn alt" data-act="draw" id="drawBtn">🤝 Offer a draw</button>
     <button class="btn alt" data-act="resign" id="resignBtn">🏳️ Resign</button>
-    <button class="btn alt" data-act="settings">⚙️ Settings</button>
+    <button class="btn alt" data-act="settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg>Settings</button>
     <button class="btn alt" data-act="pgn">📋 Copy game (PGN)</button>
     <button class="btn alt" data-act="newgame">🆕 New game</button>
   </div>
 </div>
 
 <div class="overlay hidden" id="settingsOv">
-  <h2>Settings</h2>
-  <div class="menu">
-    <button class="opt" data-pref="sound"><span>Sound</span><b></b></button>
-    <button class="opt" data-pref="theme"><span>Board</span><b></b></button>
-    <button class="opt" data-pref="legal"><span>Show legal moves</span><b></b></button>
-    <button class="opt" data-pref="coords"><span>Coordinates</span><b></b></button>
-    <button class="opt" data-pref="animate"><span>Piece animation</span><b></b></button>
-    <button class="opt" data-pref="ratings"><span>Move ratings (Brilliant, Blunder…)</span><b></b></button>
-    <button class="opt" data-pref="evalbar"><span>Evaluation bar</span><b></b></button>
-    <button class="opt" data-pref="autoQueen"><span>Always promote to queen</span><b></b></button>
-    <button class="opt" data-pref="autoFlip"><span>2 players: flip each turn</span><b></b></button>
+  <div class="set-head"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg><h2>Settings</h2></div>
+  <div class="panel"><div class="menu">
+    <button class="opt" data-pref="sound"><i class="sic" style="--ic:#ffd84a">♪</i><span>Sound</span><b></b></button>
+    <button class="opt" data-pref="theme"><i class="sic" style="--ic:#7cc4ff">▦</i><span>Board colours</span><b></b></button>
+    <button class="opt" data-pref="legal"><i class="sic" style="--ic:#5ee0c0">●</i><span>Show legal moves</span><b></b></button>
+    <button class="opt" data-pref="coords"><i class="sic" style="--ic:#b8a4ff">a1</i><span>Coordinates</span><b></b></button>
+    <button class="opt" data-pref="animate"><i class="sic" style="--ic:#ff9ecf">➜</i><span>Piece animation</span><b></b></button>
+    <button class="opt" data-pref="ratings"><i class="sic" style="--ic:#2fd6b5">!!</i><span>Move ratings</span><b></b></button>
+    <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
+    <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
+    <button class="opt" data-pref="autoFlip"><i class="sic" style="--ic:#9fd0ff">⇅</i><span>2 players: flip each turn</span><b></b></button>
     <button class="btn" data-act="settingsDone">Done</button>
-  </div>
+  </div></div>
 </div>
 
 <div class="overlay hidden" id="promoOv">
@@ -1400,9 +1452,14 @@ function engineFactory() {
       b.style.display = (k === "level" || k === "color") && !cpu ? "none" : "";
       b.querySelector("b").textContent = setupText[k](setup[k]);
     }
+    const SW = { wood: ["#f0d9b5", "#b58863"], green: ["#eeeed2", "#769656"], blue: ["#dee3e6", "#8ca2ad"], purple: ["#ece4f7", "#9b7fc9"] };
     for (const b of document.querySelectorAll("[data-pref]")) {
-      const k = b.dataset.pref, v = prefs[k];
-      b.querySelector("b").textContent = prefText[k] ? prefText[k](v) : v ? "On" : "Off";
+      const k = b.dataset.pref, v = prefs[k], el = b.querySelector("b");
+      if (k === "theme") {
+        el.className = "swatches";
+        el.innerHTML = PREFS.theme.map(t => `<span class="swt${t === v ? " sel" : ""}" title="${prefText.theme(t)}" style="background:linear-gradient(135deg, ${SW[t][0]} 50%, ${SW[t][1]} 50%)"></span>`).join("");
+      } else { el.className = "sw" + (v ? " on" : ""); el.textContent = ""; }
+      b.setAttribute("aria-pressed", k === "theme" ? "" : String(!!v));
     }
     $("contBtn").style.display = loadSave() ? "" : "none";
   }
@@ -1498,6 +1555,7 @@ function engineFactory() {
   }
   document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => { audioUnlock(); act(b.dataset.act); }));
   $("menuBtn").addEventListener("click", () => { if (mode) pause(); else showSetup(); });
+  $("settingsBtn").addEventListener("click", () => { audioUnlock(); act("settings"); });
   $("undoBtn").addEventListener("click", undo);
   $("hintBtn").addEventListener("click", hint);
   $("backBtn").addEventListener("click", stepBack);
