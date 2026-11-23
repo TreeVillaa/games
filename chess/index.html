@@ -5488,18 +5488,18 @@ function engineFactory() {
     BOT("Ben Finegold", 2550, "youtubers", "Grandmaster and teacher famous for one rule: never play f6!", [SK[0], "#9e9e9e", "bald", "#5d4037", "g"]),
     BOT("Alexandra Kosteniuk", 2561, "youtubers", "Women's World Champion (2008) who shares chess with fans online.", [SK[0], "#e6c36a", "long", "#e91e63"]),
     // ---- famous YouTubers & creators (bots with their names, not the real people) ----
-    BOT("MrBeast", 1200, "youtubers", "Famous for giant challenge videos and huge giveaways. Would bet a million on this game.", [SK[0], "#5d4037", "short", "#1e88e5", "b"]),
-    BOT("Mark Rober", 1850, "youtubers", "Former NASA engineer who builds amazing science gadgets. Calculates every move like a rocket launch.", [SK[0], "#8d6e63", "short", "#ff7043"]),
-    BOT("Dude Perfect", 1000, "youtubers", "Trick-shot crew that never misses. Expect flashy moves!", [SK[1], "#3a2a1e", "cap", "#2e7d32"]),
-    BOT("MKBHD", 1650, "youtubers", "Tech reviewer known for super-crisp videos. Smooth, clean, no wasted moves.", [SK[4], "#111111", "short", "#d32f2f", "b"]),
-    BOT("PewDiePie", 1400, "youtubers", "One of the most-subscribed YouTubers ever. Calm but full of surprises.", [SK[0], "#c9a26a", "side", "#212121", "b"]),
-    BOT("IShowSpeed", 700, "youtubers", "High-energy streamer and huge soccer fan. Plays at maximum speed!", [SK[4], "#111111", "short", "#ffeb3b"]),
-    BOT("Markiplier", 1300, "youtubers", "Gaming YouTuber famous for horror games. Not scared of any opening.", [SK[0], "#d32f2f", "side", "#424242", "b"]),
-    BOT("Jacksepticeye", 1250, "youtubers", "Super-cheerful Irish YouTuber. Top of the morning... and top of the board.", [SK[0], "#2e7d32", "spiky", "#43a047", "b"]),
-    BOT("KSI", 1100, "youtubers", "YouTuber, boxer and musician from the Sidemen. Comes out swinging.", [SK[4], "#111111", "short", "#7b1fa2"]),
-    BOT("Kai Cenat", 900, "youtubers", "Record-breaking streamer. Every game is a big event.", [SK[4], "#111111", "curly", "#ff6f00"]),
-    BOT("Airrack", 1150, "youtubers", "Makes wild challenge videos and big stunts. Always going bigger.", [SK[0], "#3a2a1e", "short", "#00bcd4"]),
-    BOT("Preston", 950, "youtubers", "Gaming YouTuber who loves building and fire-coloured everything.", [SK[0], "#3a2a1e", "short", "#ff3d00"]),
+    BOT("MrBeast", 450, "youtubers", "Famous for giant challenge videos and huge giveaways. Just learned chess for a video and keeps trying to buy extra queens.", [SK[0], "#5d4037", "short", "#1e88e5", "b"]),
+    BOT("Mark Rober", 500, "youtubers", "Former NASA engineer who builds amazing science gadgets. Great at rockets, not so great at knights.", [SK[0], "#8d6e63", "short", "#ff7043"]),
+    BOT("Dude Perfect", 350, "youtubers", "Trick-shot crew that never misses... except in chess. Tries to bank the bishop off the wall.", [SK[1], "#3a2a1e", "cap", "#2e7d32"]),
+    BOT("MKBHD", 500, "youtubers", "Tech reviewer known for super-crisp videos. Reviews every move carefully, then still blunders it.", [SK[4], "#111111", "short", "#d32f2f", "b"]),
+    BOT("PewDiePie", 500, "youtubers", "One of the most-subscribed YouTubers ever. Knows the rules, mostly. Forgets about the bishops.", [SK[0], "#c9a26a", "side", "#212121", "b"]),
+    BOT("IShowSpeed", 250, "youtubers", "High-energy streamer and huge soccer fan. Moves at maximum speed without looking. Pieces fly everywhere!", [SK[4], "#111111", "short", "#ffeb3b"]),
+    BOT("Markiplier", 450, "youtubers", "Gaming YouTuber famous for horror games. Gets jump-scared every time you say check.", [SK[0], "#d32f2f", "side", "#424242", "b"]),
+    BOT("Jacksepticeye", 400, "youtubers", "Super-cheerful Irish YouTuber. Very excited, very loud, very bad at protecting his queen.", [SK[0], "#2e7d32", "spiky", "#43a047", "b"]),
+    BOT("KSI", 400, "youtubers", "YouTuber, boxer and musician. Tries to win every game with a knockout punch. Defence? Never heard of it.", [SK[4], "#111111", "short", "#7b1fa2"]),
+    BOT("Kai Cenat", 300, "youtubers", "Record-breaking streamer. Every game is a big event, even when he forgets how the horsey moves.", [SK[4], "#111111", "curly", "#ff6f00"]),
+    BOT("Airrack", 400, "youtubers", "Makes wild challenge videos. His challenge today: win one game of chess. Still trying.", [SK[0], "#3a2a1e", "short", "#00bcd4"]),
+    BOT("Preston", 350, "youtubers", "Gaming YouTuber who loves building. Keeps trying to build a castle out of pawns.", [SK[0], "#3a2a1e", "short", "#ff3d00"]),
     // ---- football (NFL) stars ----
     BOT("Patrick Mahomes", 2100, "football", "Superstar quarterback famous for no-look passes. Finds moves nobody else sees.", [SK[2], "#2b1b10", "curly", "#c62828"]),
     BOT("Tom Brady", 2300, "football", "Seven-time Super Bowl champion. The GOAT never panics in the endgame.", [SK[0], "#8d6e63", "side", "#0d47a1"]),
@@ -6106,10 +6106,25 @@ function engineFactory() {
     "Viktor": { start: ["Back in my day, we played with wooden pieces. Let's play."] },
     "Orion": { start: ["The stars say I'm winning today."] },
   };
+  // YouTubers who don't really play chess: confused beginner chat
+  const NOOB_LINES = {
+    start: ["Okay chat, how does the horsey move again?", "I've been practicing for like... five minutes. Let's go!", "Wait, which one is the king?", "I'm gonna win this, I can feel it!"],
+    botCapture: ["Wait, I took something! Is that good?", "Gotcha! I think.", "Ha! Didn't see that coming, did you? Neither did I."],
+    youCapture: ["WAIT, that's allowed?!", "Nooo, my piece!", "Chat, why did nobody warn me?!", "Hold on, I wasn't ready!"],
+    check: ["Check! ...that's the right word, right?", "Is this check? I'm saying check."],
+    gotChecked: ["What does check mean again?!", "Ahhh, my king is in danger!", "Help! Somebody help my king!"],
+    blunder: ["Yeah, I'm taking that. Probably.", "You gave me a free piece? Thanks!"],
+    great: ["Okay, that looked smart.", "Bro, that's a good move."],
+    brilliant: ["WHAT?! How did you do that?!", "That was insane! Clip it!"],
+    win: ["I WON?! Chat, I actually won!", "Let's goooo! I'm a chess genius!"],
+    lose: ["Okay, okay, you got me. Rematch!", "Chess is so hard, man. GG!", "I'll practice for six more minutes and come back."],
+    draw: ["A draw? So we both won?"],
+  };
+  const NOOBS = new Set(["MrBeast", "Mark Rober", "Dude Perfect", "MKBHD", "PewDiePie", "IShowSpeed", "Markiplier", "Jacksepticeye", "KSI", "Kai Cenat", "Airrack", "Preston"]);
   const talkPrefs = () => mode === "cpu" && prefs.botTalk;
   let talkUntil = 0, lastLines = [], talkTimer = null;
   function pickLine(ev) {
-    const b = LEVELS[level], own = OWN_LINES[b.name] || {}, cat = TALK[b.cat] || {};
+    const b = LEVELS[level], own = OWN_LINES[b.name] || {}, cat = NOOBS.has(b.name) ? NOOB_LINES : TALK[b.cat] || {};
     const pool = [...(own[ev] || []), ...(cat[ev] || []), ...((own[ev] || cat[ev]) ? [] : TALK.generic[ev] || [])];
     const fresh = pool.filter(l => !lastLines.includes(l));
     const list = fresh.length ? fresh : pool;
