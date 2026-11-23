@@ -802,7 +802,6 @@
     <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
     <button class="opt" data-pref="botTalk"><i class="sic" style="--ic:#7fd3ff">💬</i><span>Bots chat during games</span><b></b></button>
-    <button class="opt" data-pref="botVoice"><i class="sic" style="--ic:#9be37d">🗣️</i><span>Bot voices</span><b></b></button>
     <button class="opt" data-pref="autoFlip"><i class="sic" style="--ic:#9fd0ff">⇅</i><span>2 players: flip each turn</span><b></b></button>
     <button class="btn" data-act="settingsDone">Done</button>
   </div></div>
@@ -5182,7 +5181,7 @@ function engineFactory() {
   };
   const PREFS = {
     sound: [true, false], legal: [true, false], coords: [true, false],
-    animate: [true, false], ratings: [true, false], rateFx: [true, false], introMusic: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], botTalk: [true, false], botVoice: [true, false], autoFlip: [false, true],
+    animate: [true, false], ratings: [true, false], rateFx: [true, false], introMusic: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], botTalk: [true, false], autoFlip: [false, true],
   };
   const prefs0 = store.get("chess-prefs", {});
   const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo", moveSound: "wood", shape: "classic" }, prefs0);
@@ -6015,9 +6014,8 @@ function engineFactory() {
   function stopAI() { cancelSearch("ai"); thinking = false; aiToken++; }
 
   // ================= Talking bots =================
-  // Bots chat in a bubble during the game and speak with a generated voice (browser text-to-speech).
-  // Every bot's voice is generated: no real person's voice is copied. Bots of real people only say
-  // general chess chat in their category's style, never made-up quotes.
+  // Bots chat in a speech bubble during the game (text only, no voices).
+  // Bots of real people only say general chess chat in their category's style, never real quotes.
   const TALK = {
     generic: {
       start: ["Good luck, have fun!", "Let's play!", "Ready when you are.", "Alright, show me what you've got."],
@@ -6136,17 +6134,7 @@ function engineFactory() {
     "Preston": { start: ["Let's build the ultimate chess base!", "Time to build a fortress!"], botCapture: ["That piece is going in my collection!"], youCapture: ["Hey! That was part of my build!", "My castle! You broke my castle!"], lose: ["Base destroyed. Good game!"], win: ["Best build ever! I win!"] },
     "PewDiePie": { start: ["Alright, let's do this. Chess time.", "Okay. I've watched one chess video. I'm ready."], botCapture: ["Easy. Too easy.", "Wow, I'm actually good at this."], youCapture: ["Wait, what? Since when can it do that?"], lose: ["Okay, that was humbling. Good game."], win: ["I'm a genius. Everyone, I'm a genius."] },
   };
-  // Generated-voice style per bot: accent (if the phone has it), speed, pitch, energy
-  const VOICE_STYLE = {
-    "IShowSpeed": { rate: 1.35, pitch: 1.25, shout: 1 }, "Kai Cenat": { rate: 1.25, pitch: 1.1 }, "MrBeast": { rate: 1.18, pitch: 1.05 },
-    "Mark Rober": { rate: 1.05, pitch: 1.02 }, "MKBHD": { rate: .92, pitch: .82 }, "Dude Perfect": { rate: 1.12, pitch: .98 },
-    "Markiplier": { rate: .96, pitch: .72 }, "Jacksepticeye": { lang: "en-IE", rate: 1.28, pitch: 1.2 }, "KSI": { lang: "en-GB", rate: 1.12, pitch: .9 },
-    "Airrack": { rate: 1.2, pitch: 1.05 }, "Preston": { rate: 1.18, pitch: 1.12 }, "PewDiePie": { rate: 1.05, pitch: .95 },
-    "Simon Williams": { lang: "en-GB", rate: 1.1 }, "Jude Bellingham": { lang: "en-GB" }, "Paul Morphy": { rate: .9 },
-    "Samay Raina": { lang: "en-IN", rate: 1.1 }, "Tania Sachdev": { lang: "en-IN" }, "Gukesh D": { lang: "en-IN" }, "Praggnanandhaa R": { lang: "en-IN" },
-    "Arjun Erigaisi": { lang: "en-IN" }, "Viswanathan Anand": { lang: "en-IN", rate: .95 }, "Priya": { lang: "en-IN" },
-    "Ben Finegold": { rate: .85, pitch: .8 }, "GothamChess": { rate: 1.15, pitch: 1 }, "Eric Rosen": { rate: .95, pitch: 1.05 },
-  };
+  const SHOUTS = new Set(["IShowSpeed"]);   // bubble in red capitals
   const NOOBS = new Set(["MrBeast", "Mark Rober", "Dude Perfect", "MKBHD", "PewDiePie", "IShowSpeed", "Markiplier", "Jacksepticeye", "KSI", "Kai Cenat", "Airrack", "Preston"]);
   const talkPrefs = () => mode === "cpu" && prefs.botTalk;
   let talkUntil = 0, lastLines = [], talkTimer = null;
@@ -6165,51 +6153,8 @@ function engineFactory() {
     lastLines = [line, ...lastLines].slice(0, 6);
     talkUntil = now + 2600;
     const el = $("botSay");
-    el.textContent = line; el.classList.toggle("shout", !!(VOICE_STYLE[LEVELS[level].name] || {}).shout); el.classList.remove("hidden"); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    el.textContent = line; el.classList.toggle("shout", SHOUTS.has(LEVELS[level].name)); el.classList.remove("hidden"); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
     clearTimeout(talkTimer); talkTimer = setTimeout(() => el.classList.add("hidden"), Math.max(2600, line.length * 75));
-    speak(line, level);
-  }
-  // ---- generated voices ----
-  let voices = [];
-  const loadVoices = () => { try { voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); } catch (e) { voices = []; } };
-  const accentOf = v => (v.lang || "").replace("_", "-").toLowerCase();
-  if ("speechSynthesis" in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
-  const FEM_V = /female|samantha|victoria|karen|moira|veena|lekha|neerja|tessa|fiona|zira|susan|serena|allison|ava|kate|libby|sonia|aria|jenny|hazel|emma|joanna|salli|kendra/i;
-  const MALE_V = /\bmale|daniel|alex\b|fred|david|mark|george|ryan|guy|tom\b|oliver|rishi|connor|prabhat|aaron|arthur|gordon|james|matthew|brian|christopher|eric/i;
-  function voiceFor(i) {
-    const b = LEVELS[i], P = PEOPLE[b.name] || {}, hash = [...b.name].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
-    const ST = VOICE_STYLE[b.name] || {};
-    const pool = ST.lang && voices.some(v => accentOf(v) === ST.lang.toLowerCase()) ? voices.filter(v => accentOf(v) === ST.lang.toLowerCase())
-      : voices.filter(v => /^en-(us|gb|au|ca)/.test(accentOf(v))).length ? voices.filter(v => /^en-(us|gb|au|ca)/.test(accentOf(v))) : voices;
-    const fem = !!P.fem, set = pool.filter(v => (fem ? FEM_V : MALE_V).test(v.name) && !(fem ? MALE_V : FEM_V).test(v.name.replace(/female/i, "")));
-    const list = set.length ? set : pool;
-    const kid = b.cat === "bots" && b.elo <= 300;
-    let pitch = fem ? 1.12 : .92, rate = 1;
-    if (kid) { pitch = 1.45; rate = 1.08; }
-    if (b.cat === "engines") { pitch = .3; rate = .92; }
-    if (b.cat === "legends") { pitch -= .06; rate = .9; }
-    if (b.cat === "youtubers") rate = 1.1;
-    if (b.cat === "football" || b.cat === "soccer") rate = 1.05;
-    pitch += ((hash % 9) - 4) * .025;
-    if (ST.rate) rate = ST.rate;
-    if (ST.pitch) pitch = ST.pitch;
-    return { voice: list.length ? list[hash % list.length] : null, pitch, rate, shout: ST.shout };
-  }
-  function speak(text, i) {
-    if (!prefs.sound || !prefs.botVoice || !("speechSynthesis" in window)) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text), v = voiceFor(i);
-      if (v.voice) u.voice = v.voice;
-      u.pitch = Math.max(0, Math.min(2, v.pitch + (Math.random() - .5) * .08)); u.rate = v.rate; u.volume = v.shout ? 1 : .95; u.lang = v.voice ? v.voice.lang : "en-US";
-      speechSynthesis.speak(u);
-    } catch (e) {}
-  }
-  let speechUnlocked = false;
-  function unlockSpeech() {   // phones only allow speech after a tap
-    if (speechUnlocked || !("speechSynthesis" in window)) return;
-    speechUnlocked = true;
-    try { const u = new SpeechSynthesisUtterance(" "); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
   }
   const PV = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
   function talkAfterMove(prevState, m) {
@@ -6784,7 +6729,6 @@ function engineFactory() {
   // ================= Sound (synthesized, no files) =================
   let actx = null;
   function audioUnlock() {
-    unlockSpeech();
     if (actx) { if (actx.state === "suspended") actx.resume(); return; }
     try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
   }
