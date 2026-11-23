@@ -7,10 +7,7 @@
 <title>Chess</title>
 <style>
   * { box-sizing: border-box; }
-  :root { --light: #f0d9b5; --dark: #b58863; --lastL: #f6eb72; --lastD: #dcc34b; --board: 320px; }
-  html[data-theme="green"]  { --light: #eeeed2; --dark: #769656; --lastL: #f6f682; --lastD: #baca44; }
-  html[data-theme="blue"]   { --light: #dee3e6; --dark: #8ca2ad; --lastL: #cdd26a; --lastD: #aaa23a; }
-  html[data-theme="purple"] { --light: #ece4f7; --dark: #9b7fc9; --lastL: #f3e98a; --lastD: #c6b04f; }
+  :root { --light: #f0d9b5; --dark: #b58863; --lastTint: rgba(255,235,59,.42); --board: 320px; }
   html, body {
     margin: 0; height: 100%; overflow: hidden;
     color: #fff;
@@ -240,11 +237,30 @@
   }
   #arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
   .sq { position: relative; display: grid; place-items: center; cursor: pointer; }
-  .sq.l { background: var(--light); }
-  .sq.d { background: var(--dark); }
-  .sq.last.l { background: var(--lastL); }
-  .sq.last.d { background: var(--lastD); }
-  .sq.sel { background: #7fc97f !important; }
+  .sq { background-size: 320% 320%; }
+  .sq.l { background-color: var(--light); background-image: var(--lightImg, none); }
+  .sq.d { background-color: var(--dark); background-image: var(--darkImg, none); }
+  .sq.last { box-shadow: inset 0 0 0 200px var(--lastTint); }
+  .sq.sel { box-shadow: inset 0 0 0 200px rgba(120,205,90,.62) !important; }
+  /* SVG piece sets */
+  svg.pcs { width: 90%; height: 90%; overflow: visible; }
+  svg.pcs use { stroke-width: var(--psw, 1.5px); stroke-linejoin: round; stroke-linecap: round; }
+  #S-p .pd, #S-r .pd, #S-n .pd, #S-b .pd, #S-q .pd, #S-k .pd { fill: none; stroke: var(--pdet, #222); }
+  .pcs.glow { filter: drop-shadow(0 0 3px var(--glow)) drop-shadow(0 0 6px var(--glow)); }
+  .pcs.soft { filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.35)); }
+  .pcs.tok { filter: drop-shadow(0 2px 1.5px rgba(0,0,0,.35)); }
+  .player .caps svg.pcs { width: 20px; height: 20px; margin-right: -4px; }
+  #ghost svg.pcs { width: calc(var(--board) / 8 * 1.45); height: calc(var(--board) / 8 * 1.45); }
+  .promo .btn svg.pcs { width: 54px; height: 54px; }
+  .chip svg.pcs { width: 30px; height: 30px; }
+  /* Boards & pieces picker */
+  .stylegrid { display: flex; flex-direction: column; gap: 8px; max-height: 56vh; overflow-y: auto; padding: 4px 2px; }
+  .chip.tile { padding: 6px 4px 5px; gap: 4px; min-height: 0; }
+  .chip.tile small { font-size: .72rem; }
+  .minib { display: grid; grid-template-columns: repeat(3, 1fr); width: 84px; height: 84px; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
+  .minib i { display: grid; place-items: center; background-size: 320% 320%; }
+  .minib i svg.pcs, .minib i .pc { width: 92%; height: 92%; font-size: 22px; }
+  .chip.tile.sel { outline: 3px solid #ffd84a; outline-offset: 2px; }
   .sq.hover { box-shadow: inset 0 0 0 4px rgba(255,255,255,.9); }
   #board.dragging { overflow: visible; }
   .sq.cur { box-shadow: inset 0 0 0 4px #3fa9ff, inset 0 0 0 6px #fff; }
@@ -504,6 +520,7 @@
     <button class="pill" id="playHereBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5L21.5 12 5 21.5z"/></svg></span><small>Play from here</small></button>
   </div>
 </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="gNeoW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#f1f1f1"/><stop offset="1" stop-color="#cfcfcf"/></linearGradient><linearGradient id="gNeoB" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#6a6a6a"/><stop offset=".5" stop-color="#3a3a3a"/><stop offset="1" stop-color="#1a1a1a"/></linearGradient><linearGradient id="gSilver" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#d7dde3"/><stop offset="1" stop-color="#8e99a4"/></linearGradient><linearGradient id="gGold" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff2a8"/><stop offset=".5" stop-color="#f2c033"/><stop offset="1" stop-color="#a8740a"/></linearGradient><linearGradient id="gRuby" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ff8fa3"/><stop offset=".5" stop-color="#e0193f"/><stop offset="1" stop-color="#7a0019"/></linearGradient><linearGradient id="gSapphire" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#a9d4ff"/><stop offset=".5" stop-color="#2f74e0"/><stop offset="1" stop-color="#0b2d7a"/></linearGradient><linearGradient id="gIce" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#bfe9ff"/><stop offset="1" stop-color="#6cc3f0"/></linearGradient><linearGradient id="gFire" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffe066"/><stop offset=".5" stop-color="#ff7a1a"/><stop offset="1" stop-color="#b3140f"/></linearGradient><linearGradient id="gCandyW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff0f7"/><stop offset=".5" stop-color="#ffc2df"/><stop offset="1" stop-color="#ff8fc4"/></linearGradient><linearGradient id="gCandyB" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#d9b8ff"/><stop offset=".5" stop-color="#9b5de5"/><stop offset="1" stop-color="#5a2a9c"/></linearGradient><linearGradient id="gOceanW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#f0fbff"/><stop offset=".5" stop-color="#b6e6fb"/><stop offset="1" stop-color="#7cc8ec"/></linearGradient><linearGradient id="gOceanB" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#2a8bc4"/><stop offset=".5" stop-color="#0d5c8c"/><stop offset="1" stop-color="#06304d"/></linearGradient><linearGradient id="gEmerald" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#b9ffd8"/><stop offset=".5" stop-color="#2ecc71"/><stop offset="1" stop-color="#0b6b3a"/></linearGradient><linearGradient id="gOnyx" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#5a5a66"/><stop offset=".5" stop-color="#25252c"/><stop offset="1" stop-color="#0a0a0d"/></linearGradient><linearGradient id="gSteel" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#f4f7fa"/><stop offset=".5" stop-color="#b9c3cc"/><stop offset="1" stop-color="#7b8794"/></linearGradient><linearGradient id="gBronze" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#f3c58a"/><stop offset=".5" stop-color="#b86f2a"/><stop offset="1" stop-color="#6b3a12"/></linearGradient><linearGradient id="gRoyalW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fffbe6"/><stop offset=".5" stop-color="#ffe38a"/><stop offset="1" stop-color="#e0b23a"/></linearGradient><linearGradient id="gRoyalB" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#c59bff"/><stop offset=".5" stop-color="#6d28d9"/><stop offset="1" stop-color="#3b0f80"/></linearGradient><linearGradient id="gForestW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#effbe3"/><stop offset=".5" stop-color="#c7eaa5"/><stop offset="1" stop-color="#93c96b"/></linearGradient><linearGradient id="gForestB" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#4f8a3c"/><stop offset=".5" stop-color="#2f5d2a"/><stop offset="1" stop-color="#173117"/></linearGradient><linearGradient id="gGalaxyW" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#e8dcff"/><stop offset="1" stop-color="#bfa8ff"/></linearGradient><pattern id="pMaple" patternUnits="userSpaceOnUse" width="45" height="45"><rect width="45" height="45" fill="#e9c58f"/><rect width="45" height="45" filter="url(#fpMaple)"/></pattern><filter id="fpMaple" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9 0.05" numOctaves="3" seed="4"/><feColorMatrix values="0 0 0 0 0.635 0 0 0 0 0.416 0 0 0 0 0.165 2.4 0 0 0 -0.95"/></filter><pattern id="pWalnut" patternUnits="userSpaceOnUse" width="45" height="45"><rect width="45" height="45" fill="#6b3f1f"/><rect width="45" height="45" filter="url(#fpWalnut)"/></pattern><filter id="fpWalnut" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.9 0.05" numOctaves="3" seed="9"/><feColorMatrix values="0 0 0 0 0.165 0 0 0 0 0.078 0 0 0 0 0.039 2.6 0 0 0 -0.9"/></filter><pattern id="pMarbleW" patternUnits="userSpaceOnUse" width="45" height="45"><rect width="45" height="45" fill="#f4f4f2"/><rect width="45" height="45" filter="url(#fpMarbleW)"/></pattern><filter id="fpMarbleW" x="0" y="0" width="100%" height="100%"><feTurbulence type="turbulence" baseFrequency="0.06" numOctaves="4" seed="2"/><feColorMatrix values="0 0 0 0 0.553 0 0 0 0 0.553 0 0 0 0 0.584 -3.4 0 0 0 1.0"/></filter><pattern id="pMarbleB" patternUnits="userSpaceOnUse" width="45" height="45"><rect width="45" height="45" fill="#2b2b30"/><rect width="45" height="45" filter="url(#fpMarbleB)"/></pattern><filter id="fpMarbleB" x="0" y="0" width="100%" height="100%"><feTurbulence type="turbulence" baseFrequency="0.06" numOctaves="4" seed="7"/><feColorMatrix values="0 0 0 0 0.788 0 0 0 0 0.788 0 0 0 0 0.831 -3.2 0 0 0 0.95"/></filter><pattern id="pGalaxyB" patternUnits="userSpaceOnUse" width="45" height="45"><rect width="45" height="45" fill="#2a0f4f"/><rect width="45" height="45" filter="url(#fpGalaxyB)"/></pattern><filter id="fpGalaxyB" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.35" numOctaves="2" seed="5"/><feColorMatrix values="0 0 0 0 1.000 0 0 0 0 1.000 0 0 0 0 1.000 6 0 0 0 -4.1"/></filter><symbol id="S-p" viewBox="0 0 45 45"><path class="pb" d="M22.5 8a5.2 5.2 0 0 1 3.5 9.1c1.9.8 3.2 2.1 3.2 3.4h-2.7c.5 4.3 2.4 7.4 6.2 10 1.8 1.2 2.6 2.8 2.6 4.5H10.2c0-1.7.8-3.3 2.6-4.5 3.8-2.6 5.7-5.7 6.2-10h-2.7c0-1.3 1.3-2.6 3.2-3.4A5.2 5.2 0 0 1 22.5 8z M9.5 36h26v3.5h-26z"/><path class="pd" d="M17 20.5h11"/></symbol><symbol id="S-r" viewBox="0 0 45 45"><path class="pb" d="M10.5 39.5h24V36h-24z M12.5 36h20l-1.4-3.2H13.9z M14.8 32.8h15.4l-1.1-12.6H15.9z M12.8 20.2h19.4l1.2-2.6V9.5h-4.3v3h-3.4v-3h-5.4v3h-3.4v-3h-4.3v8.1z"/><path class="pd" d="M14 32.8h17 M15 20.2h15 M13 17.4h19"/></symbol><symbol id="S-n" viewBox="0 0 45 45"><path class="pb" d="M13.5 39.5h21V36c0-4.2-1.3-8.3-.7-12.8.8-5.8-1.2-11.4-6.4-14.6L26.6 6l-2.3 2.9c-2.8-.4-5.6.5-7.8 2.7l-2.4 1.5-1.7 3.6c-1.3 2.7-2.6 4.6-2.9 6.5-.3 1.8 1 3.3 2.8 2.9l2.5-.6c1.3-.3 2.4-1.3 3.7-1.5 1.6-.3 3.1.1 3.9-1-.4 3.4-2.8 5.6-4.8 7.9-1.6 1.9-3 3.6-3 5.1z"/><path class="pd" d="M18.3 14.2a1.3 1.3 0 1 0 .1 0z M12.6 22.5l1.5-.4 M24.2 9.2c3.4 2.2 5.4 6.2 5 10.6"/></symbol><symbol id="S-b" viewBox="0 0 45 45"><path class="pb" d="M11.5 39.5h22V36h-22z M13.8 36h17.4c-.2-2-1-3.1-2.8-3.7l-.8-.3c2.2-2 3.6-4.7 3.6-7.9 0-4.4-3.1-8.4-6.6-11.2a3.5 3.5 0 1 0-4.2 0c-3.5 2.8-6.6 6.8-6.6 11.2 0 3.2 1.4 5.9 3.6 7.9l-.8.3c-1.8.6-2.6 1.7-2.8 3.7z"/><path class="pd" d="M25.2 18.6l-4.2 5.3 M17.6 32.3h9.8"/></symbol><symbol id="S-q" viewBox="0 0 45 45"><path class="pb" d="M10.5 39.5h24V36h-24z M12 36h21l-1.6-3.6H13.6z M13.8 32.4h17.4l4.6-17.8-4.4 6.9-3-10.3-3.2 9.8-2.7-11.3-2.7 11.3-3.2-9.8-3 10.3-4.4-6.9z M9.2 14.6a2.3 2.3 0 1 0 .1 0z M17.4 9.2a2.3 2.3 0 1 0 .1 0z M22.5 7a2.3 2.3 0 1 0 .1 0z M27.6 9.2a2.3 2.3 0 1 0 .1 0z M35.8 14.6a2.3 2.3 0 1 0 .1 0z"/><path class="pd" d="M14.5 29.2h16"/></symbol><symbol id="S-k" viewBox="0 0 45 45"><path class="pb" d="M21.1 3.5h2.8v3h3v2.8h-3v4.1h-2.8V9.3h-3V6.5h3z M10.5 39.5h24V36h-24z M12.3 36h20.4l-1.3-3.8H13.6z M14.6 32.2h15.8c2.6-3.4 6.4-6.9 6.4-11.6 0-4.1-3.1-6.8-6.8-6.8-3.1 0-5.8 2-7.5 4.6-1.7-2.6-4.4-4.6-7.5-4.6-3.7 0-6.8 2.7-6.8 6.8 0 4.7 3.8 8.2 6.4 11.6z"/><path class="pd" d="M22.5 18.4v13.8 M14.4 28.7h16.2"/></symbol></defs></svg>
 <div id="ghost"></div>
 <div id="banner" class="banner hidden"><div id="bannerText"></div><div class="bn-btns"><button class="btn" id="bnYes">Accept</button><button class="btn alt" id="bnNo">Not now</button></div></div>
 <div id="toast"></div>
@@ -564,6 +581,15 @@
   <div class="chat-bar" id="chatBar"><input class="sinput" id="chatInput" maxlength="200" placeholder="Write a message…" autocomplete="off"><button class="btn" data-dact="sendMsg" aria-label="Send">Send</button></div>
 </div>
 
+<div class="overlay hidden" id="styleOv">
+  <div class="sheet" style="margin-top:0">
+    <h2 class="ttl" id="styleTitle">Boards</h2>
+    <div class="chips" id="styleTabs"></div>
+    <div class="stylegrid" id="styleGrid"></div>
+    <button class="btn" data-act="styleDone">Done</button>
+  </div>
+</div>
+
 <div class="overlay hidden" id="pauseOv">
   <h2>Menu</h2>
   <div class="menu">
@@ -580,7 +606,8 @@
   <div class="set-head"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg><h2>Settings</h2></div>
   <div class="panel"><div class="menu">
     <button class="opt" data-pref="sound"><i class="sic" style="--ic:#ffd84a">♪</i><span>Sound</span><b></b></button>
-    <button class="opt" data-pref="theme"><i class="sic" style="--ic:#7cc4ff">▦</i><span>Board colours</span><b></b></button>
+    <button class="opt link" data-act="styleBoards"><i class="sic" style="--ic:#7cc4ff">▦</i><span>Board</span><b id="curBoard"></b></button>
+    <button class="opt link" data-act="stylePieces"><i class="sic" style="--ic:#ffd84a">♞</i><span>Pieces</span><b id="curPieces"></b></button>
     <button class="opt" data-pref="legal"><i class="sic" style="--ic:#5ee0c0">●</i><span>Show legal moves</span><b></b></button>
     <button class="opt" data-pref="coords"><i class="sic" style="--ic:#b8a4ff">a1</i><span>Coordinates</span><b></b></button>
     <button class="opt" data-pref="animate"><i class="sic" style="--ic:#ff9ecf">➜</i><span>Piece animation</span><b></b></button>
@@ -949,10 +976,100 @@ function engineFactory() {
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
   };
   const PREFS = {
-    sound: [true, false], theme: ["wood", "green", "blue", "purple"], legal: [true, false], coords: [true, false],
+    sound: [true, false], legal: [true, false], coords: [true, false],
     animate: [true, false], ratings: [true, false], rateFx: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
   };
-  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), store.get("chess-prefs", {}));
+  const prefs0 = store.get("chess-prefs", {});
+  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo" }, prefs0);
+  // older saves used "theme" for the board colours
+  if (prefs0.theme && !prefs0.board) prefs.board = { wood: "tournament", green: "green", blue: "blue", purple: "purple" }[prefs0.theme] || "walnut";
+
+  // ================= Boards & piece sets =================
+  // Textures are generated SVG noise (wood grain, marble veins, stone...), so no image files are needed.
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+  function texture(kind, ink, seed = 3) {
+    if (!kind) return "none";
+    const [r, g, b] = hexRgb(ink), col = `0 0 0 0 ${r.toFixed(3)} 0 0 0 0 ${g.toFixed(3)} 0 0 0 0 ${b.toFixed(3)}`;
+    const T = {
+      wood:    ["fractalNoise", "0.9 0.028", 4, `${col} 2.6 0 0 0 -1.05`],
+      woodfine:["fractalNoise", "1.4 0.04", 3, `${col} 2.2 0 0 0 -0.85`],
+      marble:  ["turbulence", "0.011 0.016", 5, `${col} -3.6 0 0 0 1.05`],
+      stone:   ["fractalNoise", "0.75", 3, `${col} 2.4 0 0 0 -0.95`],
+      frost:   ["fractalNoise", "0.03", 4, `${col} 2 0 0 0 -0.75`],
+      brushed: ["fractalNoise", "0.004 1.2", 2, `${col} 1.6 0 0 0 -0.6`],
+      waves:   ["turbulence", "0.006 0.05", 3, `${col} -2.4 0 0 0 0.75`],
+      felt:    ["fractalNoise", "1.6", 2, `${col} 1.5 0 0 0 -0.55`],
+      stars:   ["fractalNoise", "0.3", 1, `${col} 30 0 0 0 -21.6`],
+    }[kind];
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='${T[0]}' baseFrequency='${T[1]}' numOctaves='${T[2]}' seed='${seed}'/><feColorMatrix values='${T[3]}'/></filter><rect width='240' height='240' filter='url(%23f)'/></svg>`;
+    return `url("data:image/svg+xml;utf8,${svg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/"/g, "'")}")`;
+  }
+  // [id, name, light colour, dark colour, light texture, light ink, dark texture, dark ink, last-move tint]
+  const BOARDS = [
+    ["walnut", "Walnut", "#e3c08c", "#8a5a33", "wood", "#b07a3c", "wood", "#4a2a12"],
+    ["maple", "Maple", "#f3dcb3", "#c79a63", "woodfine", "#c9965a", "woodfine", "#8a5a2c"],
+    ["ebony", "Ebony", "#c9a27a", "#3b2418", "wood", "#7d5634", "wood", "#140a05"],
+    ["cherry", "Cherry", "#f0c9a6", "#9b4a32", "wood", "#c48058", "wood", "#5a1f12"],
+    ["oak", "Oak", "#e8d3a8", "#a5783f", "wood", "#b89660", "wood", "#6a4618"],
+    ["bamboo", "Bamboo", "#f2e3a6", "#b9a44f", "woodfine", "#c8b25a", "woodfine", "#7d6a1e"],
+    ["marble", "White Marble", "#f1f1ee", "#a9a9ad", "marble", "#9a9aa2", "marble", "#56565e"],
+    ["jade", "Jade Marble", "#d6efdf", "#3c7d5c", "marble", "#7bb595", "marble", "#123d28"],
+    ["stone", "Granite", "#d4d0c8", "#7d7670", "stone", "#8d877f", "stone", "#3d3833"],
+    ["tournament", "Tournament", "#f0d9b5", "#b58863"],
+    ["green", "Classic Green", "#eeeed2", "#769656"],
+    ["blue", "Steel Blue", "#dee3e6", "#8ca2ad"],
+    ["purple", "Lavender", "#ece4f7", "#9b7fc9"],
+    ["ice", "Ice", "#eef9ff", "#86bfe3", "frost", "#bfe3f7", "frost", "#4f93c4"],
+    ["ocean", "Ocean", "#c7ecfb", "#2a7ab0", "waves", "#7fc7e6", "waves", "#0d4a78"],
+    ["metal", "Brushed Metal", "#dfe3e8", "#8a939c", "brushed", "#9aa3ab", "brushed", "#4a525a"],
+    ["felt", "Green Felt", "#bfd9a7", "#3f7a3a", "felt", "#88b06c", "felt", "#1f4d1d"],
+    ["coral", "Coral", "#ffe3d6", "#ec8a76"],
+    ["candy", "Candy", "#ffe6f2", "#f59ac6"],
+    ["night", "Night Sky", "#3b3f6b", "#1c1f3d", "stars", "#ffffff", "stars", "#cfd6ff", "rgba(130,170,255,.35)"],
+  ].map(([id, name, light, dark, lt, li, dt, di, last]) => ({ id, name, light, dark, lightImg: texture(lt, li, 3), darkImg: texture(dt, di, 11), last: last || "rgba(255,235,59,.42)" }));
+  const boardById = id => BOARDS.find(b => b.id === id) || BOARDS[0];
+  function applyBoard() {
+    const b = boardById(prefs.board), st = document.documentElement.style;
+    st.setProperty("--light", b.light); st.setProperty("--dark", b.dark);
+    st.setProperty("--lightImg", b.lightImg); st.setProperty("--darkImg", b.darkImg); st.setProperty("--lastTint", b.last);
+  }
+
+  // Piece sets: our own piece shapes, drawn with different fills/strokes. w/b = [fill, stroke, detail, extra class, glow colour, stroke width]
+  const PIECESETS = [
+    { id: "neo", name: "Neo", w: ["url(#gNeoW)", "#2b2b2b", "#2b2b2b", "soft"], b: ["url(#gNeoB)", "#0d0d0d", "#d7d7d7", "soft"] },
+    { id: "classic", name: "Classic Font", glyph: true },
+    { id: "wood", name: "Wood Carved", w: ["url(#pMaple)", "#6b4423", "#6b4423", "soft"], b: ["url(#pWalnut)", "#1f1007", "#e8c99b", "soft"] },
+    { id: "marble", name: "Marble", w: ["url(#pMarbleW)", "#5a5a5a", "#5a5a5a", "soft"], b: ["url(#pMarbleB)", "#000", "#d8d8e0", "soft"] },
+    { id: "metal", name: "Gold & Silver", w: ["url(#gSilver)", "#4a525a", "#4a525a", "soft"], b: ["url(#gGold)", "#6b4a00", "#6b4a00", "soft"] },
+    { id: "jewel", name: "Ruby & Sapphire", w: ["url(#gSapphire)", "#0b2257", "#d9ecff", "soft"], b: ["url(#gRuby)", "#4d0010", "#ffd6df", "soft"] },
+    { id: "glass", name: "Glass", w: ["rgba(255,255,255,.55)", "#ffffff", "#ffffff", "soft"], b: ["rgba(15,25,60,.6)", "#9fc3ff", "#9fc3ff", "soft"] },
+    { id: "neon", name: "Neon", w: ["#0b1020", "#41f2ff", "#41f2ff", "glow", "#41f2ff"], b: ["#1a0b17", "#ff4fd8", "#ff4fd8", "glow", "#ff4fd8"] },
+    { id: "icefire", name: "Ice & Fire", w: ["url(#gIce)", "#2a6f99", "#2a6f99", "soft"], b: ["url(#gFire)", "#5c0a06", "#ffe0a0", "soft"] },
+    { id: "candy", name: "Candy", w: ["url(#gCandyW)", "#c2185b", "#c2185b", "soft"], b: ["url(#gCandyB)", "#2e0d5c", "#f3e5ff", "soft"] },
+    { id: "ocean", name: "Ocean", w: ["url(#gOceanW)", "#1b6a96", "#1b6a96", "soft"], b: ["url(#gOceanB)", "#031c2e", "#bfe9ff", "soft"] },
+    { id: "emerald", name: "Emerald & Onyx", w: ["url(#gEmerald)", "#0a4a28", "#e6fff0", "soft"], b: ["url(#gOnyx)", "#000", "#9a9aaa", "soft"] },
+    { id: "bronze", name: "Bronze & Steel", w: ["url(#gSteel)", "#3d454d", "#3d454d", "soft"], b: ["url(#gBronze)", "#3a1d06", "#ffe1bd", "soft"] },
+    { id: "royal", name: "Royal", w: ["url(#gRoyalW)", "#8a6200", "#8a6200", "soft"], b: ["url(#gRoyalB)", "#1e0645", "#ffe38a", "soft"] },
+    { id: "forest", name: "Forest", w: ["url(#gForestW)", "#3d6b25", "#3d6b25", "soft"], b: ["url(#gForestB)", "#0b1a09", "#cfeab8", "soft"] },
+    { id: "galaxy", name: "Galaxy", w: ["url(#gGalaxyW)", "#4b2a8c", "#4b2a8c", "glow", "#c9b3ff"], b: ["url(#pGalaxyB)", "#b18cff", "#e2d4ff", "glow", "#8b5cf6"] },
+    { id: "outline", name: "Outline", w: ["rgba(255,255,255,.12)", "#ffffff", "#ffffff", "soft", "", "2.2px"], b: ["rgba(0,0,0,.12)", "#111111", "#111111", "", "", "2.2px"] },
+    { id: "shadow", name: "Silhouette", w: ["#ffffff", "#000000", "#000000", "", "", "2px"], b: ["#000000", "#000000", "#000000", "", "", "2px"] },
+    { id: "retro", name: "Retro Print", w: ["#f5ecd7", "#3b2f1e", "#3b2f1e", ""], b: ["#3b2f1e", "#3b2f1e", "#f5ecd7", ""] },
+    { id: "letters", name: "Letters", letters: true },
+  ];
+  const pieceSet = () => PIECESETS.find(x => x.id === prefs.pieces) || PIECESETS[0];
+  // HTML for one piece (p = "K", "q", ...), in the chosen set (or a given one).
+  function pieceHTML(p, setId) {
+    const set = setId ? PIECESETS.find(x => x.id === setId) : pieceSet(), side = isW(p) ? "w" : "b", t = p.toLowerCase();
+    if (set.glyph) return `<span class="pc ${side}">${glyph(t)}</span>`;
+    if (set.letters) {
+      const W = side === "w";
+      return `<svg class="pc pcs tok ${side}" viewBox="0 0 45 45"><circle cx="22.5" cy="22.5" r="17" fill="${W ? "#fafafa" : "#262626"}" stroke="${W ? "#262626" : "#000"}" stroke-width="2"/><text x="22.5" y="29.5" text-anchor="middle" font-size="20" font-weight="900" font-family="system-ui, sans-serif" fill="${W ? "#262626" : "#fafafa"}">${"KQRBNP"["kqrbnp".indexOf(t)]}</text></svg>`;
+    }
+    const [fill, stroke, det, cls = "", glow = "", sw = ""] = set[side];
+    return `<svg class="pc pcs ${side} ${cls}" viewBox="0 0 45 45" style="${glow ? `--glow:${glow};` : ""}"><use href="#S-${t}" fill="${fill}" stroke="${stroke}" style="--pdet:${det};${sw ? `--psw:${sw}` : ""}"/></svg>`;
+  }
+
   // ---- Bots: name, Elo, bio, and how hard the engine tries ----
   // Rank bands: Beginner 100–300, Intermediate 400–600, Advanced 700s,
   // Master 800–2799, Grandmaster 2800+. Elo never goes above MAX_ELO.
@@ -1153,7 +1270,7 @@ function engineFactory() {
   };
   const prefText = { theme: v => v[0].toUpperCase() + v.slice(1), msgPolicy: v => ({ friends: "Friends", everyone: "Everyone", nobody: "Nobody" })[v] };
   function applyPrefs() {
-    document.documentElement.dataset.theme = prefs.theme;
+    applyBoard();
     document.documentElement.classList.toggle("nocoords", !prefs.coords);
     $("evalbar").classList.toggle("hidden", !prefs.evalbar);
   }
@@ -1397,7 +1514,7 @@ function engineFactory() {
     for (const t of "qrbn") {
       const btn = document.createElement("button");
       btn.className = "btn";
-      btn.innerHTML = `<span class="pc ${state.turn}">${glyph(t)}</span>`;
+      btn.innerHTML = pieceHTML(state.turn === "w" ? t.toUpperCase() : t);
       btn.addEventListener("click", () => {
         const m = pendingPromo && pendingPromo.find(o => o.promo === t);
         pendingPromo = null; hideAll();
@@ -1413,7 +1530,11 @@ function engineFactory() {
   const glyph = p => GLYPH[p.toLowerCase()] + "︎";
   const boardEl = $("board");
   const sqEls = [];
-  for (let i = 0; i < 64; i++) { const d = document.createElement("div"); d.className = "sq"; boardEl.appendChild(d); sqEls.push(d); }
+  for (let i = 0; i < 64; i++) {
+    const d = document.createElement("div"); d.className = "sq";
+    d.style.backgroundPosition = `${(i * 37) % 100}% ${(i * 61 + (i >> 3) * 23) % 100}%`;
+    boardEl.appendChild(d); sqEls.push(d);
+  }
 
   function layout() {
     const app = $("app");
@@ -1429,7 +1550,7 @@ function engineFactory() {
     let mv = 0, vv = 0;
     for (const p of s.b) if (p) { const t = p.toLowerCase(); if (sideOf(p) === victim) { if (t !== "k") have[t]++; vv += VAL[t]; } else mv += VAL[t]; }
     let html = "";
-    for (const t of "qrbnp") for (let i = have[t]; i < start[t]; i++) html += `<span class="pc ${victim}">${glyph(t)}</span>`;
+    for (const t of "qrbnp") for (let i = have[t]; i < start[t]; i++) html += pieceHTML(victim === "w" ? t.toUpperCase() : t);
     const adv = Math.round((mv - vv) / 100);
     return html + (adv > 0 ? `<span class="adv">+${adv}</span>` : "");
   }
@@ -1518,7 +1639,7 @@ function engineFactory() {
       if (rated && sq === rated.move.to) { cls.push("rt"); if (popEntry === rated) cls.push("popsq"); el.style.setProperty("--rc", CLS[rated.cls].color); }
       el.className = cls.join(" ");
       const p = s.b[sq];
-      let html = p ? `<span class="pc ${isW(p) ? "w" : "b"}">${glyph(p)}</span>` : "";
+      let html = p ? pieceHTML(p) : "";
       if ((vi & 7) === 0) html += `<span class="coord r">${8 - r}</span>`;
       if ((vi >> 3) === 7) html += `<span class="coord f">${"abcdefgh"[c]}</span>`;
       if (rated && sq === rated.move.to) {
@@ -1584,7 +1705,7 @@ function engineFactory() {
     if (selected === sq && canAct()) {
       drag = { sq, id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, wasSel: wasSel === sq, over: sq };
       try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}
-      ghost.innerHTML = `<span class="pc ${state.turn}">${glyph(state.b[sq])}</span>`;
+      ghost.innerHTML = pieceHTML(state.b[sq]);
       ghost.classList.toggle("touch", e.pointerType !== "mouse");
     }
     refresh();
@@ -1869,7 +1990,7 @@ function engineFactory() {
     const strip = $("levelChips"), sel = strip.querySelector(".chip.sel");
     if (sel) strip.scrollLeft = sel.offsetLeft - strip.clientWidth / 2 + sel.offsetWidth / 2;
     paintWallet();
-    $("colorChips").innerHTML = [["w", `<span class="pc w">${glyph("k")}</span>`, "White"], ["random", `<span class="rnd">?</span>`, "Random"], ["b", `<span class="pc b">${glyph("k")}</span>`, "Black"]]
+    $("colorChips").innerHTML = [["w", pieceHTML("K"), "White"], ["random", `<span class="rnd">?</span>`, "Random"], ["b", pieceHTML("k"), "Black"]]
       .map(([v, icon, name]) => chip("col:" + v, `${icon}<small>${name}</small>`, setup.color === v)).join("");
     paintTime("bot", "time");
     paintTime("live", "liveTime");
@@ -1878,6 +1999,14 @@ function engineFactory() {
     const c = e.target.closest(".chip"); if (!c) return;
     const [kind, a, b] = c.dataset.key.split(":");
     if (kind === "soc") { soc.tab = a; renderSocialMain(); return; }
+    if (kind === "st" || kind === "bd" || kind === "ps") {
+      if (kind === "st") styleTab = a;
+      if (kind === "bd") { prefs.board = a; applyBoard(); }
+      if (kind === "ps") prefs.pieces = a;
+      store.set("chess-prefs", prefs); paintStyle(); refresh();
+      const i = buttonsOf("styleOv").findIndex(x => x.dataset.key === c.dataset.key); if (i >= 0) focusIdx = i; paintFocus();
+      return;
+    }
     if (kind === "ctc") { soc.ctc = a; renderUser(); return; }
     if (kind === "lv") setup.level = +a;
     else if (kind === "bcat") { if (LEVELS[setup.level].cat !== a) setup.level = LEVELS.findIndex(L => L.cat === a); }
@@ -2231,7 +2360,7 @@ function engineFactory() {
   }, 1000);
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -2252,15 +2381,13 @@ function engineFactory() {
       const k = b.dataset.opt;
       b.querySelector("b").textContent = setupText[k](setup[k]);
     }
-    const SW = { wood: ["#f0d9b5", "#b58863"], green: ["#eeeed2", "#769656"], blue: ["#dee3e6", "#8ca2ad"], purple: ["#ece4f7", "#9b7fc9"] };
+    $("curBoard").textContent = boardById(prefs.board).name;
+    $("curPieces").textContent = pieceSet().name;
     for (const b of document.querySelectorAll("[data-pref]")) {
       const k = b.dataset.pref, v = prefs[k], el = b.querySelector("b");
-      if (k === "theme") {
-        el.className = "swatches";
-        el.innerHTML = PREFS.theme.map(t => `<span class="swt${t === v ? " sel" : ""}" title="${prefText.theme(t)}" style="background:linear-gradient(135deg, ${SW[t][0]} 50%, ${SW[t][1]} 50%)"></span>`).join("");
-      } else if (prefText[k]) { el.className = ""; el.textContent = prefText[k](v); }
+      if (prefText[k]) { el.className = ""; el.textContent = prefText[k](v); }
       else { el.className = "sw" + (v ? " on" : ""); el.textContent = ""; }
-      b.setAttribute("aria-pressed", k === "theme" ? "" : String(!!v));
+      b.setAttribute("aria-pressed", prefText[k] ? "" : String(!!v));
     }
     $("contBtn").style.display = loadSave() ? "" : "none";
   }
@@ -2288,9 +2415,25 @@ function engineFactory() {
     paintFocus();
   }
   document.querySelectorAll(".opt").forEach(b => b.addEventListener("click", e => {
+    if (!b.dataset.opt && !b.dataset.pref) return;   // "link" rows just open another screen
     const r = b.getBoundingClientRect();
     cycle(b, e.clientX && e.clientX < r.left + r.width * 0.3 ? -1 : 1);
   }));
+  // ---------- Boards & Pieces picker ----------
+  let styleTab = "boards";
+  const miniBoard = (b, pieces) => `<span class="minib">${pieces.map((p, i) => { const l = ((i % 3) + (i / 3 | 0)) % 2 === 0;
+      return `<i style="background-color:${l ? b.light : b.dark};background-image:${l ? b.lightImg : b.darkImg};background-position:${(i * 37) % 100}% ${(i * 53) % 100}%">${p}</i>`; }).join("")}</span>`;
+  function paintStyle() {
+    $("styleTitle").textContent = styleTab === "boards" ? "Boards" : "Pieces";
+    $("styleTabs").innerHTML = chip("st:boards", "Boards (" + BOARDS.length + ")", styleTab === "boards") + chip("st:pieces", "Pieces (" + PIECESETS.length + ")", styleTab === "pieces");
+    const tiles = styleTab === "boards"
+      ? BOARDS.map(b => chip("bd:" + b.id, miniBoard(b, ["", pieceHTML("k"), "", pieceHTML("P"), "", pieceHTML("n"), "", pieceHTML("Q"), ""]) + `<small>${b.name}</small>`, prefs.board === b.id))
+      : PIECESETS.map(ps => chip("ps:" + ps.id, miniBoard(boardById(prefs.board), [pieceHTML("k", ps.id), pieceHTML("q", ps.id), pieceHTML("n", ps.id), "", "", "", pieceHTML("N", ps.id), pieceHTML("Q", ps.id), pieceHTML("K", ps.id)]) + `<small>${ps.name}</small>`, prefs.pieces === ps.id));
+    let h = "";
+    for (let i = 0; i < tiles.length; i += 3) h += `<div class="chips">${tiles.slice(i, i + 3).join("")}</div>`;
+    $("styleGrid").innerHTML = h;
+    $("styleGrid").querySelectorAll(".chip").forEach(c => c.classList.add("tile"));
+  }
   function showSetup() { paintWallet(); stopAI(); paintOptions(); show("setupOv"); }
   function showOver() {
     if (!result) return;
@@ -2369,6 +2512,8 @@ function engineFactory() {
       case "rematch": if (mode === "online") { onlineRematch(); break; } newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
       case "newgame": if (mode === "online" && online && !result) { if (!confirm("Leave this online game? You will resign.")) break; onlineResign(); } showSetup(); break;
       case "settings": settingsReturn = openOverlay() || "pauseOv"; paintOptions(); show("settingsOv"); break;
+      case "styleBoards": case "stylePieces": styleTab = a === "styleBoards" ? "boards" : "pieces"; paintStyle(); show("styleOv"); break;
+      case "styleDone": paintOptions(); show("settingsOv"); break;
       case "settingsDone": if (settingsReturn === "setupOv" || !mode) showSetup(); else { hideAll(); refresh(); } break;
       case "review": hideAll(); goTo(0); break;
       case "pgn": copyPGN(); break;
@@ -2404,7 +2549,7 @@ function engineFactory() {
         const bs = buttonsOf(ov), cur = bs[(focusIdx % bs.length + bs.length) % bs.length];
         const rowOf = b => b.closest(".chips") || b;
         if (ov === "promoOv") focusIdx += dx || dy;
-        else if (dx && cur && cur.matches(".opt")) { cycle(cur, dx); return; }
+        else if (dx && cur && cur.matches(".opt") && (cur.dataset.opt || cur.dataset.pref)) { cycle(cur, dx); return; }
         else if (cur) {
           const rows = [];
           for (const b of bs) if (rows[rows.length - 1] !== rowOf(b)) rows.push(rowOf(b));
@@ -2433,10 +2578,11 @@ function engineFactory() {
       if (btn === "A") {
         if (wasHidden) focusIdx = defaultFocus(ov);
         const bs = buttonsOf(ov), b = bs[(focusIdx % bs.length + bs.length) % bs.length];
-        if (b.matches(".opt")) cycle(b, 1); else b.click();
+        if (b.matches(".opt") && (b.dataset.opt || b.dataset.pref)) cycle(b, 1); else b.click();
       } else if (btn === "B" || btn === "START") {
         if (ov === "pauseOv") act("resume");
         else if (ov === "settingsOv") act("settingsDone");
+        else if (ov === "styleOv") act("styleDone");
         else if (ov === "promoOv") { pendingPromo = null; selected = -1; hideAll(); refresh(); }
         else if (ov === "overOv" && btn === "B") act("review");
         else if (ov === "setupOv" && btn === "START") $("startBtn").click();
