@@ -533,6 +533,35 @@
   .rvpanel.hidden { display: none; }
   .rvcoach { display: flex; gap: 10px; align-items: center; min-height: 60px; padding: 7px 10px; border-radius: 14px;
     background: rgba(0,0,0,.3); border-left: 5px solid var(--rc, #888); text-align: left; }
+  .rvcoach .cbox { display: flex; align-items: center; gap: 9px; width: 100%; }
+  .cav { flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; display: block; box-shadow: 0 0 0 2.5px #fff, 0 3px 8px rgba(0,0,0,.35); background: #333; }
+  .cav svg { width: 100%; height: 100%; display: block; }
+  .cav.big { width: 74px; height: 74px; margin: 0 auto 4px; }
+  .cav.off { display: grid; place-items: center; font-size: 1.6rem; background: rgba(255,255,255,.15); }
+  .cbub { position: relative; flex: 1; min-width: 0; background: #fff; color: #1b1b2a; border-radius: 4px 14px 14px 14px; padding: 6px 10px 7px; box-shadow: 0 3px 8px rgba(0,0,0,.25); text-align: left; }
+  .cbub::before { content: ""; position: absolute; left: -7px; top: 9px; border: 7px solid transparent; border-left: 0; border-right-color: #fff; }
+  .cname { font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; color: #3f6fd8; }
+  .ctext { font-size: .86rem; line-height: 1.28; font-weight: 600; }
+  .ctext b { font-weight: 900; }
+  .ctag { display: flex; align-items: center; gap: 5px; font-weight: 900; font-size: .78rem; color: var(--bc); margin-bottom: 2px; }
+  .ctag .mb { width: 18px; height: 18px; }
+  .rvcoach.cpop .cbox { animation: coachPop .35s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes coachPop { from { transform: translateY(8px) scale(.96); opacity: .3; } }
+  .sumcoach { background: rgba(255,255,255,.1); margin-bottom: 10px; }
+  .coachbtn { position: absolute; top: calc(max(14px, env(safe-area-inset-top)) + 66px); right: 14px; width: 58px; height: 58px; padding: 0; border-radius: 50%;
+    border: 2px solid rgba(126,224,143,.85); background: rgba(126,224,143,.2); overflow: visible; }
+  .coachbtn .cav { width: 50px; height: 50px; box-shadow: none; }
+  .coachbtn::after { content: "COACH"; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); font-size: .58rem; font-weight: 900; letter-spacing: .05em;
+    background: #2fa86a; color: #fff; padding: 2px 6px; border-radius: 999px; box-shadow: 0 2px 4px rgba(0,0,0,.3); }
+  .coachbtn.isoff { filter: grayscale(.7); }
+  .coachbtn.isoff::after { content: "COACH OFF"; background: #6b6f80; }
+  .cgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+  .cgrid.off { opacity: .45; }
+  .ccard { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; border-radius: 16px; border: 2px solid rgba(255,255,255,.15);
+    background: rgba(255,255,255,.1); color: #fff; font: inherit; cursor: pointer; touch-action: manipulation; }
+  .ccard b { font-size: .95rem; } .ccard small { font-size: .7rem; opacity: .8; line-height: 1.2; text-align: center; }
+  .ccard.sel { border-color: #ffd84a; background: rgba(255,216,74,.18); box-shadow: 0 0 0 2px #ffd84a inset; }
+  .ccard.sel b::after { content: " ✓"; color: #ffd84a; }
   .rvcoach .rvb { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #fff;
     background: var(--rc, #888); border: 2px solid #fff; letter-spacing: -1px; font-size: .9rem; }
   .rvcoach .rvt { flex: 1; font-size: .86rem; line-height: 1.25; }
@@ -723,6 +752,7 @@
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
 <button class="pill profbtn" data-act="social" aria-label="Friends"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF1)" stroke="url(#plS1)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg><span>Friends</span><i class="nbadge" id="reqBadge" hidden>0</i></button>
 <div class="wallet tl" title="Your pawns"><span class="pawnic">♟&#xFE0E;</span><b>0</b></div>
+  <button class="pill coachbtn" data-act="coach" id="coachBtn" aria-label="Choose coach"></button>
   <button class="pill icon setgear" data-act="settings" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
 </div>
 
@@ -804,6 +834,11 @@
     <button class="btn alt" data-act="rvClose">Back</button></div>
 </div>
 
+<div class="overlay hidden" id="coachOv">
+  <button class="pill backpill" data-act="coachDone"><span>←</span><span>Back</span></button>
+  <div class="sheet"><h2 class="ttl">🧑‍🏫 Choose your coach</h2><div id="coachBody"></div></div>
+</div>
+
 <div class="overlay hidden" id="statsOv">
   <button class="pill backpill" data-act="toStart"><span>←</span><span>Back</span></button>
   <div class="sheet"><h2 class="ttl"><svg class="statlogo big" viewBox="0 0 64 52" aria-hidden="true"><defs><linearGradient id="slg2" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#7fd3ff"/><stop offset=".55" stop-color="#5eb4f5"/><stop offset="1" stop-color="#ffe36e"/></linearGradient><filter id="slgl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g fill="url(#slg2)" filter="url(#slgl2)"><circle cx="13" cy="17" r="6.2"/><rect x="5.5" y="23.5" width="15" height="3.6" rx="1.8"/><path d="M9.6 27h6.8c.3 5.6 2 9.4 5.6 12.6H4c3.6-3.2 5.3-7 5.6-12.6z"/><rect x="2.5" y="41" width="21" height="6.5" rx="2.4"/><rect x="26.5" y="34" width="7.5" height="13.5" rx="2"/><rect x="37" y="28.5" width="7.5" height="19" rx="2"/><rect x="47.5" y="21" width="7.5" height="26.5" rx="2"/><path d="M25.5 29.2c8.5-2.8 16.4-7.6 23.6-14.2l-2.8-1.8 9.4-2.6-1.2 9.6-2.4-2.2c-7.4 6.6-15.6 11.6-26.2 12.2z"/></g></svg>Your Stats</h2><div id="statsBody"></div></div>
@@ -850,6 +885,7 @@
     <button class="opt" data-pref="msgPolicy"><i class="sic" style="--ic:#9ad0ff">✉</i><span>Who can message me</span><b></b></button>
     <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
+    <button class="opt" data-act="coach"><i class="sic" style="--ic:#7ee08f">🧑‍🏫</i><span>Choose your coach</span><b>›</b></button>
     <button class="opt" data-pref="botTalk"><i class="sic" style="--ic:#7fd3ff">💬</i><span>Bots chat during games</span><b></b></button>
     <button class="opt" data-pref="autoFlip"><i class="sic" style="--ic:#9fd0ff">⇅</i><span>2 players: flip each turn</span><b></b></button>
     <button class="btn" data-act="settingsDone">Done</button>
@@ -5233,7 +5269,7 @@ function engineFactory() {
     animate: [true, false], ratings: [true, false], rateFx: [true, false], introMusic: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], botTalk: [true, false], autoFlip: [false, true],
   };
   const prefs0 = store.get("chess-prefs", {});
-  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo", moveSound: "wood", shape: "classic" }, prefs0);
+  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo", moveSound: "wood", shape: "classic", coach: "c1", coachOn: true }, prefs0);
   // older saves used "theme" for the board colours
   if (prefs0.theme && !prefs0.board) prefs.board = { wood: "tournament", green: "green", blue: "blue", purple: "purple" }[prefs0.theme] || "walnut";
 
@@ -5722,8 +5758,9 @@ function engineFactory() {
   };
   const PBG = { bots: "#34343e", youtubers: "#2c3140", top: "#2b2a30", legends: "#3a3128", football: "#27322b", soccer: "#2b3326", engines: "#222" };
 
+  let ptSeq = 0;   // every drawing gets its own ids, so hidden copies never steal gradients
   function portraitSVG(i, P) {
-    const id = "pt" + i, cat = LEVELS[i].cat;
+    const id = "pt" + i + "x" + (ptSeq = (ptSeq + 1) % 1e6), cat = (LEVELS[i] || { cat: "bots" }).cat;
     const sk = PSK[P.s] || P.s, sh = mixC(sk, "#3a1d10", .2), sh2 = mixC(sk, "#2a1208", .4), hl = mixC(sk, "#ffffff", .22);
     const H = P.h || HC.blk, HD = mixC(H, "#000000", .38), HL = mixC(H, "#ffffff", .3);
     const lip = mixC(sk, P.fem ? "#c23a55" : "#a8505a", P.fem ? .5 : .3), lipD = mixC(sk, "#4a1a1c", .5);
@@ -5764,6 +5801,8 @@ function engineFactory() {
     if (P.c === "tee" || P.c === "sweater") o += `<path d="M40.4 79.5 Q50 89.5 59.6 79.5" stroke="${ccD}" stroke-width="${P.c === "sweater" ? 3 : 1.8}" fill="none"/>`;
     if (P.c === "top") o += `<path d="M37 79 Q50 94.5 63 79" stroke="${ccD}" stroke-width="1.4" fill="none"/><path d="M44 86 Q46 84.5 48 85.6 M56 86 Q54 84.5 52 85.6" stroke="${sh2}" stroke-width=".7" fill="none" opacity=".5"/>`;
     if (P.c === "jersey") o += `<path d="M41 79 L50 91 L59 79" stroke="${ccD}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`;
+    if (P.c === "polo") o += `<path d="M40.5 77.5 L44 85.5 L50 81.5 L56 85.5 L59.5 77.5 Q50 84 40.5 77.5Z" fill="${ccL}"/><path d="M50 82 V92" stroke="${ccD}" stroke-width=".8"/><circle cx="50" cy="86" r=".8" fill="#fff"/><circle cx="50" cy="90" r=".8" fill="#fff"/>`;
+    if (X.whistle) o += `<path d="M44 79 Q50 92 58 79" stroke="#e53935" stroke-width="1" fill="none"/><rect x="55.5" y="88" width="7" height="4" rx="2" fill="#cfd8dc" stroke="#78909c" stroke-width=".5"/><circle cx="56.5" cy="90" r="2.2" fill="#cfd8dc" stroke="#78909c" stroke-width=".5"/>`;
     if (P.c === "shirt") o += `<path d="M40.5 77.5 L45 87.5 L50 83 L55 87.5 L59.5 77.5 Q50 85 40.5 77.5Z" fill="${ccL}"/><path d="M50 84 V100" stroke="${ccD}" stroke-width=".7"/><circle cx="50" cy="91" r=".8" fill="${ccD}"/><circle cx="50" cy="97" r=".8" fill="${ccD}"/>`;
     if (P.c === "suit" || P.c === "blazer") {
       o += `<path d="M40.5 77.5 L50 100 L59.5 77.5 Q50 87 40.5 77.5Z" fill="${P.c === "suit" ? "#f4f4f2" : "#2b2b2b"}"/>`;
@@ -7269,6 +7308,8 @@ function engineFactory() {
       if (a === "socialRetry") return openSocial();
       if (a === "lesson") return startLesson(+arg);
       if (a === "rvJump") return beginReview(+arg + 1);
+      if (a === "coachToggle") { prefs.coachOn = prefs.coachOn === false; store.set("chess-prefs", prefs); paintCoach(); return; }
+      if (a === "coachPick") { prefs.coach = arg; prefs.coachOn = true; store.set("chess-prefs", prefs); paintCoach(); const C = coachObj(); toast(`${coachName(C)} is now your coach!`); return; }
       if (a === "lbMore") { const j = await api("leaderboard", { offset: soc.lb.list.length }); soc.lb.list.push(...j.list); soc.lb.total = j.total; paintLeaderboard(); return; }
       if (a === "block") { if (!confirm("Block this user? They won't be able to message, friend or challenge you.")) return; await api("block", { name: arg }); toast("User blocked."); return openUser(arg); }
       if (a === "unblock") { await api("unblock", { name: arg }); toast("User unblocked."); return openUser(arg); }
@@ -7816,6 +7857,8 @@ function engineFactory() {
     h += `<div class="lbl" style="text-align:left;margin:8px 2px 4px">${mode === "two" ? "Bad moves" : "Your bad moves"} (${bad.length})</div>`;
     h += bad.length ? `<div class="rvkey">${bad.map(({ x, i }) => `<button class="urow" data-dact="rvJump" data-arg="${i}"><i class="mb" style="--bc:${CLS[x.cls].color}">${CLS[x.cls].sym}</i><span class="un">${Math.floor(i / 2) + 1}${i % 2 ? "…" : "."} ${esc(x.san)} <small style="opacity:.75">· ${CLS[x.cls].label}</small></span><span>›</span></button>`).join("")}</div>`
       : `<p class="netnote">${done < total ? "Still checking…" : "No inaccuracies, mistakes or blunders. Great game! 🎉"}</p>`;
+    const C = coachObj();
+    if (C && done) { if (!rv.hello || rv.helloBy !== C.id || rv.helloDone !== done) { rv.hello = coachHello(C); rv.helloBy = C.id; rv.helloDone = done; } h = `<div class="rvcoach sumcoach">${coachBubble(C, rv.hello)}</div>` + h; }
     $("reviewBody").innerHTML = h;
   }
   function beginReview(i) {
@@ -7836,6 +7879,123 @@ function engineFactory() {
     if (!h || !h.best || !h.cls || h.cls === "book" || (h.best.from === h.move.from && h.best.to === h.move.to)) return null;
     return { from: h.best.from, to: h.best.to };
   }
+  // ================= Coach =================
+  // Pick a coach (or turn it off). Your coach talks you through Game Review like a real person.
+  // Famous coaches only say friendly general coaching lines in a style that fits them, never real quotes.
+  const COACH_LOOKS = {
+    c1: { s: "k3", h: HC.dbr, hs: "short", b: "short", c: "polo", cc: "#2e7d32", sm: 2, x: { whistle: 1 } },
+    c2: { s: "k5", h: HC.blk, hs: "bun", c: "polo", cc: "#1565c0", fem: 1, sm: 2, x: { whistle: 1 } },
+  };
+  const COACHES = [
+    { id: "c1", name: "Coach Max", sub: "Coach 1 · Kind and patient", style: "warm" },
+    { id: "c2", name: "Coach Ava", sub: "Coach 2 · Cheerful and upbeat", style: "cheer" },
+    { id: "GothamChess", sub: "Big energy, lots of fun", style: "hype" },
+    { id: "Magnus Carlsen", sub: "Calm, short and to the point", style: "calm" },
+    { id: "Hikaru Nakamura", sub: "Fast and confident", style: "pro" },
+    { id: "Judit Polgár", sub: "Sharp and encouraging", style: "pro" },
+    { id: "Viswanathan Anand", sub: "Gentle and wise", style: "calm" },
+    { id: "Garry Kasparov", sub: "Tough love. Wants you to fight!", style: "strict" },
+    { id: "Fabiano Caruana", sub: "Careful and precise", style: "calm" },
+    { id: "Anna Cramling", sub: "Sunny and supportive", style: "cheer" },
+    { id: "Eric Rosen", sub: "Loves traps and tricks", style: "trappy" },
+    { id: "Alexandra Botez", sub: "Fun, chatty and friendly", style: "hype" },
+  ];
+  const coachObj = () => (prefs.coachOn === false ? null : COACHES.find(c => c.id === prefs.coach) || COACHES[0]);
+  const coachName = c => c.name || c.id;
+  function coachFace(c) {
+    if (COACH_LOOKS[c.id]) return portraitSVG(1000 + COACHES.indexOf(c), COACH_LOOKS[c.id]);
+    const i = LEVELS.findIndex(b => b.name === c.id);
+    return i >= 0 ? faceSVG(i) : "";
+  }
+  const pickOne = a => a[Math.floor(Math.random() * a.length)];
+  const CHEER = {
+    warm: ["It's okay though!", "Don't worry, it happens to everyone.", "That's alright, we'll get it next time.", "No big deal. You're learning!"],
+    cheer: ["You've got this!", "Shake it off, you're doing great!", "Totally fine! Next one!", "Keep smiling, you're improving!"],
+    hype: ["No stress, we bounce back!", "Happens to literally everyone. Let's go!", "Okay, okay, we learn and we move on!"],
+    calm: ["It's fine. Just slow down a little.", "Small thing. Check captures first next time.", "Don't worry about it."],
+    strict: ["Learn from it. Next time, check every capture!", "Focus! You're better than that.", "No excuses. Fight back next move!"],
+    trappy: ["Happens to the best of us. Even me!", "Tricky position. Don't worry!", "Now you'll spot it next time!"],
+    pro: ["Keep your head up.", "That's fine, just stay sharp.", "Shake it off and keep going."],
+  };
+  const PRAISE = {
+    warm: ["Really nice!", "Great job!", "Well done!"], cheer: ["Yay, love it!", "Amazing!", "So good!"], hype: ["LET'S GO!", "That's huge!", "Oh, that's clean!"],
+    calm: ["Good.", "Correct.", "Nice."], strict: ["Good. That's how you fight.", "Exactly right.", "Strong."], trappy: ["Ooh, sneaky!", "I love it!", "Very nice!"], pro: ["Clean.", "Nice and sharp.", "Good move."],
+  };
+  function coachFacts(h) {
+    const f = {};
+    const after = E.makeMove(h.state, h.move);
+    if (h.reply) {
+      const rm = E.legalMoves(after).find(x => x.from === h.reply.from && x.to === h.reply.to);
+      if (rm) {
+        const n2 = E.makeMove(after, rm);
+        if (!E.legalMoves(n2).length && E.inCheck(n2)) f.mateAllowed = true;
+        else if (after.b[rm.to]) f.hang = { piece: PIECE_NAME[after.b[rm.to].toLowerCase()], sq: E.sqName(rm.to) };
+      }
+    }
+    if (h.best && !(h.best.from === h.move.from && h.best.to === h.move.to)) {
+      f.best = sanOf(h.state, h.best);
+      const bm = E.legalMoves(h.state).find(x => x.from === h.best.from && x.to === h.best.to && (x.promo || "") === (h.best.promo || ""));
+      const tgt = h.state.b[h.best.to];
+      if (bm && tgt) { const ab = E.makeMove(h.state, bm); f.win = { piece: PIECE_NAME[tgt.toLowerCase()], free: !E.legalMoves(ab).some(m => m.to === h.best.to) }; }
+      if (h.bestScore != null && h.bestScore > MATE - 1000) f.mateIn = Math.max(1, Math.ceil((MATE - h.bestScore) / 2));
+    }
+    return f;
+  }
+  function coachLine(h, C) {
+    const st = C.style, mine = mySides().includes(h.state.turn), san = `<b>${esc(h.san)}</b>`, f = coachFacts(h), B = f.best ? `<b>${esc(f.best)}</b>` : "";
+    if (!mine) {
+      if (BAD.includes(h.cls)) return `Your opponent slipped up with ${san}! ${B ? `${B} was their best move. ` : ""}Did you spot the chance?`;
+      if (h.cls === "brilliant" || h.cls === "great") return `Careful, ${san} was a strong move by your opponent.`;
+      return `Your opponent played ${san}. ${pickOne(["Nothing scary.", "A normal move.", "Let's see how you answered."])}`;
+    }
+    switch (h.cls) {
+      case "brilliant": return `${pickOne(PRAISE[st])} ${san} is brilliant! You gave up material and it totally works. I'm proud of you!`;
+      case "great": return `${pickOne(PRAISE[st])} ${san} was the only good move here, and you found it!`;
+      case "best": return `${pickOne(PRAISE[st])} ${san} is exactly the move I would play.`;
+      case "book": return `${san} is a real opening move. You know your openings!`;
+      case "excellent": return `${pickOne(PRAISE[st])} ${san} is a really good move.${B ? ` ${B} was just a tiny bit better.` : ""}`;
+      case "good": return `${san} is fine.${B ? ` ${B} was a bit stronger though.` : ""} Good thinking!`;
+    }
+    let what;
+    if (f.mateIn) what = `You had checkmate${f.mateIn > 1 ? ` in ${f.mateIn}` : ""} with ${B}! So close.`;
+    else if (f.win && f.win.free) what = `You missed a free ${f.win.piece}! ${B} just takes it.`;
+    else if (f.win && h.cls !== "inaccuracy") what = `You could have won a ${f.win.piece} with ${B}.`;
+    else if (f.mateAllowed) what = `Oh no, ${san} lets your opponent checkmate you.`;
+    else if (f.hang) what = `${san} leaves your ${f.hang.piece} on ${f.hang.sq} hanging, and they can just take it.`;
+    else if (h.cls === "miss") what = `Your opponent made a mistake, but ${san} didn't punish it.${B ? ` ${B} was the way.` : ""}`;
+    else what = h.cls === "inaccuracy" ? `${san} is okay, but ${B || "another move"} was a little better.` : `${san} isn't the best here.${B ? ` Try ${B} instead.` : ""}`;
+    return `${what} ${pickOne(CHEER[st])}`;
+  }
+  function coachHello(C) {
+    const me = mySides(), accs = me.map(accuracyOf).filter(a => a != null), acc = accs.length ? accs.reduce((a, b) => a + b, 0) / accs.length : null;
+    const bad = history.filter(x => me.includes(x.state.turn) && BAD.includes(x.cls)).length;
+    let line = acc == null ? "Let's look at your game together!" : acc >= 90 ? `Wow, ${acc.toFixed(0)}% accuracy! What a game!` : acc >= 75 ? `Nice game! ${acc.toFixed(0)}% accuracy is really solid.` : acc >= 55 ? `Good effort! You played with ${acc.toFixed(0)}% accuracy.` : `That was a tough one, but every game teaches you something.`;
+    line += bad ? ` Let's go over your ${bad} ${bad === 1 ? "mistake" : "mistakes"} together.` : " I couldn't find a single real mistake!";
+    return line;
+  }
+  function coachBubble(C, html, extra = "") {
+    return `<div class="cbox"><span class="cav" aria-hidden="true">${coachFace(C)}</span><div class="cbub"><div class="cname">${esc(coachName(C))}</div><div class="ctext">${html}</div></div>${extra}</div>`;
+  }
+  // ---- picker ----
+  function openCoach(ret) {
+    coachReturn = ret || openOverlay() || "setupOv";
+    paintCoach(); show("coachOv");
+  }
+  let coachReturn = "setupOv";
+  function paintCoach() {
+    const on = prefs.coachOn !== false;
+    $("coachBody").innerHTML = `<button class="opt" data-dact="coachToggle"><i class="sic" style="--ic:#7ee08f">🧑‍🏫</i><span>Coach in Game Review</span><b>${on ? "On" : "Off"}</b></button>
+      <div class="cgrid${on ? "" : " off"}">${COACHES.map(c => `<button class="ccard${c.id === (prefs.coach || "c1") ? " sel" : ""}" data-dact="coachPick" data-arg="${esc(c.id)}"><span class="cav big">${coachFace(c)}</span><b>${esc(coachName(c))}</b><small>${esc(c.sub)}</small></button>`).join("")}</div>
+      <p class="netnote">Your coach pops up when you review a bot or online game.</p>`;
+    paintCoachBtn();
+  }
+  function paintCoachBtn() {
+    const C = coachObj();
+    $("coachBtn").innerHTML = C ? `<span class="cav">${coachFace(C)}</span>` : `<span class="cav off">🧑‍🏫</span>`;
+    $("coachBtn").classList.toggle("isoff", !C);
+  }
+
+  paintCoachBtn();
   function coachText(h) {
     const best = h.best ? sanOf(h.state, h.best) : "", who = sideName(h.state.turn), you = who === "You";
     const after = E.makeMove(h.state, h.move);
@@ -7868,6 +8028,11 @@ function engineFactory() {
     if (rv.retry) {
       el.style.setProperty("--rc", "#5b8fc7");
       el.innerHTML = `<span class="rvb">🔁</span><span class="rvt">${rv.retry.msg || `<b>Try again!</b> Find a better move than ${esc(rv.retry.snap.history[rv.retry.i].san)}. Tap 🔁 to go back.`}</span>`;
+    } else if (!h && coachObj()) {
+      const C = coachObj();
+      el.style.setProperty("--rc", "#3fa9ff");
+      if (!rv.hello || rv.helloBy !== C.id) { rv.hello = coachHello(C); rv.helloBy = C.id; }
+      el.innerHTML = coachBubble(C, `${rv.hello} Tap ▶ to go move by move, or ⚠️ to jump to your mistakes.`);
     } else if (!h) {
       el.style.setProperty("--rc", "#888");
       el.innerHTML = `<span class="rvb">♟</span><span class="rvt"><b>Let's review your game!</b> Tap ▶ to go move by move, or ⚠️ to jump to your mistakes.</span>`;
@@ -7875,9 +8040,15 @@ function engineFactory() {
       el.style.setProperty("--rc", "#888");
       el.innerHTML = `<span class="rvb">…</span><span class="rvt"><b>${esc(h.san)}</b> Still analyzing this move…</span>`;
     } else {
-      const k = CLS[h.cls], e = h.evalW;
+      const k = CLS[h.cls], e = h.evalW, C = coachObj();
       el.style.setProperty("--rc", k.color);
-      el.innerHTML = `<span class="rvb">${k.sym}</span><span class="rvt">${Math.floor((cur - 1) / 2) + 1}${(cur - 1) % 2 ? "…" : "."} ${coachText(h)}</span><span class="rve" style="background:${e >= 0 ? "#f4f4f4" : "#222"};color:${e >= 0 ? "#222" : "#f4f4f4"}">${evalText(e)}</span>`;
+      if (C) {
+        const key = C.id + ":" + h.cls;
+        if (!h.coachSaid || h.coachSaid.key !== key) h.coachSaid = { key, html: coachLine(h, C) };
+        const tag = `<span class="ctag" style="--bc:${k.color}"><i class="mb" style="--bc:${k.color}">${k.sym}</i>${Math.floor((cur - 1) / 2) + 1}${(cur - 1) % 2 ? "…" : "."} ${esc(h.san)} · ${k.label}</span>`;
+        el.innerHTML = coachBubble(C, tag + h.coachSaid.html, `<span class="rve" style="background:${e >= 0 ? "#f4f4f4" : "#222"};color:${e >= 0 ? "#222" : "#f4f4f4"}">${evalText(e)}</span>`);
+        if (el.dataset.said !== key + cur) { el.dataset.said = key + cur; el.classList.remove("cpop"); void el.offsetWidth; el.classList.add("cpop"); }
+      } else el.innerHTML = `<span class="rvb">${k.sym}</span><span class="rvt">${Math.floor((cur - 1) / 2) + 1}${(cur - 1) % 2 ? "…" : "."} ${coachText(h)}</span><span class="rve" style="background:${e >= 0 ? "#f4f4f4" : "#222"};color:${e >= 0 ? "#222" : "#f4f4f4"}">${evalText(e)}</span>`;
     }
     $("rvRetryBtn").disabled = !rv.retry && (!h || !BAD.includes(h.cls));
     // evaluation graph: white area = White is better
@@ -7926,7 +8097,7 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -8142,6 +8313,8 @@ function engineFactory() {
       case "puzNextPage": puzPage = Math.min(Math.ceil(PUZ_LEVELS / 20) - 1, puzPage + 1); openPuzzles(); break;
       case "learn": openLearn(); break;
       case "stats": openStats(); break;
+      case "coach": openCoach(); break;
+      case "coachDone": if (coachReturn === "settingsOv") { paintOptions(); show("settingsOv"); } else show(coachReturn || "setupOv"); paintCoachBtn(); break;
       case "startBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame({ mode: "cpu", level: setup.level, color: setup.color, time: setup.time }); break;
       case "startLive": setup.mode = "two"; store.set("chess-setup", setup); newGame({ mode: "two", level: setup.level, color: "w", time: setup.liveTime }); break;
       case "resume": hideAll(); refresh(); break;
@@ -8242,6 +8415,7 @@ function engineFactory() {
         else if (ov === "puzDoneOv" && btn === "B") act("puzzles");
         else if (ov === "reviewOv" && btn === "B") act("rvClose");
         else if (ov === "statsOv" && btn === "B") act("toStart");
+        else if (ov === "coachOv") act("coachDone");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
