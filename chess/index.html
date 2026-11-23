@@ -94,8 +94,8 @@
   @keyframes hmm { 50% { transform: scaleX(.45) translateY(.6px); } }
   .av.thinking { animation: thinkRing 1.2s ease-in-out infinite; }
   @keyframes thinkRing { 50% { box-shadow: 0 0 0 4px #ffd84a, 0 0 12px rgba(255,216,74,.8); } }
-  .av.big { width: 68px; height: 68px; font-size: 2rem; box-shadow: 0 0 0 4px var(--ring), 0 6px 12px rgba(0,0,0,.35); }
-  .av.mini { width: 30px; height: 30px; font-size: .8rem; margin-right: 7px; vertical-align: middle; box-shadow: 0 0 0 2px var(--ring); }
+  .av.big { width: 92px; height: 92px; font-size: 2rem; box-shadow: 0 0 0 4px var(--ring), 0 6px 12px rgba(0,0,0,.35); }
+  .av.mini { width: 36px; height: 36px; min-width: 0; min-height: 0; border-radius: 50%; padding: 0; font-size: .8rem; margin-right: 7px; vertical-align: middle; box-shadow: 0 0 0 2px var(--ring); }
   .av .crown { position: absolute; top: -12px; right: -6px; font-style: normal; font-size: 18px; color: #ffd84a; text-shadow: 0 1px 2px rgba(0,0,0,.5); transform: rotate(18deg); }
   .av.big .crown { font-size: 26px; top: -16px; }
   .av.mini .crown { display: none; }
@@ -5524,8 +5524,336 @@ function engineFactory() {
     BOT("Stockfish 4500", 4500, "engines", "Maximum power. The hardest bot there is. No mercy, no mistakes.", ["#ff5252", "#ffd740", "fish", "#1a0f0f"]),
   ];
   { const order = ["bots", "youtubers", "top", "legends", "football", "soccer", "engines"]; LEVELS.sort((a, b) => order.indexOf(a.cat) - order.indexOf(b.cat) || a.elo - b.elo); }
-  // Cartoon face for a bot, drawn as SVG.
+  // ================= Bot portraits =================
+  // Illustrated, semi-realistic portraits drawn as SVG (no photos). Each person's look (skin, hair,
+  // beard, glasses, clothes) is described in PEOPLE below and drawn by portraitSVG().
+  const PSK = { k1: "#f5d8c4", k2: "#edc5a7", k3: "#deb08a", k4: "#c99368", k5: "#a56d48", k6: "#7e5034", k7: "#5d3b27", ea: "#f0cca8", sa: "#b47c53" };
+  const HC = { blk: "#1c1815", dbr: "#3b2a1f", br: "#5e4330", lbr: "#8a6a4a", aub: "#7e3f24", gin: "#b8622c", bln: "#d4ae66", plat: "#e6d3a4", gry: "#9b958e", wht: "#dcd8d2", slt: "#6c6761", grn: "#3f9b46", pur: "#6a3fb5" };
+  const mixC = (a, b, t) => { const p = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16)); const A = p(a), B = p(b); return "#" + A.map((v, k) => Math.round(v + (B[k] - v) * t).toString(16).padStart(2, "0")).join(""); };
+  // s skin · h hair · hs hair style · b beard · g glasses · c clothes · cc clothes colour · e eye colour · f face shape
+  // sm smile 0-2 · age 0-2 · fem · n shirt number · x extras {band, cap, phones, ring, chain} · bh brow colour · bt brow thickness
+  const PEOPLE = {
+    // fun bots
+    "Jayden": { s: "k5", h: HC.blk, hs: "curly", c: "tee", cc: "#ff6b6b", f: "round", sm: 2 },
+    "Mia": { s: "k2", h: HC.bln, hs: "long", c: "top", cc: "#ff8fc8", fem: 1, sm: 2, e: "#5b8fb0" },
+    "Leo": { s: "k3", h: HC.br, hs: "spiky", c: "hoodie", cc: "#4fc3f7", sm: 2 },
+    "Priya": { s: "sa", h: HC.blk, hs: "long", c: "top", cc: "#ffb74d", fem: 1, sm: 1 },
+    "Marcus": { s: "k6", h: HC.blk, hs: "cap", c: "jersey", cc: "#1e88e5", n: 12, x: { cap: "#d32f2f" }, sm: 1 },
+    "Sofia": { s: "k3", h: HC.dbr, hs: "bun", c: "sweater", cc: "#9575cd", fem: 1, sm: 1 },
+    "Kenji": { s: "ea", h: HC.blk, hs: "short", g: "thin", c: "tee", cc: "#26a69a", sm: 1 },
+    "Rosa": { s: "k4", h: HC.dbr, hs: "longcurly", c: "top", cc: "#ef5350", fem: 1, sm: 2 },
+    "Amara": { s: "k7", h: HC.blk, hs: "afro", c: "top", cc: "#ffd54f", fem: 1, sm: 2 },
+    "Diego": { s: "k4", h: HC.blk, hs: "side", b: "short", c: "shirt", cc: "#66bb6a", sm: 1 },
+    "Hannah": { s: "k1", h: HC.aub, hs: "long", g: "round", c: "sweater", cc: "#7e57c2", fem: 1, sm: 1, e: "#4f7a4a" },
+    "Viktor": { s: "k2", h: HC.gry, hs: "bald", b: "full", c: "sweater", cc: "#5d4037", age: 2 },
+    "Zara": { s: "k5", h: HC.blk, hs: "bun", c: "top", cc: "#ec407a", fem: 1, sm: 1 },
+    "Orion": { s: "k3", h: HC.pur, bh: HC.dbr, hs: "spiky", c: "hoodie", cc: "#283593", sm: 1 },
+    "Valentina": { s: "k2", h: HC.blk, hs: "long", g: "thin", c: "blazer", cc: "#00897b", fem: 1 },
+    // YouTubers
+    "Alexandra Botez": { s: "k2", h: HC.dbr, hs: "long", c: "top", cc: "#e91e63", fem: 1, sm: 2 },
+    "agadmator": { s: "k2", h: HC.dbr, hs: "short", b: "full", c: "tee", cc: "#455a64", sm: 1 },
+    "Anna Cramling": { s: "k1", h: HC.bln, hs: "long", c: "top", cc: "#29b6f6", fem: 1, sm: 2, e: "#5b8fb0" },
+    "WittyAlien": { alien: 1, s: "#7ddc5a", c: "hoodie", cc: "#6a1b9a" },
+    "Eric Rosen": { s: "k2", h: HC.br, hs: "side", c: "shirt", cc: "#8bc34a", f: "narrow", sm: 2 },
+    "GothamChess": { s: "k2", h: HC.dbr, hs: "short", b: "short", c: "blazer", cc: "#212121", sm: 1 },
+    "chessbrah": { s: "k2", h: HC.br, hs: "short", b: "full", c: "hoodie", cc: "#ff7043", sm: 1 },
+    "Samay Raina": { s: "sa", h: HC.blk, hs: "curly", b: "short", c: "hoodie", cc: "#ff4081", sm: 2 },
+    "Andrea Botez": { s: "k2", h: HC.blk, hs: "long", c: "top", cc: "#f06292", fem: 1, sm: 1 },
+    "Hanging Pawns": { s: "k2", h: HC.dbr, hs: "short", b: "stubble", c: "tee", cc: "#546e7a", sm: 1 },
+    "Chess Vibes": { s: "k4", h: HC.blk, hs: "short", b: "short", c: "tee", cc: "#00acc1", sm: 1 },
+    "ChessNetwork": { s: "k2", h: HC.br, hs: "short", c: "tee", cc: "#37474f", x: { phones: 1 }, sm: 1 },
+    "Nemo Zhou": { s: "ea", h: HC.blk, hs: "long", c: "top", cc: "#ab47bc", fem: 1, sm: 1 },
+    "Jennifer Shahade": { s: "k2", h: HC.dbr, hs: "longcurly", c: "top", cc: "#c2185b", fem: 1, sm: 1 },
+    "Tania Sachdev": { s: "sa", h: HC.blk, hs: "long", c: "top", cc: "#00897b", fem: 1, sm: 2 },
+    "Eric Hansen": { s: "k2", h: HC.lbr, hs: "short", b: "full", c: "hoodie", cc: "#ff7043", sm: 1 },
+    "John Bartholomew": { s: "k2", h: HC.lbr, hs: "side", c: "shirt", cc: "#1976d2", sm: 1 },
+    "Simon Williams": { s: "k1", h: HC.gin, hs: "short", b: "full", c: "shirt", cc: "#2e7d32", sm: 2, e: "#4f7a4a" },
+    "Ben Finegold": { s: "k2", h: HC.gry, hs: "bald", c: "sweater", cc: "#5d4037", age: 2, f: "long" },
+    "Alexandra Kosteniuk": { s: "k1", h: HC.bln, hs: "long", c: "top", cc: "#e91e63", fem: 1, sm: 1, e: "#5b8fb0" },
+    "MrBeast": { s: "k2", h: HC.br, hs: "messy", b: "short", c: "hoodie", cc: "#1e88e5", sm: 2 },
+    "Mark Rober": { s: "k2", h: HC.br, hs: "side", c: "tee", cc: "#ff7043", sm: 2, e: "#4b7aa0" },
+    "Dude Perfect": { s: "k2", h: HC.br, hs: "cap", b: "short", c: "hoodie", cc: "#f5f5f5", x: { cap: "#2e7d32" }, sm: 2 },
+    "MKBHD": { s: "k6", h: HC.blk, hs: "buzz", b: "short", c: "tee", cc: "#d32f2f", sm: 1 },
+    "PewDiePie": { s: "k1", h: HC.lbr, hs: "side", b: "short", c: "tee", cc: "#212121", sm: 1, e: "#5b8fb0" },
+    "IShowSpeed": { s: "k6", h: HC.blk, hs: "twists", c: "jersey", cc: "#f5f5f5", n: 7, sm: 2 },
+    "Markiplier": { s: "k2", h: HC.dbr, hs: "side", b: "short", c: "tee", cc: "#424242", sm: 1 },
+    "Jacksepticeye": { s: "k2", h: HC.grn, bc: HC.br, bh: HC.br, hs: "quiff", b: "short", c: "hoodie", cc: "#43a047", sm: 2, e: "#4b7aa0" },
+    "KSI": { s: "k6", h: HC.blk, hs: "buzz", b: "stubble", c: "hoodie", cc: "#7b1fa2", sm: 1 },
+    "Kai Cenat": { s: "k6", h: HC.blk, hs: "locs", c: "hoodie", cc: "#ff6f00", sm: 2 },
+    "Airrack": { s: "k2", h: HC.br, hs: "messy", c: "tee", cc: "#00bcd4", sm: 2 },
+    "Preston": { s: "k2", h: HC.br, hs: "short", c: "hoodie", cc: "#ff3d00", sm: 2 },
+    // top players
+    "Magnus Carlsen": { s: "k1", h: "#6b4a32", hs: "messy", b: "stubble", c: "hoodie", cc: "#e2e2e0", f: "long", e: "#6f8ea6", sm: 0 },
+    "Hikaru Nakamura": { s: "k3", h: HC.blk, hs: "side", c: "hoodie", cc: "#263238", sm: 1 },
+    "Fabiano Caruana": { s: "k2", h: HC.dbr, hs: "short", b: "stubble", c: "suit", cc: "#1a237e", f: "narrow" },
+    "Ding Liren": { s: "ea", h: HC.blk, hs: "messy", g: "thin", c: "suit", cc: "#263238", f: "oval" },
+    "Gukesh D": { s: "sa", h: HC.blk, hs: "curly", b: "mus", c: "blazer", cc: "#0d47a1", f: "narrow", sm: 1 },
+    "Alireza Firouzja": { s: "k3", h: HC.blk, hs: "quiff", b: "stubble", c: "blazer", cc: "#1b1b1b", f: "narrow" },
+    "Praggnanandhaa R": { s: "sa", h: HC.blk, hs: "short", c: "shirt", cc: "#f57c00", f: "narrow", sm: 1 },
+    "Arjun Erigaisi": { s: "sa", h: HC.blk, hs: "side", c: "shirt", cc: "#1565c0", sm: 1 },
+    "Nodirbek Abdusattorov": { s: "k3", h: HC.blk, hs: "short", c: "suit", cc: "#1e88e5", sm: 1 },
+    "Ian Nepomniachtchi": { s: "k2", h: HC.aub, hs: "curly", b: "full", c: "tee", cc: "#212121", f: "round" },
+    "Anish Giri": { s: "k4", h: HC.blk, hs: "curly", b: "stubble", c: "shirt", cc: "#ff6f00", f: "narrow", sm: 1 },
+    "Maxime Vachier-Lagrave": { s: "k2", h: HC.dbr, hs: "short", b: "stubble", c: "suit", cc: "#283593", f: "narrow" },
+    "Shakhriyar Mamedyarov": { s: "k3", h: HC.blk, hs: "receding", b: "stubble", c: "suit", cc: "#2e7d32", age: 1 },
+    "Wesley So": { s: "k4", h: HC.blk, hs: "short", g: "thin", c: "suit", cc: "#0d47a1", sm: 1 },
+    "Levon Aronian": { s: "k2", h: HC.slt, hs: "curly", b: "short", c: "sweater", cc: "#6a1b9a", age: 1, sm: 1 },
+    "Teimour Radjabov": { s: "k3", h: HC.blk, hs: "short", b: "short", c: "suit", cc: "#0277bd" },
+    "Wei Yi": { s: "ea", h: HC.blk, hs: "short", c: "shirt", cc: "#d84315" },
+    "Richard Rapport": { s: "k2", h: HC.dbr, hs: "manbun", b: "full", c: "shirt", cc: "#00695c" },
+    "Sergey Karjakin": { s: "k2", h: HC.lbr, hs: "short", c: "suit", cc: "#455a64", f: "round" },
+    "Ju Wenjun": { s: "ea", h: HC.blk, hs: "bob", c: "top", cc: "#c62828", fem: 1, sm: 1 },
+    // legends
+    "Paul Morphy": { s: "k2", h: HC.dbr, hs: "side", c: "vintage", cc: "#37474f", f: "narrow" },
+    "José Raúl Capablanca": { s: "k3", h: HC.blk, hs: "slick", c: "suit", cc: "#eeeeee", f: "oval", sm: 1 },
+    "Judit Polgár": { s: "k2", h: HC.aub, hs: "longcurly", c: "blazer", cc: "#c62828", fem: 1, sm: 1 },
+    "Bobby Fischer": { s: "k2", h: HC.dbr, hs: "side", c: "suit", cc: "#1c2a4a", f: "long" },
+    "Viswanathan Anand": { s: "sa", h: HC.slt, hs: "curly", g: "thin", c: "blazer", cc: "#3e2723", sm: 2, age: 1 },
+    "Garry Kasparov": { s: "k2", h: "#4a4440", hs: "short", c: "suit", cc: "#424242", f: "square", bt: 2.3, age: 1 },
+    "Adolf Anderssen": { s: "k2", h: HC.gry, hs: "receding", b: "chops", c: "vintage", cc: "#4e342e", age: 2 },
+    "Wilhelm Steinitz": { s: "k2", h: HC.br, hs: "bald", b: "big", c: "vintage", cc: "#3e2723", age: 2, f: "round" },
+    "Aron Nimzowitsch": { s: "k2", h: HC.dbr, hs: "slick", g: "round", c: "vintage", cc: "#5d4037", f: "narrow" },
+    "Akiba Rubinstein": { s: "k2", h: HC.dbr, hs: "side", b: "mus", c: "vintage", cc: "#455a64" },
+    "Max Euwe": { s: "k2", h: HC.dbr, hs: "slick", g: "round", c: "suit", cc: "#1565c0", f: "long", sm: 1 },
+    "Vera Menchik": { s: "k2", h: HC.dbr, hs: "bun", c: "vintage", cc: "#6d4c41", fem: 1, f: "round" },
+    "Emanuel Lasker": { s: "k2", h: HC.br, hs: "receding", b: "mus", c: "vintage", cc: "#263238", age: 2 },
+    "Alexander Alekhine": { s: "k2", h: HC.lbr, hs: "slick", c: "suit", cc: "#37474f", f: "long" },
+    "Mikhail Botvinnik": { s: "k2", h: HC.dbr, hs: "receding", g: "thin", c: "suit", cc: "#3e2723", age: 1 },
+    "Vasily Smyslov": { s: "k2", h: HC.br, hs: "slick", g: "thin", c: "suit", cc: "#4e342e", sm: 1 },
+    "David Bronstein": { s: "k2", h: HC.dbr, hs: "bald", g: "thick", c: "suit", cc: "#455a64", age: 1 },
+    "Mikhail Tal": { s: "k3", h: HC.blk, hs: "slick", c: "suit", cc: "#283593", f: "narrow", bt: 2 },
+    "Tigran Petrosian": { s: "k3", h: HC.blk, hs: "receding", c: "suit", cc: "#33691e", age: 1 },
+    "Boris Spassky": { s: "k2", h: HC.lbr, hs: "side", c: "suit", cc: "#1a237e", sm: 1 },
+    "Viktor Korchnoi": { s: "k2", h: HC.gry, hs: "bald", c: "suit", cc: "#3e2723", age: 2 },
+    "Anatoly Karpov": { s: "k2", h: HC.lbr, hs: "side", c: "suit", cc: "#263238", f: "narrow" },
+    "Maia Chiburdanidze": { s: "k3", h: HC.blk, hs: "long", c: "top", cc: "#ad1457", fem: 1 },
+    "Susan Polgar": { s: "k2", h: HC.dbr, hs: "longcurly", c: "blazer", cc: "#6a1b9a", fem: 1, sm: 1 },
+    "Vladimir Kramnik": { s: "k2", h: HC.lbr, hs: "short", c: "suit", cc: "#37474f", f: "long" },
+    "Veselin Topalov": { s: "k2", h: HC.dbr, hs: "short", c: "suit", cc: "#c62828" },
+    "Hou Yifan": { s: "ea", h: HC.blk, hs: "bob", g: "thin", c: "top", cc: "#d32f2f", fem: 1, sm: 1 },
+    // American football
+    "Patrick Mahomes": { s: "k4", h: HC.dbr, hs: "hightop", b: "mus", c: "jersey", cc: "#c62828", n: 15, sm: 2 },
+    "Tom Brady": { s: "k2", h: HC.br, hs: "side", c: "jersey", cc: "#0d47a1", n: 12, f: "square", sm: 1 },
+    "Travis Kelce": { s: "k2", h: HC.br, hs: "quiff", b: "short", c: "jersey", cc: "#c62828", n: 87, sm: 2 },
+    "Josh Allen": { s: "k2", h: HC.dbr, hs: "short", b: "short", c: "jersey", cc: "#1565c0", n: 17, f: "square", sm: 1 },
+    "Lamar Jackson": { s: "k6", h: HC.blk, hs: "locs", b: "mus", c: "jersey", cc: "#4a148c", n: 8, sm: 1 },
+    "Justin Jefferson": { s: "k5", h: HC.blk, hs: "twists", c: "jersey", cc: "#5e35b1", n: 18, sm: 2 },
+    "Saquon Barkley": { s: "k6", h: HC.blk, hs: "buzz", b: "short", c: "jersey", cc: "#00695c", n: 26, sm: 2 },
+    "Jalen Hurts": { s: "k6", h: HC.blk, hs: "locs", b: "short", c: "jersey", cc: "#004d40", n: 1 },
+    "Joe Burrow": { s: "k2", h: HC.bln, hs: "side", b: "mus", c: "jersey", cc: "#ff6f00", n: 9, sm: 1, e: "#4b7aa0" },
+    "Jerry Rice": { s: "k6", h: HC.blk, hs: "shaved", b: "mus", c: "jersey", cc: "#b71c1c", n: 80, sm: 2, age: 1 },
+    "Peyton Manning": { s: "k2", h: HC.lbr, hs: "receding", c: "jersey", cc: "#1a237e", n: 18, f: "long", sm: 1, age: 1 },
+    // soccer
+    "Lionel Messi": { s: "k3", h: HC.br, hs: "short", b: "full", c: "jersey", cc: "#74b9e8", n: 10, sm: 1 },
+    "Cristiano Ronaldo": { s: "k3", h: HC.blk, hs: "quiff", c: "jersey", cc: "#c62828", n: 7, f: "square", sm: 1 },
+    "Kylian Mbappé": { s: "k6", h: HC.blk, hs: "shaved", c: "jersey", cc: "#1565c0", n: 10, sm: 2 },
+    "Erling Haaland": { s: "k1", h: HC.bln, hs: "manbun", c: "jersey", cc: "#6cabdd", n: 9, f: "long", e: "#5b8fb0" },
+    "Neymar Jr": { s: "k3", h: "#8a6a3a", hs: "quiff", b: "short", c: "jersey", cc: "#fdd835", n: 10, sm: 2 },
+    "Vinícius Jr": { s: "k6", h: HC.blk, hs: "twists", b: "mus", c: "jersey", cc: "#f5f5f5", n: 7, sm: 2 },
+    "Jude Bellingham": { s: "k5", h: HC.blk, hs: "buzz", c: "jersey", cc: "#f5f5f5", n: 5, sm: 1 },
+    "Mohamed Salah": { s: "k4", h: HC.blk, hs: "afro", b: "full", c: "jersey", cc: "#c62828", n: 11, sm: 2 },
+    "Kevin De Bruyne": { s: "k1", h: HC.gin, hs: "short", b: "stubble", c: "jersey", cc: "#6cabdd", n: 17, e: "#5b8fb0" },
+    "Lamine Yamal": { s: "k5", h: HC.blk, hs: "curly", c: "jersey", cc: "#1a237e", n: 19, f: "narrow", sm: 1 },
+    "Luka Modrić": { s: "k2", h: HC.lbr, hs: "bob", c: "jersey", cc: "#e53935", n: 10, f: "narrow" },
+    "Ronaldinho": { s: "k5", h: HC.blk, hs: "longcurly", c: "jersey", cc: "#fdd835", n: 10, x: { band: "#ffffff" }, sm: 2 },
+    "Zinedine Zidane": { s: "k3", h: HC.dbr, hs: "bald", c: "jersey", cc: "#1565c0", n: 10, f: "long", age: 1 },
+    "Pelé": { s: "k6", h: HC.blk, hs: "buzz", c: "jersey", cc: "#fdd835", n: 10, sm: 2, age: 1 },
+    "Diego Maradona": { s: "k4", h: HC.blk, hs: "curly", c: "jersey", cc: "#74b9e8", n: 10, f: "round", sm: 1 },
+  };
+  const PBG = { bots: "#34343e", youtubers: "#2c3140", top: "#2b2a30", legends: "#3a3128", football: "#27322b", soccer: "#2b3326", engines: "#222" };
+
+  function portraitSVG(i, P) {
+    const id = "pt" + i, cat = LEVELS[i].cat;
+    const sk = PSK[P.s] || P.s, sh = mixC(sk, "#3a1d10", .2), sh2 = mixC(sk, "#2a1208", .4), hl = mixC(sk, "#ffffff", .22);
+    const H = P.h || HC.blk, HD = mixC(H, "#000000", .38), HL = mixC(H, "#ffffff", .3);
+    const lip = mixC(sk, P.fem ? "#c23a55" : "#a8505a", P.fem ? .5 : .3), lipD = mixC(sk, "#4a1a1c", .5);
+    const [w, jw, chin] = { oval: [16, 9.5, 71.5], square: [16.5, 12, 71], long: [15.2, 9, 74], round: [17, 11.5, 70.5], narrow: [14.6, 8, 72.5] }[P.f || "oval"];
+    const L = 50 - w, R = 50 + w, xe = 50 - w * .49;
+    const cc = P.cc || "#555555", ccD = mixC(cc, "#000000", .3), ccL = mixC(cc, "#ffffff", .22);
+    const bg = PBG[cat] || "#2d2b30", X = P.x || {};
+    const mir = s => `<g transform="translate(100 0) scale(-1 1)">${s}</g>`;
+    let o = `<svg viewBox="0 0 100 100" aria-hidden="true" style="--bd:${((i * 0.73) % 4.5).toFixed(2)}s"><defs>
+      <radialGradient id="${id}b" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="${mixC(bg, "#ffffff", .14)}"/><stop offset="1" stop-color="${mixC(bg, "#000000", .4)}"/></radialGradient>
+      <linearGradient id="${id}s" x1="0" y1="0" x2="1" y2=".25"><stop offset="0" stop-color="${hl}"/><stop offset=".5" stop-color="${sk}"/><stop offset="1" stop-color="${sh}"/></linearGradient>
+      <linearGradient id="${id}c" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${ccL}"/><stop offset=".55" stop-color="${cc}"/><stop offset="1" stop-color="${ccD}"/></linearGradient>
+      </defs><rect width="100" height="100" fill="url(#${id}b)"/><g class="fc" style="transform-origin:50px 97px"><g transform="translate(50 70) scale(1.18) translate(-50 -66)">`;
+
+    // ---- body / clothes ----
+    o += `<path d="M3 100 C5 87 17 81 33 78.6 Q41.5 77.4 50 77.4 Q58.5 77.4 67 78.6 C83 81 95 87 97 100Z" fill="url(#${id}c)"/>`;
+    if (P.c === "jersey") o += `<path d="M14 85.5 Q22 80.6 32 79.3 L33 81.6 Q23 83 15.6 88Z M86 85.5 Q78 80.6 68 79.3 L67 81.6 Q77 83 84.4 88Z" fill="${ccL}" opacity=".8"/>
+      <text x="71" y="99" font-size="11" font-weight="900" font-family="system-ui,sans-serif" fill="${mixC(cc, "#000000", .55)}" opacity=".75">${P.n || ""}</text>`;
+    if (P.c === "suit" || P.c === "blazer" || P.c === "vintage") o += `<path d="M50 100 L37.5 79 Q35 80 34 82 L44 100Z M50 100 L62.5 79 Q65 80 66 82 L56 100Z" fill="${ccD}" opacity=".55"/>`;
+
+    // ---- hair behind the head ----
+    const backLong = (bot, wide) => `<path d="M${L - 3} 40 C${L - 5} 19 ${L + 4} 10 50 10 C${R - 4} 10 ${R + 5} 19 ${R + 3} 40 C${R + 3.5} 55 ${R + 4 + wide} 70 ${R + 7 + wide} ${bot} Q${R} ${bot + 4} ${R - 4} ${bot - 8} L${L + 4} ${bot - 8} Q${L} ${bot + 4} ${L - 7 - wide} ${bot} C${L - 4 - wide} 70 ${L - 3.5} 55 ${L - 3} 40Z" fill="${HD}"/>`;
+    if (P.hs === "long") o += backLong(86, 1);
+    if (P.hs === "longcurly") o += backLong(84, 3) + [[L - 6, 70], [L - 4, 80], [R + 6, 70], [R + 4, 80], [L - 5, 58], [R + 5, 58]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4.2" fill="${HD}"/>`).join("");
+    if (P.hs === "bob") o += `<path d="M${L - 3} 40 C${L - 5} 19 ${L + 4} 10 50 10 C${R - 4} 10 ${R + 5} 19 ${R + 3} 40 C${R + 3.5} 52 ${R + 3} 60 ${R + 2} 66 Q${R - 3} 68 ${R - 4} 62 L${L + 4} 62 Q${L + 3} 68 ${L - 2} 66 C${L - 3} 60 ${L - 3.5} 52 ${L - 3} 40Z" fill="${HD}"/>`;
+    if (P.hs === "afro") o += `<ellipse cx="50" cy="31" rx="${w + 10}" ry="22" fill="${H}"/>` + Array.from({ length: 16 }, (_, k) => { const a = Math.PI * (0.95 + k * 1.1 / 15); return `<circle cx="${(50 + Math.cos(a) * (w + 9)).toFixed(1)}" cy="${(33 + Math.sin(a) * 21).toFixed(1)}" r="5.2" fill="${H}"/>`; }).join("");
+    if (P.hs === "locs") o += Array.from({ length: 12 }, (_, k) => { const x = L - 4.5 + k * ((2 * w + 9) / 11); if (x > L + 2 && x < R - 2) return ""; return `<path d="M${x.toFixed(1)} 26 Q${(x + (x < 50 ? -1.5 : 1.5)).toFixed(1)} 50 ${(x + (x < 50 ? -2 : 2)).toFixed(1)} ${70 + (k % 3) * 3}" stroke="${H}" stroke-width="3.4" stroke-linecap="round" fill="none"/>`; }).join("");
+
+    // ---- neck ----
+    o += `<path d="M41.3 57 L40.6 80 Q50 ${P.c === "top" ? 93 : 87} 59.4 80 L58.7 57Z" fill="${sh}"/>
+      <path d="M41.3 ${chin - 9} Q50 ${chin + 6} 58.7 ${chin - 9} L58.7 ${chin - 2} Q50 ${chin + 9} 41.3 ${chin - 2}Z" fill="${sh2}" opacity=".45"/>`;
+    // collars that sit over the neck
+    if (P.c === "hoodie") o += `<path d="M31.5 80 Q35 74 41 75.5 Q50 91 59 75.5 Q65 74 68.5 80 Q61 94.5 50 94 Q39 94.5 31.5 80Z" fill="${ccL}"/><path d="M41 75.5 Q50 91 59 75.5" stroke="${ccD}" stroke-width="1" fill="none" opacity=".6"/>
+      <path d="M45.5 89 Q45 94 44.2 99 M54.5 89 Q55 94 55.8 99" stroke="#f4f4f4" stroke-width="1.5" fill="none" stroke-linecap="round"/><circle cx="44.2" cy="99" r="1.1" fill="#e0e0e0"/><circle cx="55.8" cy="99" r="1.1" fill="#e0e0e0"/>`;
+    if (P.c === "tee" || P.c === "sweater") o += `<path d="M40.4 79.5 Q50 89.5 59.6 79.5" stroke="${ccD}" stroke-width="${P.c === "sweater" ? 3 : 1.8}" fill="none"/>`;
+    if (P.c === "top") o += `<path d="M37 79 Q50 94.5 63 79" stroke="${ccD}" stroke-width="1.4" fill="none"/><path d="M44 86 Q46 84.5 48 85.6 M56 86 Q54 84.5 52 85.6" stroke="${sh2}" stroke-width=".7" fill="none" opacity=".5"/>`;
+    if (P.c === "jersey") o += `<path d="M41 79 L50 91 L59 79" stroke="${ccD}" stroke-width="2.4" fill="none" stroke-linejoin="round"/>`;
+    if (P.c === "shirt") o += `<path d="M40.5 77.5 L45 87.5 L50 83 L55 87.5 L59.5 77.5 Q50 85 40.5 77.5Z" fill="${ccL}"/><path d="M50 84 V100" stroke="${ccD}" stroke-width=".7"/><circle cx="50" cy="91" r=".8" fill="${ccD}"/><circle cx="50" cy="97" r=".8" fill="${ccD}"/>`;
+    if (P.c === "suit" || P.c === "blazer") {
+      o += `<path d="M40.5 77.5 L50 100 L59.5 77.5 Q50 87 40.5 77.5Z" fill="${P.c === "suit" ? "#f4f4f2" : "#2b2b2b"}"/>`;
+      if (P.c === "suit") o += `<path d="M40.8 77 L44.6 86 L50 82.5 Z M59.2 77 L55.4 86 L50 82.5 Z" fill="#ffffff" stroke="#cfcfcf" stroke-width=".5"/><path d="M48.5 82.6 L51.5 82.6 L52.3 85.4 L53.6 100 L46.4 100 L47.7 85.4Z" fill="${cc === "#eeeeee" ? "#3a3a3a" : mixC(cc, "#c62828", .55)}"/>`;
+      o += `<path d="M40 77.5 Q35 79.5 34.8 83.5 L39.6 87.5 L37.6 89.5 L47 100 L50 100Z M60 77.5 Q65 79.5 65.2 83.5 L60.4 87.5 L62.4 89.5 L53 100 L50 100Z" fill="${cc}" stroke="${ccD}" stroke-width=".5"/>`;
+    }
+    if (P.c === "vintage") o += `<path d="M41.5 69 L58.5 69 L59.6 79 L40.4 79Z" fill="#f2ede2"/><path d="M41.5 69 L44 74 M58.5 69 L56 74" stroke="#cfc6b6" stroke-width=".6"/>
+      <path d="M50 80.5 L44.5 77.5 L44.5 83.5Z M50 80.5 L55.5 77.5 L55.5 83.5Z" fill="#1a1a1a"/><circle cx="50" cy="80.5" r="1.3" fill="#1a1a1a"/>
+      <path d="M40.4 79 Q36 80 34.8 83.5 L47 100 L50 100 L50 95Z M59.6 79 Q64 80 65.2 83.5 L53 100 L50 100 L50 95Z" fill="${ccD}"/>`;
+    if (X.chain) o += `<path d="M42 80 Q50 92 58 80" stroke="#e0b84a" stroke-width="1" fill="none"/>`;
+
+    if (P.alien) {   // WittyAlien keeps his alien look, just drawn in the same style
+      const g = sk, gD = mixC(g, "#000000", .3), gL = mixC(g, "#ffffff", .25);
+      o += `<path d="M42 60 L41 80 Q50 88 59 80 L58 60Z" fill="${gD}"/>
+        <path d="M40 20 L33 7 M60 20 L67 7" stroke="${gD}" stroke-width="2.4" stroke-linecap="round"/><circle cx="33" cy="7" r="3.2" fill="#ffd740"/><circle cx="67" cy="7" r="3.2" fill="#ffd740"/>
+        <path d="M50 14 C68 14 72 28 70 42 C68 58 58 70 50 71 C42 70 32 58 30 42 C28 28 32 14 50 14Z" fill="${g}"/>
+        <path d="M50 14 C68 14 72 28 70 42 C68 58 58 70 50 71 C56 64 64 52 64 40 C64 26 58 17 50 14Z" fill="${gD}" opacity=".35"/>
+        <ellipse cx="42" cy="26" rx="7" ry="4" fill="${gL}" opacity=".45"/>
+        <g class="look"><g class="eyes"><ellipse cx="40.5" cy="45" rx="6" ry="8.6" transform="rotate(-22 40.5 45)" fill="#101010"/><ellipse cx="59.5" cy="45" rx="6" ry="8.6" transform="rotate(22 59.5 45)" fill="#101010"/>
+        <ellipse cx="42.4" cy="41.6" rx="1.8" ry="1.2" fill="#fff" opacity=".85"/><ellipse cx="61.4" cy="41.6" rx="1.8" ry="1.2" fill="#fff" opacity=".85"/></g></g>
+        <circle cx="48.4" cy="56" r=".9" fill="${gD}"/><circle cx="51.6" cy="56" r=".9" fill="${gD}"/>
+        <path class="mouth" d="M44.5 62 Q50 66 55.5 62" stroke="#1b5e20" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+      return o + "</g></g></svg>";
+    }
+
+    // ---- ears + head ----
+    const ear = c => `<ellipse cx="${L + 0.4}" cy="51.5" rx="3.3" ry="5.6" fill="${c}"/><path d="M${L - 0.6} 48 Q${L - 1.9} 51.5 ${L - 0.4} 55" stroke="${sh2}" stroke-width=".9" fill="none" opacity=".6"/>`;
+    o += ear(sk) + mir(ear(sh));
+    o += `<path d="M50 23 C${50 + w * .8} 23 ${R} 30 ${R} 45 C${R} 56 ${50 + jw + 3} 66 ${50 + jw * .55} ${chin - 2} Q50 ${chin + 1} ${50 - jw * .55} ${chin - 2} C${50 - jw - 3} 66 ${L} 56 ${L} 45 C${L} 30 ${50 - w * .8} 23 50 23Z" fill="url(#${id}s)"/>`;
+    o += `<path d="M${R} 44 C${R} 56 ${50 + jw + 3} 66 ${50 + jw * .55} ${chin - 2} Q56 ${chin - 4.5} ${R - 3.4} 58 Q${R - 1.6} 51 ${R} 44Z" fill="${sh}" opacity=".35"/>`;
+    o += `<ellipse cx="${50 - w * .55}" cy="56" rx="3.4" ry="2.2" fill="${P.fem ? "#e0707a" : "#d77a6a"}" opacity="${P.fem ? .22 : .1}"/><ellipse cx="${50 + w * .55}" cy="56" rx="3.4" ry="2.2" fill="${P.fem ? "#e0707a" : "#d77a6a"}" opacity="${P.fem ? .18 : .08}"/>`;
+    if (P.hs === "bald" || P.hs === "receding" || P.hs === "shaved") o += `<ellipse cx="45" cy="28" rx="6" ry="3" fill="#ffffff" opacity=".22"/>`;
+
+    // ---- age lines ----
+    if (P.age >= 1) o += `<path d="M45.4 61.6 Q43.2 64.6 44 67.8 M54.6 61.6 Q56.8 64.6 56 67.8" stroke="${sh2}" stroke-width=".7" fill="none" opacity=".45"/>`;
+    if (P.age >= 2) o += `<path d="M41 34 Q50 32.4 59 34 M42.5 37 Q50 35.6 57.5 37" stroke="${sh2}" stroke-width=".6" fill="none" opacity=".4"/>
+      <path d="M${xe - 6.4} 51 L${xe - 8} 52.6 M${xe - 6.2} 52.6 L${xe - 7.6} 54.4" stroke="${sh2}" stroke-width=".5" opacity=".5"/>` + mir(`<path d="M${xe - 6.4} 51 L${xe - 8} 52.6 M${xe - 6.2} 52.6 L${xe - 7.6} 54.4" stroke="${sh2}" stroke-width=".5" opacity=".5"/>`);
+
+    // ---- eyes ----
+    const eye = `<path d="M${xe - 4.6} 50.3 Q${xe - 1} 46.5 ${xe + 4.6} 50 Q${xe + 1} 52.7 ${xe - 4.6} 50.3Z" fill="#f4efe9"/>
+      <circle cx="${xe + .3}" cy="49.7" r="2.25" fill="${P.e || "#4e3324"}"/><circle cx="${xe + .3}" cy="49.7" r="1.05" fill="#120d0b"/><circle cx="${xe + 1.1}" cy="48.9" r=".55" fill="#ffffff"/>
+      <path d="M${xe - 4.9} 50.4 Q${xe - 1} 46.1 ${xe + 4.9} 49.8" stroke="#2a1a14" stroke-width="${P.fem ? 1.5 : 1.1}" fill="none" stroke-linecap="round"/>
+      ${P.fem ? `<path d="M${xe - 4.6} 50 L${xe - 6.1} 48.7" stroke="#2a1a14" stroke-width="1" stroke-linecap="round"/>` : ""}
+      <path d="M${xe - 4} 47.9 Q${xe} 45.2 ${xe + 4.2} 47.5" stroke="${sh2}" stroke-width=".7" fill="none" opacity=".55"/>
+      <path d="M${xe - 3.6} 51.7 Q${xe} 53 ${xe + 4} 51.1" stroke="${sh}" stroke-width=".6" fill="none" opacity="${P.age >= 2 ? .9 : .5}"/>`;
+    o += `<g class="look"><g class="eyes">${eye}${mir(eye)}</g></g>`;
+    const bh = P.bh || (P.hs === "bald" && P.h !== HC.gry ? mixC(H, "#000000", .1) : mixC(H, "#000000", .12)), bt = P.bt || (P.fem ? 1.25 : 1.6);
+    const brow = `<path d="M${xe - 5.4} 45.3 Q${xe - 1.6} 41.9 ${xe + 5.4} 43.7" stroke="${bh}" stroke-width="${bt}" fill="none" stroke-linecap="round"/>`;
+    o += brow + mir(brow);
+
+    // ---- nose ----
+    o += `<path d="M51.3 50.5 Q52.2 56.4 54.3 59.6 Q52.7 61.4 50 61.1" stroke="${sh2}" stroke-width=".9" fill="none" opacity=".5"/>
+      <path d="M46.4 60.2 Q47 61.9 48.6 61.4 M53.6 60.2 Q53 61.9 51.4 61.4" stroke="${sh2}" stroke-width=".9" fill="none" opacity=".7" stroke-linecap="round"/>
+      <ellipse cx="49.4" cy="59" rx="1.3" ry="1" fill="${hl}" opacity=".55"/>`;
+
+    // ---- facial hair (under the mouth) ----
+    const BC = P.bc || H, BCD = mixC(BC, "#000000", .38);
+    const area = ext => `M${L + .8} 49 C${L + 1} 58 ${50 - jw - 2} 67 ${50 - jw * .55} ${chin - 1.5} Q50 ${chin + 1.5 + ext} ${50 + jw * .55} ${chin - 1.5} C${50 + jw + 2} 67 ${R - 1} 58 ${R - .8} 49 L${R - 2.4} 52.5 C${R - 4} 57.5 57.5 60 54.5 61.4 Q50 60.6 45.5 61.4 C42.5 60 ${L + 4} 57.5 ${L + 2.4} 52.5Z`;
+    const mus = (big) => `<path d="M${big ? 43.2 : 44.2} 64.8 Q47 ${big ? 60.8 : 61.8} 50 62.9 Q53 ${big ? 60.8 : 61.8} ${big ? 56.8 : 55.8} 64.8 Q53 63.8 50 64.3 Q47 63.8 ${big ? 43.2 : 44.2} 64.8Z" fill="${BC}"/>`;
+    if (P.b === "stubble") o += `<path d="${area(0)}" fill="${BC}" opacity=".26"/>`;
+    if (P.b === "short") o += `<path d="${area(.5)}" fill="${BC}" opacity=".72"/><path d="${area(.5)}" fill="none" stroke="${BCD}" stroke-width=".4" opacity=".5"/>`;
+    if (P.b === "full") o += `<path d="${area(5)}" fill="${BC}"/><path d="M46 ${chin + 1} Q50 ${chin + 4} 54 ${chin + 1}" stroke="${HL}" stroke-width=".7" fill="none" opacity=".45"/>`;
+    if (P.b === "chops") o += `<path d="M${L + .5} 44 C${L + .5} 56 ${L + 3} 64 ${L + 8} 66.5 Q${L + 6.5} 59 ${L + 3.6} 48Z" fill="${BC}"/>` + mir(`<path d="M${L + .5} 44 C${L + .5} 56 ${L + 3} 64 ${L + 8} 66.5 Q${L + 6.5} 59 ${L + 3.6} 48Z" fill="${BC}"/>`);
+    if (P.b === "big") o += `<path d="M${L} 46 C${L - 3} 70 39 95 50 98 C61 95 ${R + 3} 70 ${R} 46 L${R - 3} 49 C${R - 4} 57 56 60.8 50 60.6 C44 60.8 ${L + 4} 57 ${L + 3} 49Z" fill="${BC}"/><path d="M44 74 Q46 86 45 94 M50 72 V96 M56 74 Q54 86 55 94" stroke="${HL}" stroke-width=".7" fill="none" opacity=".4"/>`;
+
+    // ---- mouth ----
+    const sm = P.sm || 0;
+    if (sm >= 2) o += `<g class="mouth"><path d="M43.8 64.8 Q50 72.4 56.2 64.8 Q50 66.6 43.8 64.8Z" fill="#6a2a26"/><path d="M44.9 65.3 Q50 66.8 55.1 65.3 L54.6 67 Q50 68.2 45.4 67Z" fill="#fbf7f0"/><path d="M43.8 64.8 Q50 72.4 56.2 64.8" stroke="${lipD}" stroke-width=".8" fill="none"/><path d="M46 69.6 Q50 71.6 54 69.6" stroke="${lip}" stroke-width="1.2" fill="none" opacity=".7"/></g>`;
+    else o += `<g class="mouth"><path d="M44.6 ${sm ? 65.2 : 65.9} Q47.5 64.2 50 65 Q52.5 64.2 55.4 ${sm ? 65.2 : 65.9} Q50 66.9 44.6 ${sm ? 65.2 : 65.9}Z" fill="${lipD}" opacity=".8"/>
+      <path d="M45.4 66.3 Q50 ${sm ? 70.2 : 69.6} 54.6 66.3 Q50 67.3 45.4 66.3Z" fill="${lip}"/><path d="M44.2 ${sm ? 65 : 66} Q50 ${sm ? 67.8 : 66.9} 55.8 ${sm ? 65 : 66}" stroke="${lipD}" stroke-width=".9" fill="none" stroke-linecap="round"/></g>`;
+    if (P.b === "short" || P.b === "full" || P.b === "big") o += mus(P.b !== "short");
+    if (P.b === "mus") o += mus(P.age >= 2);
+    if (P.b === "stubble") o += `<path d="M44.4 64.6 Q50 61.8 55.6 64.6 Q50 63.6 44.4 64.6Z" fill="${BC}" opacity=".3"/>`;
+
+    // ---- hair on top ----
+    const cap = (top, hy, side = 48, vol = 2.5) => `M${L - vol + 1} ${side} C${L - vol} 30 ${L + 2} ${top} 50 ${top} C${R - 2} ${top} ${R + vol} 30 ${R + vol - 1} ${side} L${R - 1.2} ${side} C${R - 1.5} 41 ${R - 3} ${hy + 5} ${R - 6} ${hy + 1.5} Q50 ${hy - 2.5} ${L + 6} ${hy + 1.5} C${L + 3} ${hy + 5} ${L + 1.5} 41 ${L + 1.2} ${side}Z`;
+    const hp = (d, f = H, op = 1) => `<path d="${d}" fill="${f}"${op < 1 ? ` opacity="${op}"` : ""}/>`;
+    const st = (d, c = HL, sw = .9, op = .5) => `<path d="${d}" stroke="${c}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="${op}"/>`;
+    const sides = `M${L - .5} 49 C${L - 1} 41 ${L} 37 ${L + 2.2} 34 L${L + 2.8} 37.5 C${L + 1.6} 41 ${L + 1.4} 45 ${L + 1.3} 49Z`;
+    switch (P.hs) {
+      case "short": o += hp(cap(17.5, 30.5, 48, 2)) + st(`M${L + 6} 23.5 Q50 19 ${R - 5} 22.5`) + st(`M${L + 9} 27.5 Q50 24.5 ${R - 8} 27`, HD, .7, .4); break;
+      case "side": o += hp(cap(17, 31, 48, 2.2)) + hp(`M40 19 Q55 16.5 63.5 23.5 Q66.5 29 67 37 Q62 29.5 54 27.8 Q46 27 40.5 30Z`, HL, .35) + st(`M41.5 18 Q39.8 23.5 38.6 30`, HD, .9, .7) + st(`M45 20.5 Q55 19.5 61 25`, HL, .8, .6); break;
+      case "messy": {
+        // soft waves on the outline, fringe swept to one side (lower on the left)
+        const rx = w + 3.4, ry = 21, cy = 37.5, N = 7;
+        let d = `M${L + 1} 50 Q${L - 4.5} 46 ${L - 3} ${cy + 1}`;
+        for (let k = 0; k <= N; k++) { const a = Math.PI + k * Math.PI / N, x = 50 + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; d += k ? ` A7.5 6.5 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}` : ` L${x.toFixed(1)} ${y.toFixed(1)}`; }
+        d += ` Q${R + 4.5} 46 ${R - 1} 50 L${R - 1.3} 40 Q${R - 2} 33 ${R - 5} 30.5 Q${R - 8} 33 ${R - 10} 29.6 Q${R - 13.5} 33.2 ${R - 16} 30.5 Q${R - 19.5} 35.2 ${R - 22.5} 32 Q${R - 25.5} 37.2 ${L + 3} 34.4 Q${L + 1.8} 37 ${L + 1.3} 42Z`;
+        o += hp(d) + st(`M${L + 2} 30 Q${L + 4} 21 ${L + 12} 18.5 M${L + 14} 19.5 Q50 15.5 ${R - 8} 19.5 M${R - 6} 21 Q${R - 1} 25 ${R - .5} 33`, HL, 1.1, .55)
+          + st(`M${R - 10} 29.6 Q${R - 11} 24.5 ${R - 15.5} 22.5 M${R - 16} 30.5 Q${R - 18} 25 ${R - 23} 23.5 M${R - 22.5} 32 Q${R - 25} 27 ${L + 5} 26`, HD, .9, .55);
+        break;
+      }
+      case "slick": o += hp(cap(18.5, 27.5, 47, 1.5)) + st(`M42 28 Q39.5 20 44 15.5 M50 26.5 Q49.5 19 52.5 15 M58 27.5 Q60.5 20 57 15.8`, HL, .6, .45); break;
+      case "buzz": o += hp(cap(20, 29.5, 47, .8), H, .85) + st(`M${L + 6} 24 Q50 19.5 ${R - 6} 24`, HL, .6, .3); break;
+      case "receding": { const sd = `M${L - .5} 49 C${L - 1} 40 ${L} 34 ${L + 2.5} 30 L${L + 3.2} 33 C${L + 1.6} 38 ${L + 1.4} 44 ${L + 1.3} 49Z`; o += hp(cap(19.5, 25, 47, 1), H, .4) + hp(sd) + mir(hp(sd)); break; }
+      case "shaved": o += hp(cap(21, 29.5, 47, .4), H, .28); break;
+      case "bald": o += hp(sides) + mir(hp(sides)); break;
+      case "curly": {
+        // scalloped outline = curly hair; small C-shaped strokes give it texture
+        const rx = w + 3.2, ry = 20.5, cy = 37.5, N = 13;
+        let d = `M${L + 1} 49 L${L - 2.6} ${cy + 2}`;
+        for (let k = 0; k <= N; k++) { const a = Math.PI + k * Math.PI / N, x = 50 + Math.cos(a) * rx, y = cy + Math.sin(a) * ry; d += k ? ` A3.3 3.3 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)}` : ` L${x.toFixed(1)} ${y.toFixed(1)}`; }
+        d += ` L${R + 2.6} ${cy + 2} L${R - 1} 49 L${R - 1.4} 41 Q${R - 2.5} 34 ${R - 5} 32.5`;
+        for (let k = 1; k <= 6; k++) { const x = R - 5 - k * ((2 * w - 10) / 6); d += ` A2.3 2.3 0 0 0 ${x.toFixed(1)} ${(31.5 + Math.abs(x - 50) * .08).toFixed(1)}`; }
+        d += ` Q${L + 2.5} 34 ${L + 1.4} 41Z`;
+        o += hp(d);
+        let tx = "";
+        for (let y = 19; y <= 31; y += 3.6) for (let x = L; x <= R; x += 4.2) {
+          const xx = x + ((y * 13) % 4) - 2, dx = (xx - 50) / rx, dy = (y - cy) / ry;
+          if (dx * dx + dy * dy > .8) continue;
+          tx += `M${(xx - 1.3).toFixed(1)} ${(y + .3).toFixed(1)} Q${xx.toFixed(1)} ${(y - 1.7).toFixed(1)} ${(xx + 1.3).toFixed(1)} ${(y + .3).toFixed(1)} `;
+        }
+        o += st(tx, HL, .7, .45) + st(tx.replace(/M([\d.]+) ([\d.]+)/g, (m, a, b) => `M${a} ${(+b + 1.2).toFixed(1)}`), HD, .6, .5);
+        break;
+      }
+      case "hightop": o += hp(`M${L + .5} 47 C${L} 36 ${L + .5} 26 ${L + 1.5} 20 L${L + 2.5} 9.5 Q50 6 ${R - 2.5} 9.5 L${R - 1.5} 20 C${R - .5} 26 ${R} 36 ${R - .5} 47 L${R - 1.3} 47 C${R - 1.6} 39 ${R - 3.5} 34 ${R - 7} 32 Q50 30 ${L + 7} 32 C${L + 3.5} 34 ${L + 1.6} 39 ${L + 1.3} 47Z`)
+        + Array.from({ length: 18 }, (_, k) => `<circle cx="${L + 4 + (k % 6) * ((2 * w - 8) / 5)}" cy="${12 + Math.floor(k / 6) * 5.5}" r="1.5" fill="${HL}" opacity=".35"/>`).join(""); break;
+      case "afro": o += hp(cap(17.5, 31)) + [40, 45, 50, 55, 60].map((x, k) => `<circle cx="${x}" cy="${30 + (k % 2)}" r="2.8" fill="${H}" stroke="${HD}" stroke-width=".5"/>`).join(""); break;
+      case "long": case "longcurly": case "bob":
+        o += hp(cap(16, 28, 50, 2.8)) + hp(`M${L + 6} 27 Q${L - .5} 38 ${L - 1.6} 52 Q${L - 2} 62 ${L - 2.5} ${P.hs === "bob" ? 64 : 72} Q${L + 1.5} 64 ${L + 2} 53 Q${L + 2.6} 40 ${L + 8} 30Z`) + mir(hp(`M${L + 6} 27 Q${L - .5} 38 ${L - 1.6} 52 Q${L - 2} 62 ${L - 2.5} ${P.hs === "bob" ? 64 : 72} Q${L + 1.5} 64 ${L + 2} 53 Q${L + 2.6} 40 ${L + 8} 30Z`))
+          + st(`M47.5 17 Q46 22 44 28`, HD, .9, .7) + st(`M${L + 3} 26 Q${L + 6} 19.5 47 17.5 M53 17.5 Q${R - 4} 19 ${R - 2} 26`, HL, 1, .45); break;
+      case "bun": o += `<circle cx="50" cy="14.5" r="6.4" fill="${H}"/>` + st(`M46 10 Q50 7.5 54 10`, HL, .8, .5) + hp(cap(18, 27.5, 47, 1.5)) + st(`M43 27 Q42 21 47 18 M57 27 Q58 21 53 18`, HL, .6, .45); break;
+      case "manbun": o += `<circle cx="50" cy="14.5" r="5" fill="${H}"/>` + hp(cap(18, 27.5, 47, 1.5)) + st(`M44 27.5 Q43 21 48 18 M56 27.5 Q57 21 52 18`, HL, .7, .5) + `<path d="M46.5 18.4 Q50 20 53.5 18.4" stroke="${HD}" stroke-width="1.2" fill="none"/>`; break;
+      case "locs": o += hp(cap(17.5, 30, 48, 2)) + Array.from({ length: 7 }, (_, k) => `<path d="M${40 + k * 3.4} 18 Q${39 + k * 3.4} 25 ${40.5 + k * 3.4} 31" stroke="${HD}" stroke-width=".8" fill="none" opacity=".6"/>`).join("")
+        + hp(`M${L - 1} 34 Q${L - 3} 46 ${L - 2.5} 58 L${L + .2} 57 Q${L + .5} 45 ${L + 3} 34Z`) + mir(hp(`M${L - 1} 34 Q${L - 3} 46 ${L - 2.5} 58 L${L + .2} 57 Q${L + .5} 45 ${L + 3} 34Z`)); break;
+      case "twists": o += hp(cap(19.5, 30, 47, 1), H, .85) + Array.from({ length: 17 }, (_, k) => { const r = Math.floor(k / 6), c = k % 6; return `<circle cx="${(39 + c * 4.4 + (r % 2) * 2.2).toFixed(1)}" cy="${15 + r * 4.6}" r="2.4" fill="${H}" stroke="${HD}" stroke-width=".5"/>`; }).join(""); break;
+      case "quiff": o += hp(cap(18, 29.5, 47, 1.6)) + hp(`M37 30.5 Q33.5 16 46 10.5 Q58 6.5 64.5 14.5 Q67 19 65 25 Q60.5 16.5 52 18 Q45 19.5 43 29.5Z`) + st(`M41 24 Q42 14 52 11.5 M47 22 Q50 15 58 13`, HL, 1, .55); break;
+      case "spiky": o += hp(`M${L - .5} 47 C${L - 1.5} 36 ${L} 28 ${L + 1} 24 L${L - 1} 15 L${L + 6} 18.5 L${L + 7} 9 L${L + 12.5} 15.5 L50 6.5 L${R - 12.5} 15.5 L${R - 7} 9 L${R - 6} 18.5 L${R + 1} 15 L${R - 1} 24 C${R} 28 ${R + 1.5} 36 ${R + .5} 47 L${R - 1.2} 47 C${R - 1.5} 40 ${R - 3} 34 ${R - 6} 31.5 Q50 28.5 ${L + 6} 31.5 C${L + 3} 34 ${L + 1.5} 40 ${L + 1.2} 47Z`) + st(`M${L + 7} 13 L${L + 9} 22 M50 10 V20 M${R - 7} 13 L${R - 9} 22`, HL, .8, .5); break;
+      case "cap": {
+        const cc2 = X.cap || "#c62828";
+        o += hp(sides) + mir(hp(sides)) + `<path d="M${L - 2.5} 37 C${L - 2.5} 18 ${L + 6} 11 50 11 C${R - 6} 11 ${R + 2.5} 18 ${R + 2.5} 37Z" fill="${cc2}"/>
+          <path d="M${L - 3.5} 35.5 Q50 29.5 ${R + 3.5} 35.5 Q${R + 4.5} 39.8 ${R} 39 Q50 34.5 ${L} 39 Q${L - 4.5} 39.8 ${L - 3.5} 35.5Z" fill="${mixC(cc2, "#000000", .3)}"/>
+          <path d="M50 11 V30" stroke="${mixC(cc2, "#000000", .25)}" stroke-width=".7"/><circle cx="50" cy="11.3" r="1.6" fill="${mixC(cc2, "#000000", .25)}"/>
+          <path d="M${L + 2} 20 Q50 13 ${R - 2} 20" stroke="#ffffff" stroke-width=".8" fill="none" opacity=".25"/>`;
+        break;
+      }
+    }
+    // ---- glasses ----
+    if (P.g) {
+      const gs = P.g === "thick" ? 1.8 : P.g === "round" ? 1 : .9;
+      const lens = P.g === "round" ? `<circle cx="${xe}" cy="50" r="5.1"/>` : `<rect x="${xe - 5.7}" y="46.2" width="11.4" height="7.8" rx="${P.g === "thick" ? 1.6 : 2.4}"/>`;
+      const arm = `<path d="M${xe - (P.g === "round" ? 5.1 : 5.7)} 48.6 L${L + .4} 48"/>`;
+      o += `<g fill="rgba(255,255,255,.1)" stroke="${P.g === "thick" ? "#121212" : "#3a3330"}" stroke-width="${gs}">${lens}${arm}${mir(lens + arm)}<path d="M${xe + (P.g === "round" ? 5.1 : 5.7)} 49.4 Q50 47.8 ${100 - xe - (P.g === "round" ? 5.1 : 5.7)} 49.4" fill="none"/></g>
+        <path d="M${xe - 3.5} 47.8 L${xe - 1.5} 47.2 M${100 - xe - 3.5} 47.8 L${100 - xe - 1.5} 47.2" stroke="#fff" stroke-width=".7" opacity=".5"/>`;
+    }
+    if (X.band) o += `<path d="M${L - 1.5} 31.5 Q50 26 ${R + 1.5} 31.5 L${R + 1.5} 35 Q50 29.8 ${L - 1.5} 35Z" fill="${X.band}"/>`;
+    if (X.phones) o += `<path d="M${L - 3} 49 C${L - 5} 12 ${R + 5} 12 ${R + 3} 49" stroke="#222" stroke-width="3" fill="none"/><rect x="${L - 6}" y="43" width="6.5" height="13" rx="3" fill="#2b2b2b"/><rect x="${R - .5}" y="43" width="6.5" height="13" rx="3" fill="#2b2b2b"/><rect x="${L - 5}" y="45" width="2" height="9" rx="1" fill="#ef5350"/>`;
+    return o + "</g></g></svg>";
+  }
+
+  // Face for a bot: an illustrated portrait, or the old drawn style (Stockfish keeps its fish).
   function faceSVG(i) {
+    if (PEOPLE[LEVELS[i].name]) return portraitSVG(i, PEOPLE[LEVELS[i].name]);
     const [skin, hair, style, shirt, extra = ""] = LEVELS[i].face;
     const bgH = (i * 47 + 200) % 360, bg = `hsl(${bgH} 70% 62%)`;
     let o = `<svg viewBox="0 0 64 64" aria-hidden="true" style="--bd:${((i * 0.73) % 4.5).toFixed(2)}s"><circle cx="32" cy="32" r="32" fill="${bg}"/><g class="fc">`;
@@ -7806,7 +8134,7 @@ function engineFactory() {
 
   // exposed for automated tests
   window.__chess = {
-    E, LEVELS, setup, prefs, SOUNDS, _setAudio(ctx) { actx = ctx; }, get puz() { return puz; }, getPuzzle,
+    E, LEVELS, setup, prefs, SOUNDS, faceSVG, _setAudio(ctx) { actx = ctx; }, get puz() { return puz; }, getPuzzle,
     perft(s, d) { if (d === 0) return 1; let n = 0; for (const m of E.legalMoves(s)) n += this.perft(E.makeMove(s, m), d - 1); return n; },
     get state() { return state; }, get mode() { return mode; }, get result() { return result; },
     get selected() { return selected; }, get cursor() { return cursor; }, get thinking() { return thinking; },
