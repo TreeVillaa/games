@@ -41,7 +41,9 @@
   .bar.hidden, .pill.hidden { display: none; }
   .rewind .pill { flex-direction: column; gap: 1px; padding: 4px 2px; line-height: 1; }
   .rewind .pill small { font-size: .72rem; font-weight: 800; opacity: .85; }
-  .rewind .pill .ic { font-size: 1.15rem; }
+  .rewind .pill .ic { display: block; height: 22px; }
+  svg.arrow { width: 24px; height: 24px; fill: currentColor; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; display: block; }
+  .rewind svg.arrow { width: 22px; height: 22px; margin: 0 auto; }
   .rewind #playHereBtn { flex: 1.5; background: linear-gradient(135deg, #7ee08f, #3fb56b); color: #10301a; }
   .pill.wide { flex: 1.6 !important; }
   #status {
@@ -260,20 +262,20 @@
     <div id="moves"></div>
   </div>
   <div class="bar bottom" id="mainBar">
-    <button class="pill" id="backBtn" aria-label="Previous move">◀</button>
-    <button class="pill" id="fwdBtn" aria-label="Next move">▶</button>
-    <button class="pill wide hidden" id="rewindBtn">⏪ Rewind</button>
+    <button class="pill" id="backBtn" aria-label="Previous move"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg></button>
+    <button class="pill" id="fwdBtn" aria-label="Next move"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9h10V3.5L22 12l-10 8.5V15H2z"/></svg></button>
+    <button class="pill wide hidden" id="rewindBtn"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M1.5 4.5h13.5V1.2l7.3 5.3-7.3 5.3V8.5H1.5z"/><path d="M22.5 15.5H9v-3.3l-7.3 5.3L9 22.8v-3.3h13.5z"/></svg><span style="margin-left:7px">Rewind</span></button>
     <button class="pill" id="hintBtn" aria-label="Hint">💡</button>
     <button class="pill" id="undoBtn" aria-label="Take back">↶</button>
     <button class="pill" id="flipBtn" aria-label="Flip board">⇅</button>
   </div>
   <!-- Rewind controls (games against the computer) -->
   <div class="bar bottom rewind hidden" id="rewindBar">
-    <button class="pill" id="rwStartBtn"><span class="ic">⏮</span><small>Start</small></button>
-    <button class="pill" id="rwBackBtn"><span class="ic">◀</span><small>Back</small></button>
-    <button class="pill" id="rwFwdBtn"><span class="ic">▶</span><small>Forward</small></button>
-    <button class="pill" id="rwNowBtn"><span class="ic">⏭</span><small>Back to now</small></button>
-    <button class="pill" id="playHereBtn"><span class="ic">✅</span><small>Play from here</small></button>
+    <button class="pill" id="rwStartBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.5" y="3" width="3" height="18" rx="1"/><path d="M23 9H14V3.5L6.5 12l7.5 8.5V15h9z"/></svg></span><small>Start</small></button>
+    <button class="pill" id="rwBackBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg></span><small>Back</small></button>
+    <button class="pill" id="rwFwdBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M2 9h10V3.5L22 12l-10 8.5V15H2z"/></svg></span><small>Forward</small></button>
+    <button class="pill" id="rwNowBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 9h9V3.5L17.5 12 10 20.5V15H1z"/><rect x="19.5" y="3" width="3" height="18" rx="1"/></svg></span><small>Back to now</small></button>
+    <button class="pill" id="playHereBtn"><span class="ic"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5L21.5 12 5 21.5z"/></svg></span><small>Play from here</small></button>
   </div>
 </div>
 <div id="ghost"></div>
@@ -884,7 +886,7 @@ function engineFactory() {
     return true;
   }
   function tapSquare(sq) {
-    if (viewIdx !== null && mode === "cpu") { toast("Tap ✅ Play from here to continue from this spot, or ⏭ to go back to now"); return; }
+    if (viewIdx !== null && mode === "cpu") { toast("Tap “Play from here” to continue from this spot, or “Back to now” to return"); return; }
     if (viewIdx !== null) { viewIdx = null; refresh(); requestEval(); return; }
     if (result) { showOver(); return; }
     if (!canAct()) return;
@@ -1045,7 +1047,7 @@ function engineFactory() {
 
     let st;
     if (!mode) st = "Chess";
-    else if (!live) st = `${mode === "cpu" ? "⏪" : "🔎"} Move ${viewIdx} of ${history.length}`;
+    else if (!live) st = `${mode === "cpu" ? "Rewind:" : "🔎"} Move ${viewIdx} of ${history.length}`;
     else if (result) st = result.title;
     else if (thinking) st = "🤖 Thinking…";
     else if (mode === "two") st = (state.turn === "w" ? "⚪ White" : "⚫ Black") + " to move";
@@ -1149,7 +1151,7 @@ function engineFactory() {
     viewIdx = null; selected = -1; hintArrow = null; pendingPromo = null;
     checkGameOver();
     hideAll(); save(); refresh(); requestEval();
-    toast(state.turn === humanColor ? "⏪ Rewound! Your move." : "⏪ Rewound! The computer moves next.");
+    toast(state.turn === humanColor ? "Rewound! Your move." : "Rewound! The computer moves next.");
     maybeAI();
   }
   $("rewindBtn").addEventListener("click", () => goTo(history.length - 1));
