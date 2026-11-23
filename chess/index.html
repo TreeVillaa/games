@@ -518,6 +518,16 @@
   .overlay { justify-content: safe center; }
 
   /* ---- move ratings ---- */
+  .rbadge {
+    position: absolute; z-index: 7; pointer-events: none; border-radius: 50%; background: var(--bc);
+    box-shadow: 0 2px 4px rgba(0,0,0,.45), inset 0 -2px 0 rgba(0,0,0,.18); display: grid; place-items: center;
+  }
+  .rbadge.hidden { display: none; }
+  .rbadge .ricon { width: 100%; height: 100%; }
+  .rbadge.pop { animation: rbPop .38s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes rbPop { 0% { transform: scale(0); opacity: 0; } 60% { opacity: 1; } 100% { transform: scale(1); } }
+  .ricon { display: block; }
+  .mb .ricon, .rvb .ricon { width: 100%; height: 100%; }
   .badge {
     position: absolute; top: 3%; right: 3%; z-index: 6; pointer-events: none;
     width: calc(var(--board) / 8 * .42); height: calc(var(--board) / 8 * .42); border-radius: 50%;
@@ -537,7 +547,7 @@
   @keyframes badgePop { 0% { transform: scale(.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
   @keyframes labelShow { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
   .mb {
-    display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%;
+    display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; overflow: hidden; vertical-align: -4px !important;
     background: var(--bc); color: #fff; font-size: 9px; font-style: normal; font-weight: 900;
     margin-right: 3px; vertical-align: 1px; letter-spacing: -1px;
   }
@@ -570,6 +580,7 @@
     <div id="boardWrap">
       <div id="board"></div>
       <svg id="arrows" viewBox="0 0 8 8"></svg>
+      <span id="rateBadge" class="rbadge hidden"></span>
     </div>
     <div class="player" id="pBot"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
     <div id="moves"></div>
@@ -5925,13 +5936,10 @@ function engineFactory() {
       let html = p ? pieceHTML(p) : "";
       if ((vi & 7) === 0) html += `<span class="coord r">${8 - r}</span>`;
       if ((vi >> 3) === 7) html += `<span class="coord f">${"abcdefgh"[c]}</span>`;
-      if (rated && sq === rated.move.to) {
-        const k = CLS[rated.cls], pop = popEntry === rated;
-        html += `<span class="badge${pop ? " pop" : ""}${(vi & 7) < 4 ? " lr" : ""}" style="--bc:${k.color}"><i>${k.sym}</i><em>${k.label}</em></span>`;
-      }
       el.innerHTML = html;
     }
     if (animMove) animate(animMove, flipped);
+    paintRateBadge(rated, flipped);
     paintArrows(flipped);
     paintPlayers();
     paintMoves();
@@ -5969,6 +5977,17 @@ function engineFactory() {
   // (so board redraws can't cut it short), while the real piece stays hidden until it lands.
   let animating = null;   // { sqs: Set of squares whose piece is hidden while sliding, t: timer }
   const SLIDE_MS = 320;
+  function paintRateBadge(rated, flipped) {
+    const el = $("rateBadge");
+    if (!rated) { el.className = "rbadge hidden"; el.dataset.key = ""; return; }
+    const k = CLS[rated.cls], vi = flipped ? 63 - rated.move.to : rated.move.to, size = boardEl.clientWidth / 8, d = size * 0.46;
+    const key = rated.cls + ":" + rated.move.to + ":" + history.indexOf(rated);
+    el.style.cssText = `--bc:${k.color};width:${d}px;height:${d}px;left:${((vi & 7) + 1) * size - d * 0.62}px;top:${(vi >> 3) * size - d * 0.34}px`;
+    if (el.dataset.key !== key) {   // new rating on the board: pop it in
+      el.dataset.key = key; el.innerHTML = k.sym; el.title = k.label;
+      el.className = "rbadge" + (popEntry === rated && prefs.rateFx ? " pop" : "");
+    }
+  }
   function animate(m, flipped) {
     if (animating) finishSlide();
     const wrap = $("boardWrap"), size = boardEl.clientWidth / 8, vis = sq => (flipped ? 63 - sq : sq);
@@ -6222,17 +6241,31 @@ function engineFactory() {
   // move with the move played, turn both scores into a winning chance, and
   // rate the move by how much winning chance it gave away.
   const CLS = {
-    brilliant:  { sym: "!!", color: "#1fbfa0", label: "Brilliant!!" },
-    great:      { sym: "!",  color: "#5b8fc7", label: "Great move!" },
-    best:       { sym: "★",  color: "#7fba3c", label: "Best" },
-    excellent:  { sym: "👍", color: "#68b356", label: "Excellent" },
-    good:       { sym: "✓",  color: "#8aa77c", label: "Good" },
-    book:       { sym: "📖", color: "#b38b6a", label: "Book" },
-    inaccuracy: { sym: "?!", color: "#eebb33", label: "Inaccuracy" },
-    mistake:    { sym: "?",  color: "#e8892c", label: "Mistake" },
-    miss:       { sym: "✕",  color: "#e45c6b", label: "Miss" },
-    blunder:    { sym: "??", color: "#d33a2f", label: "Blunder" },
+    brilliant:  { color: "#26c2a3", label: "Brilliant!!" },
+    great:      { color: "#5c8bb0", label: "Great move!" },
+    best:       { color: "#81b64c", label: "Best" },
+    excellent:  { color: "#81b64c", label: "Excellent" },
+    good:       { color: "#77915f", label: "Good" },
+    book:       { color: "#d5a47d", label: "Book" },
+    inaccuracy: { color: "#f7c631", label: "Inaccuracy" },
+    mistake:    { color: "#ffa459", label: "Mistake" },
+    miss:       { color: "#ff7769", label: "Miss" },
+    blunder:    { color: "#fa412d", label: "Blunder" },
   };
+  // Rating icons, drawn as SVG: a white symbol on the rating's coloured circle.
+  const CLS_ICON = {
+    brilliant: `<text x="12" y="17.2" text-anchor="middle" font-size="15" font-weight="900" font-family="system-ui,Arial,sans-serif" fill="#fff" letter-spacing="-1">!!</text>`,
+    great: `<text x="12" y="17.2" text-anchor="middle" font-size="16" font-weight="900" font-family="system-ui,Arial,sans-serif" fill="#fff" letter-spacing="-1">!</text>`,
+    best: `<path d="M12 4.2l2.3 4.9 5.3.6-4 3.6 1.1 5.3L12 15.9l-4.7 2.7 1.1-5.3-4-3.6 5.3-.6z" fill="#fff"/>`,
+    excellent: `<path d="M7.3 10.6h-2v8h2zM8.6 18.6h7.2c.9 0 1.6-.6 1.8-1.4l1.2-4.6c.3-1.1-.6-2.2-1.7-2.2h-3.6l.6-2.9c.2-1.1-.5-2.2-1.6-2.4l-.5-.1-3.4 4.6z" fill="#fff"/>`,
+    good: `<path d="M6.2 12.4l3.8 3.8 7.8-8" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`,
+    book: `<path d="M12 7.6c-1.6-1.3-3.9-1.9-6.6-1.7v11c2.7-.2 5 .4 6.6 1.7 1.6-1.3 3.9-1.9 6.6-1.7v-11c-2.7-.2-5 .4-6.6 1.7zM12 7.6v11" fill="#fff" stroke="#fff" stroke-width=".6" stroke-linejoin="round"/><path d="M12 7.8v10.6" stroke-width="1.1" style="stroke:var(--bc)"/>`,
+    inaccuracy: `<text x="12" y="17.2" text-anchor="middle" font-size="13.5" font-weight="900" font-family="system-ui,Arial,sans-serif" fill="#fff" letter-spacing="-1">?!</text>`,
+    mistake: `<text x="12" y="17.2" text-anchor="middle" font-size="16" font-weight="900" font-family="system-ui,Arial,sans-serif" fill="#fff" letter-spacing="-1">?</text>`,
+    miss: `<path d="M7.6 7.6l8.8 8.8M16.4 7.6l-8.8 8.8" stroke="#fff" stroke-width="3.2" stroke-linecap="round"/>`,
+    blunder: `<text x="12" y="17.2" text-anchor="middle" font-size="13.5" font-weight="900" font-family="system-ui,Arial,sans-serif" fill="#fff" letter-spacing="-1">??</text>`
+  };
+  for (const k in CLS) CLS[k].sym = `<svg class="ricon" viewBox="0 0 24 24" aria-hidden="true">${CLS_ICON[k]}</svg>`;
   const CLS_ORDER = Object.keys(CLS);
   const JUDGE = { maxDepth: 4, qd: 5, timeMs: 900 };
   const posCache = new Map();
