@@ -583,6 +583,7 @@ const A = {
       if (g.clocks[color] <= 0) { g.clocks[color] = 0; await timeout(g, s, color); await setJ("g:" + g.id, g, "EX", 172800); return { game: view(g) }; }
     }
     if (g.moves.length >= 1) g.clocks[color] += g.tc.inc;
+    if (g.drawOffer && g.drawOffer.by !== color) { g.drawOffer = null; g.drawDecl = { by: color, n: ((g.drawDecl && g.drawDecl.n) || 0) + 1 }; }   // moving = saying no
     g.moves.push([m.from, m.to, m.promo || ""]); g.lastAt = now;
     const n = E.makeMove(s, m), k = E.posKey(n);
     if (!E.legalMoves(n).length) await finish(g, E.inCheck(n) ? (color === "w" ? "1-0" : "0-1") : "1/2-1/2", E.inCheck(n) ? "checkmate" : "stalemate");
@@ -601,6 +602,30 @@ const A = {
       await finish(g, g.moves.length < 2 ? "*" : color === "w" ? "0-1" : "1-0", g.moves.length < 2 ? "aborted" : "resign");
       await setJ("g:" + g.id, g, "EX", 172800);
     }
+    return { game: view(g) };
+  },
+  // Draw offers: op "offer" | "accept" | "decline". The other player sees g.drawOffer and answers.
+  async draw(b) {
+    const me = await auth(b), g = await getJ("g:" + String(b.id));
+    if (!g) fail("gone", "That game is gone.");
+    if (g.status !== "active") return { game: view(g) };
+    const color = me.key === g.white ? "w" : me.key === g.black ? "b" : null;
+    if (!color) fail("not_player", "You're not in this game.");
+    const op = String(b.op || "");
+    const theirs = g.drawOffer && g.drawOffer.by !== color;
+    if (op === "offer" && !theirs) {
+      if (g.drawOffer) return { game: view(g) };   // already waiting for an answer
+      if (g.moves.length < 2) fail("too_early", "Make a move first before offering a draw.");
+      const last = (g.drawLast || {})[color];
+      if (last != null && g.moves.length - last < 4) fail("too_soon", "You just offered a draw. Try again in a few moves.");
+      g.drawLast = { ...(g.drawLast || {}), [color]: g.moves.length };
+      g.drawOffer = { by: color, ply: g.moves.length, at: Date.now() };
+    } else if ((op === "accept" || op === "offer") && theirs) {
+      g.drawOffer = null; await finish(g, "1/2-1/2", "agreement");
+    } else if (op === "decline" && theirs) {
+      g.drawOffer = null; g.drawDecl = { by: color, n: ((g.drawDecl && g.drawDecl.n) || 0) + 1 };
+    } else return { game: view(g) };
+    await setJ("g:" + g.id, g, "EX", 172800);
     return { game: view(g) };
   },
   async flag(b) {

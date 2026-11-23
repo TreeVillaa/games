@@ -192,6 +192,15 @@
   .swt { width: 24px; height: 24px; border-radius: 7px; border: 2px solid rgba(255,255,255,.35); }
   .swt.sel { border: 3px solid #ffd84a; transform: scale(1.15); }
   .panel .btn { margin-top: 4px; }
+  .bottom .gbtn { flex-direction: column; gap: 0; padding: 4px 2px; line-height: 1; }
+  .gbtn small { font-size: .62rem; font-weight: 800; opacity: .85; margin-top: 2px; }
+  .gbtn .half { font-size: 1.15rem; font-weight: 900; }
+  .gbtn .flag { width: 19px; height: 19px; fill: currentColor; }
+  #barResign { background: linear-gradient(180deg, #e2554a, #b73329); color: #fff; }
+  #barDraw.sent { opacity: .55; }
+  #askOv p { max-width: 330px; text-align: center; font-weight: 700; line-height: 1.4; margin: 0 0 4px; }
+  #askOv .askicon { font-size: 3rem; line-height: 1; }
+  #askOv .elo { display: inline-block; margin-top: 6px; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.3); font-weight: 900; }
   .rewind .pill { flex-direction: column; gap: 1px; padding: 4px 2px; line-height: 1; }
   .rewind .pill small { font-size: .72rem; font-weight: 800; opacity: .85; }
   .rewind .pill .ic { display: block; height: 22px; }
@@ -627,6 +636,8 @@
     <button class="pill" id="hintBtn" aria-label="Hint">💡</button>
     <button class="pill" id="undoBtn" aria-label="Take back">↶</button>
     <button class="pill" id="flipBtn" aria-label="Flip board">⇅</button>
+    <button class="pill gbtn" data-act="draw" id="barDraw" aria-label="Offer a draw"><span class="half">½</span><small>Draw</small></button>
+    <button class="pill gbtn" data-act="resign" id="barResign" aria-label="Resign"><svg class="flag" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 2.5h1.8v19H5z"/><path d="M7.5 3.5h11.8l-3 4.6 3 4.6H7.5z"/></svg><small>Resign</small></button>
   </div>
   <!-- Rewind controls (games against the computer) -->
   <div class="bar bottom rewind hidden" id="rewindBar">
@@ -741,6 +752,16 @@
 <div class="overlay hidden" id="statsOv">
   <button class="pill backpill" data-act="toStart"><span>←</span><span>Back</span></button>
   <div class="sheet"><h2 class="ttl"><svg class="statlogo big" viewBox="0 0 64 52" aria-hidden="true"><defs><linearGradient id="slg2" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#7fd3ff"/><stop offset=".55" stop-color="#5eb4f5"/><stop offset="1" stop-color="#ffe36e"/></linearGradient><filter id="slgl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g fill="url(#slg2)" filter="url(#slgl2)"><circle cx="13" cy="17" r="6.2"/><rect x="5.5" y="23.5" width="15" height="3.6" rx="1.8"/><path d="M9.6 27h6.8c.3 5.6 2 9.4 5.6 12.6H4c3.6-3.2 5.3-7 5.6-12.6z"/><rect x="2.5" y="41" width="21" height="6.5" rx="2.4"/><rect x="26.5" y="34" width="7.5" height="13.5" rx="2"/><rect x="37" y="28.5" width="7.5" height="19" rx="2"/><rect x="47.5" y="21" width="7.5" height="26.5" rx="2"/><path d="M25.5 29.2c8.5-2.8 16.4-7.6 23.6-14.2l-2.8-1.8 9.4-2.6-1.2 9.6-2.4-2.2c-7.4 6.6-15.6 11.6-26.2 12.2z"/></g></svg>Your Stats</h2><div id="statsBody"></div></div>
+</div>
+
+<div class="overlay hidden" id="askOv">
+  <div class="askicon" id="askIcon"></div>
+  <h2 id="askTitle"></h2>
+  <p id="askText"></p>
+  <div class="menu">
+    <button class="btn" data-act="askYes" id="askYes"></button>
+    <button class="btn alt" data-act="askNo" id="askNo"></button>
+  </div>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -6000,6 +6021,10 @@ function engineFactory() {
     if (rv) paintReviewPanel();
     $("rwStartBtn").disabled = $("rwBackBtn").disabled = viewIdx === 0;
     $("hintBtn").disabled = !canAct() || mode === "online";
+    const playing = ["cpu", "two", "online"].includes(mode) && !result && !rv;
+    $("barDraw").classList.toggle("hidden", !playing); $("barResign").classList.toggle("hidden", !playing);
+    $("hintBtn").classList.toggle("hidden", mode === "online"); $("undoBtn").classList.toggle("hidden", mode === "online");
+    $("barDraw").classList.toggle("sent", mode === "online" && !!online && !!online.myOffer);
     $("status").classList.toggle("wrap", mode === "puzzle" || mode === "learn");
     if (rv) $("status").textContent = rv.retry ? "🔁 Find a better move" : "📊 Game Review";
   }
@@ -6746,7 +6771,7 @@ function engineFactory() {
     stopAI(); cancelSearch("help"); judgeGen++;
     const color = g.white === net.me.key ? "w" : "b";
     mode = "online"; level = 0; timeIdx = 0; gameRec = null; gameStartAt = Date.now();
-    online = { id: g.id, color, opp: color === "w" ? { name: g.blackName, elo: g.blackElo } : { name: g.whiteName, elo: g.whiteElo }, tc: g.tc, ended: false, flagSent: false };
+    online = { id: g.id, color, opp: color === "w" ? { name: g.blackName, elo: g.blackElo } : { name: g.whiteName, elo: g.whiteElo }, tc: g.tc, ended: false, flagSent: false, seenDecl: (g.drawDecl && g.drawDecl.n) || 0, askedPly: g.drawOffer ? null : "" };
     humanColor = color; userFlip = false; rewarded = true; lastReward = 0;
     state = E.startState(); history = []; moves = E.legalMoves(state);
     selected = -1; result = null; viewIdx = null; pendingPromo = null; hintArrow = null; evalScore = null; drawOfferedAt = -1;
@@ -6780,10 +6805,25 @@ function engineFactory() {
     clocks = { ...g.clocks };
     if (g.status === "active" && g.moves.length >= 2) clocks[state.turn] -= Math.max(0, g.serverNow - g.lastAt);
     lastTick = performance.now();
+    if (g.status === "active") {
+      const mineC = online.color, off = g.drawOffer;
+      online.myOffer = !!(off && off.by === mineC);
+      if (off && off.by !== mineC && online.askedPly !== off.ply + ":" + off.at) {
+        online.askedPly = off.ply + ":" + off.at;
+        const me = net.me ? net.me.elo : 1200, opp = online.opp.elo || 1200, d = eloDelta(me, opp, 0.5);
+        sound("check");
+        ask({ icon: "🤝", title: "Draw offer", html: `<b>${esc(online.opp.name)}</b> wants a draw.<br><span class="elo ${d >= 0 ? "pos" : "neg"}">${d >= 0 ? "+" : ""}${d} Elo if you accept</span>`,
+          yes: "🤝 Accept draw", no: "✋ Decline", onYes: () => onlineDraw("accept"), onNo: () => onlineDraw("decline") });
+      } else if (!off && askCb && openOverlay() === "askOv" && $("askTitle").textContent === "Draw offer") { askCb = null; hideAll(); }
+      if (g.drawDecl && g.drawDecl.by !== mineC && online.seenDecl !== g.drawDecl.n) {
+        online.seenDecl = g.drawDecl.n; toast(`✋ ${online.opp.name} declined your draw offer.`);
+      }
+    }
     if (g.status !== "active" && !online.ended) {
+      if (openOverlay() === "askOv") { askCb = null; hideAll(); }
       online.ended = true;
       const mine = online.color, won = g.result === (mine === "w" ? "1-0" : "0-1"), lost = g.result === (mine === "w" ? "0-1" : "1-0");
-      const why = { checkmate: "by checkmate", resign: "by resignation", timeout: "on time", stalemate: "by stalemate", repetition: "by repetition", fifty: "by the 50-move rule", material: "(not enough pieces)", aborted: "" }[g.reason] || "";
+      const why = { checkmate: "by checkmate", resign: "by resignation", agreement: "by agreement", timeout: "on time", stalemate: "by stalemate", repetition: "by repetition", fifty: "by the 50-move rule", material: "(not enough pieces)", aborted: "" }[g.reason] || "";
       let title = won ? "You won! 🏆" : lost ? `${online.opp.name} won` : g.reason === "aborted" ? "Game aborted" : "Draw 🤝";
       let text = g.reason === "aborted" ? "The game ended before both players moved. No rating change." : won ? `You beat ${online.opp.name} ${why}!` : lost ? `You lost ${why}.` : `Draw ${why}.`;
       if (g.eloChange) {
@@ -7285,12 +7325,12 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
   // Default controller focus: the first big button (Continue / Start game / Resume / Rematch…)
-  const defaultFocus = id => Math.max(0, buttonsOf(id).findIndex(b => b.matches(".btn")));
+  const defaultFocus = id => Math.max(0, buttonsOf(id).findIndex(b => b.matches(id === "askOv" ? "#askNo" : ".btn")));
   function show(id) { for (const o of OVERLAYS) $(o).classList.toggle("hidden", o !== id); focusIdx = defaultFocus(id); paintFocus(); refresh(); }
   function hideAll() { for (const o of OVERLAYS) $(o).classList.add("hidden"); lastTick = performance.now(); paintFocus(); }
   function paintFocus() {
@@ -7399,7 +7439,7 @@ function engineFactory() {
   function pause() {
     if (openOverlay()) return;
     $("drawBtn").textContent = mode === "two" ? "🤝 Agree to a draw" : "🤝 Offer a draw";
-    $("drawBtn").style.display = result || mode === "online" ? "none" : "";
+    $("drawBtn").style.display = result ? "none" : "";
     $("resignBtn").style.display = result ? "none" : "";
     show("pauseOv");
   }
@@ -7428,9 +7468,54 @@ function engineFactory() {
     const text = mode === "cpu" ? `You resigned. ${LEVELS[level].name} wins this one.` : `${loser === "w" ? "White" : "Black"} resigned. ${winner === "w" ? "White" : "Black"} wins.`;
     endGame("Resigned 🏳️", text, winner === "w" ? "1-0" : "0-1");
   }
+  // ---- Yes / No pop-up (resign check, draw requests) ----
+  let askCb = null;
+  function ask(o) {
+    $("askIcon").textContent = o.icon || ""; $("askTitle").textContent = o.title; $("askText").innerHTML = o.html;
+    $("askYes").textContent = o.yes; $("askNo").textContent = o.no;
+    askCb = { yes: o.onYes, no: o.onNo };
+    show("askOv");
+  }
+  // Elo change you'd get for a score (1 win, .5 draw, 0 loss) vs an opponent: same formula as the server.
+  const eloDelta = (me, opp, score) => { const d = Math.round(32 * (score - 1 / (1 + Math.pow(10, (opp - me) / 400)))); return Math.max(100, Math.min(4500, me + d)) - me; };
+  function askResign() {
+    hideAll();
+    if (result || !["cpu", "two", "online"].includes(mode)) { refresh(); return; }
+    let html, who = "";
+    if (mode === "online" && online) {
+      if (history.length < 2) html = "The game has barely started, so it will be <b>cancelled</b>. No rating change.";
+      else {
+        const me = net.me ? net.me.elo : 1200, opp = online.opp.elo || 1200, d = eloDelta(me, opp, 0);
+        html = `${esc(online.opp.name)} wins. You are ${me}, they are ${opp}.<br><span class="elo neg">${d} Elo</span>${d === 0 ? " <small>(100 is the lowest rating)</small>" : ""}<br><small>Losing to a higher-rated player costs less. Losing to a lower-rated player costs more.</small>`;
+      }
+    } else if (mode === "cpu") html = `${esc(LEVELS[level].name)} wins this game. Bots don't change your rating.`;
+    else { who = state.turn === "w" ? "White" : "Black"; html = `${who} gives up and ${who === "White" ? "Black" : "White"} wins.`; }
+    ask({ icon: "🏳️", title: who ? `${who}: resign?` : "Resign this game?", html, yes: "🏳️ Yes, resign", no: "Keep playing",
+      onYes: () => { if (mode === "online") onlineResign(); else resign(); } });
+  }
+  async function onlineDraw(op) {
+    if (!online || online.ended) return;
+    try {
+      const j = await api("draw", { id: online.id, op });
+      if (op === "offer" && j.game.status === "active") { online.myOffer = true; toast(`🤝 Draw offer sent to ${online.opp.name}.`); }
+      if (op === "decline") toast("Draw declined. Keep playing!");
+      syncOnline(j.game);
+    } catch (e) { toast(e.msg); }
+    refresh();
+  }
   function offerDraw() {
     hideAll();
-    if (mode === "two") { endGame("Draw 🤝", "Both players agreed to a draw.", "1/2-1/2"); return; }
+    if (mode === "online") {
+      if (result) return;
+      if (online && online.myOffer) { toast(`Waiting for ${online.opp.name} to answer…`); refresh(); return; }
+      onlineDraw("offer"); return;
+    }
+    if (mode === "two") {
+      const by = state.turn === "w" ? "White" : "Black", to = by === "White" ? "Black" : "White";
+      ask({ icon: "🤝", title: `${to}, accept a draw?`, html: `${by} offers a draw. Pass the phone to ${to}.`, yes: "🤝 Accept draw", no: "✋ No, keep playing",
+        onYes: () => endGame("Draw 🤝", `${to} accepted ${by}'s draw offer.`, "1/2-1/2"), onNo: () => toast(`${to} said no. Keep playing!`) });
+      return;
+    }
     if (drawOfferedAt >= 0 && history.length - drawOfferedAt < 6) { toast("You just asked. Try again in a few moves."); refresh(); return; }
     if (history.length < 20) { toast(`Too early for a draw. ${LEVELS[level].name} wants to play!`); refresh(); return; }
     drawOfferedAt = history.length;
@@ -7474,7 +7559,8 @@ function engineFactory() {
       case "rvRetry": if (rv && rv.retry) endRetry(); else rvRetry(); break;
       case "rvExit": exitReview(); break;
       case "pgn": copyPGN(); break;
-      case "resign": hideAll(); if (mode === "online") onlineResign(); else resign(); break;
+      case "resign": askResign(); break;
+      case "askYes": case "askNo": { const cb = askCb; askCb = null; hideAll(); if (cb) (a === "askYes" ? cb.yes : cb.no)?.(); refresh(); break; }
       case "social": openSocial(); break;
       case "chatBack": chat.with = null; if (chat.back === "userOv" && soc.user) openUser(soc.user.key); else { soc.tab = "msg"; openSocial(); } break;
       case "draw": offerDraw(); break;
@@ -7540,6 +7626,7 @@ function engineFactory() {
         if (b.matches(".opt") && (b.dataset.opt || b.dataset.pref)) cycle(b, 1); else b.click();
       } else if (btn === "B" || btn === "START") {
         if (ov === "pauseOv") act("resume");
+        else if (ov === "askOv") act("askNo");
         else if (ov === "settingsOv") act("settingsDone");
         else if (ov === "styleOv") act("styleDone");
         else if (ov === "promoOv") { pendingPromo = null; selected = -1; hideAll(); refresh(); }
