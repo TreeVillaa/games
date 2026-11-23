@@ -42,6 +42,14 @@
   .pill:disabled { opacity: .3; }
   .bottom .pill { flex: 1; padding: 10px 4px; font-size: 1.05rem; }
   .bar.hidden, .pill.hidden { display: none; }
+  .menubtn { position: relative; overflow: hidden; flex-direction: column; gap: 2px; min-width: 64px; min-height: 54px; padding: 6px 10px 5px; border-radius: 16px; line-height: 1;
+    background: linear-gradient(180deg, #ffd84a, #f0a000); color: #3a2400;
+    box-shadow: 0 4px 0 #9a6400, 0 7px 14px rgba(0,0,0,.35), inset 0 1.5px 0 rgba(255,255,255,.6); animation: menuGlow 3s ease-in-out infinite; }
+  .menubtn::before { content: ""; position: absolute; left: 8%; right: 8%; top: 3px; height: 40%; border-radius: 12px 12px 40% 40%; background: linear-gradient(rgba(255,255,255,.5), rgba(255,255,255,0)); pointer-events: none; }
+  .menubtn svg { width: 24px; height: 24px; fill: currentColor; position: relative; }
+  .menubtn small { font-size: .62rem; font-weight: 900; letter-spacing: .05em; text-transform: uppercase; position: relative; }
+  .menubtn:active { transform: translateY(4px); box-shadow: 0 0 0 #9a6400, 0 2px 5px rgba(0,0,0,.3), inset 0 1.5px 0 rgba(255,255,255,.5); }
+  @keyframes menuGlow { 50% { box-shadow: 0 4px 0 #9a6400, 0 0 16px rgba(255,216,74,.75), inset 0 1.5px 0 rgba(255,255,255,.6); } }
   .rookgear { width: 30px; height: 30px; display: block; fill: currentColor; }
   .rookgear .rook { stroke: var(--gap, #2a4aa0); stroke-width: 2.4; paint-order: stroke; stroke-linejoin: round; }
   .setgear {
@@ -687,7 +695,7 @@
   <div class="bar">
     <a class="pill" href="../">← Games</a>
     <div id="status">XB CHESS</div>
-    <button class="pill icon" id="menuBtn" aria-label="Menu">☰</button>
+    <button class="pill menubtn" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4.5" width="18" height="3.2" rx="1.6"/><rect x="3" y="10.4" width="18" height="3.2" rx="1.6"/><rect x="3" y="16.3" width="18" height="3.2" rx="1.6"/></svg><small>Menu</small></button>
       </div>
   <div class="mid">
     <div class="player" id="pTop"><span class="name"></span><span class="caps"></span><span class="clock"></span><div id="botSay" class="botsay hidden" aria-live="polite"></div></div>
