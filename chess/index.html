@@ -47,8 +47,20 @@
   .bar.hidden, .pill.hidden { display: none; }
   .rookgear { width: 30px; height: 30px; display: block; fill: currentColor; }
   .rookgear .rook { stroke: var(--gap, #2a4aa0); stroke-width: 2.4; paint-order: stroke; stroke-linejoin: round; }
-  #settingsBtn { color: #ffd84a; padding: 6px; background: linear-gradient(135deg, rgba(255,216,74,.25), rgba(90,170,255,.25)); --gap: #1d3f93; }
-  #settingsBtn:active .rookgear .gear { transform: rotate(45deg); }
+  .setgear {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); right: 14px; width: 58px; height: 58px; border-radius: 18px;
+    color: #ffd84a; padding: 6px; --gap: #183f98;
+    background: linear-gradient(135deg, rgba(255,216,74,.28), rgba(90,170,255,.3)); border: 2px solid rgba(255,216,74,.55);
+  }
+  .setgear .rookgear { width: 42px; height: 42px; }
+  .setgear:active .rookgear .gear { transform: rotate(45deg); }
+  .pill.focus { outline: 4px solid #3fa9ff; outline-offset: 3px; }
+  .btn.play { min-height: 64px; font-size: 1.3rem; gap: 12px; }
+  .btn.play small { display: block; font-size: .8rem; font-weight: 700; opacity: .85; }
+  .btn.play > span { text-align: left; line-height: 1.15; }
+  .bicon { width: 32px; height: 32px; fill: currentColor; flex: none; }
+  .bicon .cut { fill: #ffc43a; }
+  .btn.alt .bicon { fill: #fff; }
   .rookgear .gear { transform-origin: 32px 29px; transition: transform .3s; }
   .bar .pill.icon { padding: 8px; min-width: 48px; }
   #status { font-size: 1rem; }
@@ -301,8 +313,7 @@
     <a class="pill" href="../">← Games</a>
     <div id="status">Chess</div>
     <button class="pill icon" id="menuBtn" aria-label="Menu">☰</button>
-    <button class="pill icon" id="settingsBtn" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
-  </div>
+      </div>
   <div class="mid">
     <div class="player" id="pTop"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
     <div id="evalbar" class="hidden"><div class="fill"></div><div class="txt"></div></div>
@@ -337,14 +348,14 @@
   <h1>♟️ Chess</h1>
   <div class="menu">
     <button class="btn" id="contBtn" data-act="continue">▶ Continue game</button>
-    <button class="opt" data-opt="mode"><span>Opponent</span><b></b></button>
-    <button class="opt" data-opt="level"><span>Strength</span><b></b></button>
-    <button class="opt" data-opt="color"><span>You play</span><b></b></button>
+    <button class="opt" data-opt="level"><span>Bot strength</span><b></b></button>
+    <button class="opt" data-opt="color"><span>You play (vs bots)</span><b></b></button>
     <button class="opt" data-opt="time"><span>Clock</span><b></b></button>
-    <button class="btn" data-act="start" id="startBtn">Start game</button>
-    <button class="btn alt" data-act="settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg>Settings</button>
+    <button class="btn play" data-act="playBots" id="startBtn"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</button>
+    <button class="btn alt play" data-act="playLive"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg><span>Play Live<small>Same Device</small></span></button>
   </div>
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
+  <button class="pill icon setgear" data-act="settings" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -1446,10 +1457,8 @@ function engineFactory() {
     bs[focusIdx].scrollIntoView({ block: "nearest" });
   }
   function paintOptions() {
-    const cpu = setup.mode === "cpu";
     for (const b of document.querySelectorAll("[data-opt]")) {
       const k = b.dataset.opt;
-      b.style.display = (k === "level" || k === "color") && !cpu ? "none" : "";
       b.querySelector("b").textContent = setupText[k](setup[k]);
     }
     const SW = { wood: ["#f0d9b5", "#b58863"], green: ["#eeeed2", "#769656"], blue: ["#dee3e6", "#8ca2ad"], purple: ["#ece4f7", "#9b7fc9"] };
@@ -1542,6 +1551,8 @@ function engineFactory() {
     switch (a) {
       case "continue": { const d = loadSave(); if (d) newGame({ mode: d.mode, level: d.level, color: d.humanColor, time: d.timeIdx || 0 }, d); break; }
       case "start": newGame(setup); break;
+      case "playBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame(setup); break;
+      case "playLive": setup.mode = "two"; store.set("chess-setup", setup); newGame(setup); break;
       case "resume": hideAll(); refresh(); break;
       case "rematch": newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
       case "newgame": showSetup(); break;
@@ -1555,7 +1566,6 @@ function engineFactory() {
   }
   document.querySelectorAll("[data-act]").forEach(b => b.addEventListener("click", () => { audioUnlock(); act(b.dataset.act); }));
   $("menuBtn").addEventListener("click", () => { if (mode) pause(); else showSetup(); });
-  $("settingsBtn").addEventListener("click", () => { audioUnlock(); act("settings"); });
   $("undoBtn").addEventListener("click", undo);
   $("hintBtn").addEventListener("click", hint);
   $("backBtn").addEventListener("click", stepBack);
