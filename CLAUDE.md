@@ -7,6 +7,10 @@ Live site: https://games-smoky-mu.vercel.app
 ## Layout
 - `index.html` (top level) — the home page. It lists every game as a big tappable card.
 - `<folder>/index.html` — one game per folder, e.g. `block-dodge/index.html`.
+- `api/chess.js` — the online server for Chess (accounts, friends, leaderboard, live games). Runs as a
+  Vercel serverless function and needs an Upstash Redis database connected to the Vercel project
+  (env vars `KV_REST_API_URL` / `KV_REST_API_TOKEN`). Its chess rules are a copy of `engineFactory()`
+  in `chess/index.html`, so keep them in sync.
 
 ## Rules
 1. **One folder per game, one file per game.** Every new game goes in its own folder

@@ -336,6 +336,56 @@
     max-width: 90vw; text-align: center;
   }
   #toast.show { opacity: 1; }
+  /* ---- Online: profile button, friends, leaderboard ---- */
+  .pawnlogo { width: 30px; height: 34px; flex: none; }
+  .profbtn {
+    position: absolute; top: max(14px, env(safe-area-inset-top)); right: 82px; height: 58px; border-radius: 18px; gap: 6px; padding: 6px 12px 6px 8px;
+    background: linear-gradient(135deg, rgba(160,120,255,.35), rgba(90,170,255,.3)); border: 2px solid rgba(190,160,255,.7);
+  }
+  .profbtn .pawnlogo { width: 34px; height: 40px; }
+  .nbadge[hidden] { display: none; }
+  .nbadge { position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; border-radius: 11px; background: #ff4757; color: #fff;
+    font-style: normal; font-size: .8rem; font-weight: 900; display: grid; place-items: center; padding: 0 5px; box-shadow: 0 0 0 2px #fff; }
+  .ttl .pawnlogo { width: 38px; height: 44px; }
+  .soc-card { display: flex; gap: 12px; align-items: center; text-align: left; padding: 12px; border-radius: 18px; border: 3px solid rgba(190,160,255,.75);
+    background: linear-gradient(160deg, rgba(120,90,240,.9), rgba(40,70,190,.95)); box-shadow: 0 6px 0 rgba(0,0,0,.25); }
+  .uav { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 1.3rem;
+    background: var(--av); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); box-shadow: 0 0 0 3px var(--ring, #fff); }
+  .uav.big { width: 76px; height: 76px; font-size: 2.2rem; }
+  .uav.sm { width: 34px; height: 34px; font-size: .95rem; box-shadow: 0 0 0 2px var(--ring, #fff); }
+  .soc-name { font-size: 1.35rem; font-weight: 900; }
+  .soc-sub { font-size: .85rem; font-weight: 700; opacity: .9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 3px; }
+  .slist { display: flex; flex-direction: column; gap: 7px; max-height: 46vh; overflow-y: auto; padding: 2px; }
+  .urow { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 54px; padding: 8px 10px; border-radius: 14px; border: 0; text-align: left;
+    background: rgba(255,255,255,.12); color: #fff; font: inherit; font-weight: 800; cursor: pointer; touch-action: manipulation; outline: none; }
+  .urow.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
+  .urow .rk { width: 28px; text-align: center; font-weight: 900; opacity: .85; flex: none; }
+  .urow .un { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .urow .ue { font-variant-numeric: tabular-nums; font-weight: 900; }
+  .urow.me { background: rgba(255,216,74,.25); border: 2px solid rgba(255,216,74,.7); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #4cd964; box-shadow: 0 0 6px #4cd964; flex: none; }
+  .mini { border: 0; border-radius: 10px; min-width: 44px; min-height: 40px; font: inherit; font-weight: 900; cursor: pointer; color: #0b1d4d; outline: none; }
+  .mini.ok { background: linear-gradient(135deg, #7ee08f, #3fb56b); } .mini.no { background: rgba(255,255,255,.25); color: #fff; }
+  .mini.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
+  .sinput { width: 100%; font: inherit; font-size: 1.05rem; font-weight: 700; padding: 13px 14px; border-radius: 14px; border: 2px solid rgba(255,255,255,.35);
+    background: rgba(0,0,0,.25); color: #fff; outline: none; -webkit-user-select: text; user-select: text; }
+  .sinput:focus { border-color: #ffd84a; }
+  .su-err { min-height: 1.4em; margin: 8px 2px; font-weight: 800; color: #ffd0d0; }
+  .su-err.good { color: #b9ffc9; }
+  .empty { opacity: .8; font-weight: 700; padding: 14px 6px; text-align: center; }
+  .uprof { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .uprof .soc-name { font-size: 1.8rem; }
+  .stats3 { display: flex; gap: 8px; width: 100%; }
+  .stats3 div { flex: 1; background: rgba(255,255,255,.12); border-radius: 12px; padding: 8px 4px; font-weight: 900; }
+  .stats3 small { display: block; font-size: .7rem; opacity: .8; font-weight: 700; }
+  .banner { position: fixed; left: 50%; top: max(12px, env(safe-area-inset-top)); transform: translateX(-50%); z-index: 60; width: min(380px, calc(100vw - 20px));
+    background: linear-gradient(160deg, #6a4cf0, #2a5ad8); border: 3px solid #ffd84a; border-radius: 20px; padding: 12px; box-shadow: 0 12px 30px rgba(0,0,0,.45);
+    font-weight: 800; text-align: center; animation: rwPop .4s cubic-bezier(.3,1.6,.5,1); }
+  .banner.hidden { display: none; }
+  .bn-btns { display: flex; gap: 8px; margin-top: 10px; }
+  .bn-btns .btn { flex: 1; min-height: 46px; font-size: 1rem; padding: 8px; }
+  .netnote { opacity: .85; font-size: .9rem; line-height: 1.4; }
+
   /* ---- Intro / loading screen ---- */
   #splash {
     position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -468,6 +518,7 @@
   </div>
 </div>
 <div id="ghost"></div>
+<div id="banner" class="banner hidden"><div id="bannerText"></div><div class="bn-btns"><button class="btn" id="bnYes">Accept</button><button class="btn alt" id="bnNo">Not now</button></div></div>
 <div id="toast"></div>
 
 <div class="overlay" id="setupOv">
@@ -478,6 +529,7 @@
     <button class="btn alt play" data-act="playLive"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg><span>Play Live<small>Same Device</small></span></button>
   </div>
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
+<button class="pill profbtn" data-act="social" aria-label="Friends"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF1)" stroke="url(#plS1)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg><span>Friends</span><i class="nbadge" id="reqBadge" hidden>0</i></button>
 <div class="wallet tl" title="Your pawns"><span class="pawnic">♟&#xFE0E;</span><b>0</b></div>
   <button class="pill icon setgear" data-act="settings" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
 </div>
@@ -503,6 +555,19 @@
     <div class="sect"><div class="lbl">Time</div><div class="chips" id="liveCat"></div><div class="chips sub" id="liveTimes"></div></div>
     <button class="btn alt play" data-act="startLive">Start game</button>
   </div>
+</div>
+
+<div class="overlay hidden" id="socialOv">
+  <button class="pill backpill" data-act="toStart"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg><span>Back</span></button>
+  <div class="sheet">
+    <h2 class="ttl"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF2)" stroke="url(#plS2)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg>Friends</h2>
+    <div id="socialBody"></div>
+  </div>
+</div>
+
+<div class="overlay hidden" id="userOv">
+  <button class="pill backpill" data-act="social"><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 9H12V3.5L2 12l10 8.5V15h10z"/></svg><span>Back</span></button>
+  <div class="sheet" id="userBody"></div>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -1123,11 +1188,12 @@ function engineFactory() {
   const shownState = () => (viewIdx === null ? state : positionAt(viewIdx));
   const shownLast = () => { const i = viewIdx === null ? history.length : viewIdx; return i > 0 ? history[i - 1].move : null; };
   function isFlipped() {
-    const base = mode === "cpu" ? humanColor === "b" : (mode === "two" && prefs.autoFlip && shownState().turn === "b");
+    const base = mode === "cpu" || mode === "online" ? humanColor === "b" : (mode === "two" && prefs.autoFlip && shownState().turn === "b");
     return base !== userFlip;
   }
 
   function save() {
+    if (mode === "online") return;
     if (!mode) return;
     store.set("chess-game", {
       mode, level, timeIdx, humanColor, userFlip, inc, clocks,
@@ -1140,6 +1206,7 @@ function engineFactory() {
   function stopAI() { cancelSearch("ai"); thinking = false; aiToken++; }
 
   function newGame(opts, replay) {
+    online = null;
     stopAI(); cancelSearch("help"); judgeGen++; rewarded = false; lastReward = 0;
     mode = opts.mode; level = opts.level; timeIdx = opts.time || 0;
     humanColor = opts.color === "random" ? (Math.random() < .5 ? "w" : "b") : opts.color;
@@ -1223,6 +1290,7 @@ function engineFactory() {
   }
 
   function undo() {
+    if (mode === "online") return;
     if (!history.length) return;
     if (mode === "cpu" && history.length === 1 && humanColor === "b") return;
     stopAI();
@@ -1281,6 +1349,7 @@ function engineFactory() {
   }
 
   function hint() {
+    if (mode === "online") { toast("No hints in online games!"); return; }
     if (result || viewIdx !== null || !humanTurn() || thinking || !mode) { toast("Hints work on your turn"); return; }
     toast("💡 Thinking…");
     const s = state;
@@ -1321,6 +1390,7 @@ function engineFactory() {
     const was = prefs.animate; if (!animate) prefs.animate = false;
     applyMove(m);
     prefs.animate = was;
+    if (mode === "online") { sendOnlineMove(m); return; }
     if (result) { setTimeout(showOver, 700); return; }
     maybeAI();
   }
@@ -1373,6 +1443,7 @@ function engineFactory() {
     return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   };
   function playerName(side) {
+    if (mode === "online" && online) return side === humanColor ? `🙂 You <span class="pelo">(${net.me ? net.me.elo : ""})</span>` : `<span class="uav sm" style="--av:${userBg(online.opp.name)};--ring:${tierOf(online.opp.elo).color};margin-right:7px">${online.opp.name[0].toUpperCase()}</span>${online.opp.name} <span class="pelo">(${online.opp.elo})</span>`;
     if (mode === "cpu") return side === humanColor ? "🙂 You" : `${avatarHTML(level, "mini" + (thinking ? " thinking" : ""))}${LEVELS[level].name} <span class="pelo">(${LEVELS[level].elo})</span>`;
     return side === "w" ? "⚪ White" : "⚫ Black";
   }
@@ -1471,10 +1542,11 @@ function engineFactory() {
     else if (result) st = result.title;
     else if (thinking) st = `${LEVELS[level].name} is thinking…`;
     else if (mode === "two") st = (state.turn === "w" ? "⚪ White" : "⚫ Black") + " to move";
+    else if (mode === "online" && online && state.turn !== humanColor) st = `Waiting for ${online.opp.name}…`;
     else st = "Your move";
     if (mode && live && !result && !thinking && E.inCheck(state)) st += " — Check!";
     $("status").textContent = st;
-    $("undoBtn").disabled = !history.length || (mode === "cpu" && history.length === 1 && humanColor === "b");
+    $("undoBtn").disabled = mode === "online" || !history.length || (mode === "cpu" && history.length === 1 && humanColor === "b");
     $("backBtn").disabled = !history.length || viewIdx === 0;
     $("fwdBtn").disabled = live;
     const cpu = mode === "cpu", rewinding = cpu && !live;
@@ -1482,7 +1554,7 @@ function engineFactory() {
     $("rewindBtn").classList.toggle("hidden", !cpu); $("rewindBtn").disabled = !history.length;
     $("mainBar").classList.toggle("hidden", rewinding); $("rewindBar").classList.toggle("hidden", !rewinding);
     $("rwStartBtn").disabled = $("rwBackBtn").disabled = viewIdx === 0;
-    $("hintBtn").disabled = !canAct();
+    $("hintBtn").disabled = !canAct() || mode === "online";
   }
 
   function animate(m, flipped) {
@@ -1827,6 +1899,8 @@ function engineFactory() {
   document.addEventListener("click", e => {
     const c = e.target.closest(".chip"); if (!c) return;
     const [kind, a, b] = c.dataset.key.split(":");
+    if (kind === "soc") { soc.tab = a; renderSocialMain(); return; }
+    if (kind === "ctc") { soc.ctc = a; renderUser(); return; }
     if (kind === "lv") setup.level = +a;
     else if (kind === "bcat") { if (LEVELS[setup.level].cat !== a) setup.level = LEVELS.findIndex(L => L.cat === a); }
     else if (kind === "col") setup.color = a;
@@ -1838,8 +1912,274 @@ function engineFactory() {
     if (ov) { const i = buttonsOf(ov).findIndex(x => x.dataset.key === c.dataset.key); if (i >= 0) focusIdx = i; paintFocus(); }
   });
 
+  // ================= Online: users, friends, leaderboard, live games =================
+  // Talks to /api/chess (a Vercel serverless function + Upstash Redis database).
+  const BADNAMES = JSON.parse(atob("eyJzdWIiOiBbImZ1Y2siLCAic2hpdCIsICJiaXRjaCIsICJjdW50IiwgIm5pZ2ciLCAiZmFnZ290IiwgInJldGFyZCIsICJ3aG9yZSIsICJzbHV0IiwgImRpY2siLCAicHVzc3kiLCAicGVuaXMiLCAidmFnaW5hIiwgInBvcm4iLCAibmF6aSIsICJoaXRsZXIiLCAiY2hpbmsiLCAid2V0YmFjayIsICJ0cmFubnkiLCAiYmVhbmVyIiwgInR3YXQiLCAid2FuayIsICJiYXN0YXJkIiwgImFzc2hvbGUiLCAiZG91Y2hlIiwgIm1vdGhlcmYiLCAiaml6eiIsICJib29iIiwgInRpdHMiLCAicGVkb3BoaWxlIiwgIm1vbGVzdCIsICJra2siLCAic3VpY2lkZSIsICJraWxseW91cnNlbGYiLCAicmFwaXN0IiwgImRpbGRvIiwgImhvcm55IiwgIm51ZGVzIl0sICJ0b2siOiBbImFzcyIsICJhcnNlIiwgImZhZyIsICJmYWdzIiwgInNleCIsICJzZXh5IiwgImN1bSIsICJ0aXQiLCAiY29vbiIsICJwYWtpIiwgImt5cyIsICJjb2NrIiwgInJhcGUiLCAia2lrZSIsICJzcGljIiwgImdvb2siLCAiZHlrZSIsICJwZWRvIiwgIm5lZ3JvIiwgImhvbW8iLCAibnVkZSIsICJwb3JubyIsICJtaWxmIl19"));
+  function isBadName(name) { // same check as the server, for instant feedback
+    const map = { 0: "o", 1: "i", 3: "e", 4: "a", 5: "s", 7: "t", 8: "b", 9: "g", "@": "a", $: "s", "!": "i", "|": "i" };
+    const raw = String(name).toLowerCase(), leet = raw.replace(/[0-9@$!|]/g, c => map[c] || c);
+    const squash = t => t.replace(/[^a-z]/g, "").replace(/(.)\1+/g, "$1");
+    const whole = squash(leet), wholeRaw = leet.replace(/[^a-z]/g, "");
+    if (BADNAMES.sub.some(w => wholeRaw.includes(w) || (squash(w) === w && w.length >= 4 && whole.includes(w)))) return true;
+    const toks = [...raw.split(/[^a-z]+/), ...leet.split(/[^a-z]+/)].filter(Boolean);
+    return toks.some(t => BADNAMES.tok.includes(t) || BADNAMES.tok.includes(squash(t)));
+  }
+  const ONLINE_TC = { bullet: { label: "Bullet", sub: "1 min" }, blitz: { label: "Blitz", sub: "3 | 2" }, rapid: { label: "Rapid", sub: "10 min" } };
+  const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const userBg = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) % 360; return `linear-gradient(135deg, hsl(${h} 80% 60%), hsl(${(h + 40) % 360} 75% 42%))`; };
+  const uav = (u, cls = "") => `<span class="uav ${cls}" style="--av:${userBg(u.name)};--ring:${tierOf(u.elo).color}">${esc(u.name[0].toUpperCase())}</span>`;
+  const tierPill = elo => { const t = tierOf(elo); return `<span class="tier" style="--t:${t.color}">${t.name}</span>`; };
+
+  const net = { token: store.get("chess-token", null), me: store.get("chess-me", null) };
+  if (!net.token) {
+    const rnd = () => (crypto.getRandomValues ? Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("") : Math.random().toString(36).slice(2) + Date.now().toString(36));
+    net.token = rnd() + rnd(); store.set("chess-token", net.token);
+  }
+  async function api(a, data = {}) {
+    let res;
+    try { res = await fetch("/api/chess", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ a, token: net.token, ...data }) }); }
+    catch (e) { throw { code: "offline", msg: "Can't reach the server. Check your internet." }; }
+    let j; try { j = await res.json(); } catch (e) { throw { code: "no_server", msg: "Online play isn't switched on yet." }; }
+    if (!j.ok) throw { code: j.code || "error", msg: j.msg || "Something went wrong." };
+    return j;
+  }
+  function setMe(me) { net.me = me; store.set("chess-me", me); }
+
+  // ---------- Friends screen ----------
+  const soc = { tab: "friends", ctc: "blitz", user: null, q: "", inbox: { friendRequests: [], challenges: [] }, searchT: 0 };
+  async function openSocial() {
+    show("socialOv");
+    $("socialBody").innerHTML = `<div class="empty">Loading…</div>`;
+    try { const j = await api("me"); setMe(j.me); soc.rank = j.rank; renderSocialMain(); pollInbox(); }
+    catch (e) {
+      if (e.code === "no_user") { setMe(null); renderSignup(); }
+      else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p>${e.code === "not_configured" || e.code === "no_server" ? `<p class="netnote">The owner needs to connect the online database. Until then you can still play bots and friends on this device.</p>` : ""}<button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
+    }
+  }
+  function renderSignup(msg) {
+    $("socialBody").innerHTML = `<div class="sect"><div class="lbl">Make your user</div>
+      <input class="sinput" id="suName" maxlength="16" placeholder="Pick a username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="su-err" id="suErr">${msg ? esc(msg) : ""}</div>
+      <button class="btn play" data-dact="signup">Create user</button>
+      <p class="netnote" style="margin-top:10px">3–16 letters, numbers or _. Only 1 user per device. Be kind: rude names get blocked.</p></div>`;
+    const inp = $("suName");
+    inp.addEventListener("input", () => {
+      const v = inp.value.trim(), err = $("suErr");
+      err.className = "su-err";
+      if (!v) err.textContent = "";
+      else if (!/^[A-Za-z0-9_]*$/.test(v)) err.textContent = "Only letters, numbers and _ please.";
+      else if (isBadName(v)) err.textContent = "That name is censored. Try a friendly one!";
+      else if (v.length < 3) err.textContent = "At least 3 characters.";
+      else { err.textContent = "Looks good!"; err.className = "su-err good"; }
+    });
+  }
+  async function doSignup() {
+    const inp = $("suName"); if (!inp) return;
+    const name = inp.value.trim(), err = $("suErr");
+    err.className = "su-err";
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) { err.textContent = "Use 3–16 letters, numbers or _ (no spaces)."; return; }
+    if (isBadName(name)) { err.textContent = "That name is censored. Try a friendly one!"; return; }
+    err.textContent = "Creating…";
+    try { const j = await api("signup", { name }); setMe(j.me); toast(`Welcome, ${j.me.name}! 🎉`); openSocial(); }
+    catch (e) { err.textContent = e.msg; }
+  }
+  function renderSocialMain() {
+    if (!net.me) return renderSignup();
+    const me = net.me, nreq = soc.inbox.friendRequests.length + soc.inbox.challenges.length;
+    $("socialBody").innerHTML = `
+      <button class="soc-card" data-user="${esc(me.key || me.name)}" style="border:3px solid rgba(190,160,255,.75);font:inherit;color:#fff;cursor:pointer;width:100%">${uav(me, "big")}
+        <div><div class="soc-name">${esc(me.name)}</div>
+        <div class="soc-sub"><span class="elo">${me.elo} Elo</span>${tierPill(me.elo)}</div>
+        <div class="soc-sub">${me.w}W · ${me.l}L · ${me.d}D${soc.rank ? ` · Rank #${soc.rank}` : ""}</div></div></button>
+      <div class="chips">${[["friends", "Friends"], ["lb", "Leaderboard"], ["req", "Requests" + (nreq ? ` (${nreq})` : "")]].map(([k, l]) => chip("soc:" + k, l, soc.tab === k)).join("")}</div>
+      ${soc.tab === "lb" ? `<input class="sinput" id="lbSearch" placeholder="Search for a user…" value="${esc(soc.q)}" autocomplete="off" autocapitalize="off" spellcheck="false">` : ""}
+      <div class="slist" id="socList"><div class="empty">Loading…</div></div>`;
+    const sInp = $("lbSearch");
+    if (sInp) sInp.addEventListener("input", () => { soc.q = sInp.value; clearTimeout(soc.searchT); soc.searchT = setTimeout(loadTab, 300); });
+    loadTab();
+  }
+  const userRow = (u, extra = "", rank = 0) => `<button class="urow${net.me && u.key === net.me.key ? " me" : ""}" data-user="${esc(u.key)}">${rank ? `<span class="rk">${rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}</span>` : ""}${uav(u, "sm")}<span class="un">${esc(u.name)}</span>${u.online ? '<i class="dot" title="Online"></i>' : ""}<span class="ue" style="color:${tierOf(u.elo).color}">${u.elo}</span>${extra}</button>`;
+  async function loadTab() {
+    const el = $("socList"); if (!el) return;
+    try {
+      if (soc.tab === "friends") {
+        const j = await api("friends");
+        el.innerHTML = j.list.length ? j.list.map(u => userRow(u)).join("") : `<div class="empty">No friends yet. Find people on the Leaderboard and add them!</div>`;
+      } else if (soc.tab === "lb") {
+        const q = soc.q.trim();
+        const j = q ? await api("search", { q }) : await api("leaderboard");
+        if ($("socList") !== el) return;
+        el.innerHTML = j.list.length ? j.list.map((u, i) => userRow(u, "", q ? 0 : i + 1)).join("") : `<div class="empty">${q ? "No users found." : "Nobody here yet. Be the first!"}</div>`;
+      } else {
+        const ib = soc.inbox;
+        let h = "";
+        for (const c of ib.challenges) h += `<div class="urow">${uav({ name: c.fromName, elo: c.fromElo }, "sm")}<span class="un">⚔️ ${esc(c.fromName)}<br><small style="opacity:.8">${ONLINE_TC[c.tc].label} ${ONLINE_TC[c.tc].sub}</small></span><button class="mini ok" data-dact="chAccept" data-arg="${esc(c.id)}">Play</button><button class="mini no" data-dact="chDecline" data-arg="${esc(c.id)}">✕</button></div>`;
+        for (const u of ib.friendRequests) h += `<div class="urow">${uav(u, "sm")}<span class="un">${esc(u.name)}<br><small style="opacity:.8">wants to be friends</small></span><button class="mini ok" data-dact="frAccept" data-arg="${esc(u.key)}">✓</button><button class="mini no" data-dact="frDecline" data-arg="${esc(u.key)}">✕</button></div>`;
+        el.innerHTML = h || `<div class="empty">No requests right now.</div>`;
+      }
+    } catch (e) { el.innerHTML = `<div class="empty">${esc(e.msg)}</div>`; }
+  }
+  async function openUser(key) {
+    soc.user = { key, loading: true };
+    show("userOv"); renderUser();
+    try { const j = await api("profile", { name: key }); soc.user = { key, ...j }; }
+    catch (e) { soc.user = { key, error: e.msg }; }
+    renderUser();
+  }
+  function renderUser() {
+    const el = $("userBody"), su = soc.user; if (!su) return;
+    if (su.loading) { el.innerHTML = `<div class="empty">Loading…</div>`; return; }
+    if (su.error) { el.innerHTML = `<div class="empty">${esc(su.error)}</div>`; return; }
+    const u = su.user;
+    let actions = "";
+    if (su.rel === "self") actions = `<p class="netnote">This is you! Win online games to climb the leaderboard.</p>`;
+    else if (su.rel === "none") actions = `<button class="btn play" data-dact="addFriend" data-arg="${esc(u.key)}">➕ Add friend</button>`;
+    else if (su.rel === "sent") actions = `<button class="btn alt" disabled style="opacity:.7">✓ Friend request sent</button>`;
+    else if (su.rel === "received") actions = `<button class="btn play" data-dact="frAccept" data-arg="${esc(u.key)}">✓ Accept friend request</button>`;
+    else if (su.rel === "friends") actions = `<div class="sect" style="width:100%"><div class="lbl">Challenge ${esc(u.name)} to a 1v1</div>
+        <div class="chips">${Object.entries(ONLINE_TC).map(([k, t]) => chip("ctc:" + k, `${t.label}<small>${t.sub}</small>`, soc.ctc === k)).join("")}</div></div>
+      <button class="btn play" data-dact="challenge" data-arg="${esc(u.key)}">⚔️ Send challenge</button>
+      <button class="btn alt" data-dact="unfriend" data-arg="${esc(u.key)}" style="min-height:44px;font-size:.95rem">Remove friend</button>`;
+    el.innerHTML = `<div class="uprof">${uav(u, "big")}
+      <div class="soc-name">${esc(u.name)}</div>
+      <div class="soc-sub" style="justify-content:center"><span class="elo">${u.elo} Elo</span>${tierPill(u.elo)}${u.online ? '<span>🟢 Online</span>' : '<span style="opacity:.7">Offline</span>'}</div>
+      <div class="stats3"><div>${u.w}<small>Wins</small></div><div>${u.l}<small>Losses</small></div><div>${u.d}<small>Draws</small></div><div>#${su.rank || "–"}<small>Rank</small></div></div>
+      ${su.rel === "friends" ? `<div class="soc-sub">🤝 Friends</div>` : ""}
+      ${actions}</div>`;
+    paintFocus();
+  }
+  async function dact(a, arg) {
+    try {
+      if (a === "signup") return doSignup();
+      if (a === "socialRetry") return openSocial();
+      if (a === "addFriend") { const j = await api("friendReq", { to: arg }); toast(j.rel === "friends" ? "You're now friends! 🤝" : "Friend request sent!"); soc.user.rel = j.rel; renderUser(); }
+      else if (a === "frAccept") { await api("friendAccept", { from: arg }); toast("You're now friends! 🤝"); await pollInbox(); if (openOverlay() === "userOv") openUser(arg); else loadTab(); }
+      else if (a === "frDecline") { await api("friendDecline", { from: arg }); await pollInbox(); loadTab(); }
+      else if (a === "unfriend") { await api("unfriend", { name: arg }); toast("Removed from friends."); openUser(arg); }
+      else if (a === "challenge") { await api("challenge", { to: arg, tc: soc.ctc }); toast(`⚔️ Challenge sent! Waiting for ${soc.user.user.name}…`); }
+      else if (a === "chAccept") { hideBanner(); const j = await api("accept", { id: arg }); startOnline(j.game); }
+      else if (a === "chDecline") { hideBanner(); await api("decline", { id: arg }); await pollInbox(); loadTab(); }
+    } catch (e) { toast(e.msg || "Something went wrong."); }
+  }
+  document.addEventListener("click", e => {
+    const d = e.target.closest("[data-dact]"); if (d) { audioUnlock(); dact(d.dataset.dact, d.dataset.arg); return; }
+    const u = e.target.closest("[data-user]"); if (u) { audioUnlock(); openUser(u.dataset.user); }
+  });
+
+  // ---------- Inbox: friend requests, challenges, accepted challenges ----------
+  const seenCh = new Set();
+  let bannerCh = null;
+  async function pollInbox() {
+    if (!net.me) return;
+    let j; try { j = await api("inbox"); } catch (e) { if (e.code === "no_user") setMe(null); return; }
+    setMe(j.me);
+    soc.inbox = { friendRequests: j.friendRequests, challenges: j.challenges };
+    const n = j.friendRequests.length + j.challenges.length, badge = $("reqBadge");
+    badge.hidden = !n; badge.textContent = n;
+    for (const c of j.challenges) if (!seenCh.has(c.id)) { seenCh.add(c.id); showBanner(c); }
+    if (j.started && j.started.length && !(mode === "online" && online && !online.ended)) {
+      try { const g = (await api("game", { id: j.started[0] })).game; if (g.status === "active") startOnline(g); } catch (e) {}
+    } else if (j.active && !(mode === "online" && online && online.id === j.active) && !resumeOffered.has(j.active)) {
+      resumeOffered.add(j.active);
+      try { const g = (await api("game", { id: j.active })).game; if (g.status === "active") showBanner({ resume: g }); } catch (e) {}
+    }
+    if (openOverlay() === "socialOv" && soc.tab === "req") loadTab();
+  }
+  const resumeOffered = new Set();
+  function showBanner(c) {
+    bannerCh = c;
+    $("bannerText").innerHTML = c.resume ? `♟️ You have an online game going against <b>${esc(c.resume.white === net.me.key ? c.resume.blackName : c.resume.whiteName)}</b>.` : `⚔️ <b>${esc(c.fromName)}</b> (${c.fromElo}) challenges you to <b>${ONLINE_TC[c.tc].label} ${ONLINE_TC[c.tc].sub}</b>!`;
+    $("bnYes").textContent = c.resume ? "Resume" : "Accept";
+    $("banner").classList.remove("hidden");
+    sound("check");
+    clearTimeout(showBanner.t); showBanner.t = setTimeout(hideBanner, 25000);
+  }
+  function hideBanner() { $("banner").classList.add("hidden"); bannerCh = null; }
+  $("bnYes").addEventListener("click", () => { const c = bannerCh; hideBanner(); if (!c) return; if (c.resume) startOnline(c.resume); else dact("chAccept", c.id); });
+  $("bnNo").addEventListener("click", hideBanner);
+  setInterval(() => { if (!document.hidden && !splashOn && net.me && !(mode === "online" && online && !online.ended)) pollInbox(); }, 5000);
+
+  // ---------- Live online game ----------
+  let online = null;   // { id, color, opp:{name,elo}, tc, ended, flagSent, busy }
+  function startOnline(g) {
+    if (!net.me) return;
+    stopAI(); cancelSearch("help"); judgeGen++;
+    const color = g.white === net.me.key ? "w" : "b";
+    mode = "online"; level = 0; timeIdx = 0;
+    online = { id: g.id, color, opp: color === "w" ? { name: g.blackName, elo: g.blackElo } : { name: g.whiteName, elo: g.whiteElo }, tc: g.tc, ended: false, flagSent: false };
+    humanColor = color; userFlip = false; rewarded = true; lastReward = 0;
+    state = E.startState(); history = []; moves = E.legalMoves(state);
+    selected = -1; result = null; viewIdx = null; pendingPromo = null; hintArrow = null; evalScore = null; drawOfferedAt = -1;
+    clocks = { w: g.tc.base, b: g.tc.base }; inc = g.tc.inc;
+    hideAll(); hideBanner();
+    cursor = isFlipped() ? 12 : 52;
+    syncOnline(g, true);
+    refresh(); requestEval();
+    toast(`⚔️ ${ONLINE_TC[g.tc.name].label} vs ${online.opp.name}. You are ${color === "w" ? "White" : "Black"}!`);
+    sound("check");
+  }
+  function rebuildOnline(g) {
+    state = E.startState(); history = []; moves = E.legalMoves(state);
+    for (const [f, t, p] of g.moves) {
+      const mv = E.legalMoves(state).find(x => x.from === f && x.to === t && (x.promo || "") === (p || ""));
+      if (!mv) break;
+      applyMove(mv, true);
+    }
+  }
+  function syncOnline(g, silent) {
+    if (!online || !g || g.id !== online.id) return;
+    let changed = false;
+    if (history.length > g.moves.length || history.some((h, i) => i < g.moves.length && (h.move.from !== g.moves[i][0] || h.move.to !== g.moves[i][1]))) { rebuildOnline(g); changed = true; }
+    for (let i = history.length; i < g.moves.length; i++) {
+      const [f, t, p] = g.moves[i];
+      const mv = E.legalMoves(state).find(x => x.from === f && x.to === t && (x.promo || "") === (p || ""));
+      if (!mv) { rebuildOnline(g); break; }
+      applyMove(mv, silent || i < g.moves.length - 1); changed = true;
+    }
+    // clocks from the server (the side to move keeps ticking locally)
+    clocks = { ...g.clocks };
+    if (g.status === "active" && g.moves.length >= 2) clocks[state.turn] -= Math.max(0, g.serverNow - g.lastAt);
+    lastTick = performance.now();
+    if (g.status !== "active" && !online.ended) {
+      online.ended = true;
+      const mine = online.color, won = g.result === (mine === "w" ? "1-0" : "0-1"), lost = g.result === (mine === "w" ? "0-1" : "1-0");
+      const why = { checkmate: "by checkmate", resign: "by resignation", timeout: "on time", stalemate: "by stalemate", repetition: "by repetition", fifty: "by the 50-move rule", material: "(not enough pieces)", aborted: "" }[g.reason] || "";
+      let title = won ? "You won! 🏆" : lost ? `${online.opp.name} won` : g.reason === "aborted" ? "Game aborted" : "Draw 🤝";
+      let text = g.reason === "aborted" ? "The game ended before both players moved. No rating change." : won ? `You beat ${online.opp.name} ${why}!` : lost ? `You lost ${why}.` : `Draw ${why}.`;
+      if (g.eloChange) {
+        const d = g.eloChange[mine], after = g.eloAfter[mine];
+        text += ` Your rating: ${after - d} → ${after} (${d >= 0 ? "+" : ""}${d}).`;
+        if (net.me) setMe({ ...net.me, elo: after });
+      }
+      result = { title, text, code: g.result };
+      sound("end"); refresh();
+      setTimeout(showOver, 600);
+    } else if (changed) refresh();
+  }
+  async function sendOnlineMove(m) {
+    if (!online) return;
+    try { const j = await api("move", { id: online.id, ply: history.length - 1, from: m.from, to: m.to, promo: m.promo || "" }); syncOnline(j.game); }
+    catch (e) { toast(e.msg); try { syncOnline((await api("game", { id: online.id })).game); } catch (er) {} }
+  }
+  async function onlineResign() {
+    if (!online || online.ended) return;
+    try { syncOnline((await api("resign", { id: online.id })).game); } catch (e) { toast(e.msg); }
+  }
+  async function onlineRematch() {
+    if (!online) return;
+    try { await api("challenge", { to: (online.color === "w" ? online.opp : online.opp).name, tc: online.tc.name }); toast("Rematch request sent!"); }
+    catch (e) { toast(e.msg); }
+  }
+  let onlineBusy = false;
+  setInterval(async () => {
+    if (mode !== "online" || !online || online.ended || onlineBusy || document.hidden) return;
+    onlineBusy = true;
+    try { syncOnline((await api("game", { id: online.id })).game); } catch (e) {}
+    onlineBusy = false;
+  }, 1000);
+
   // ================= Overlays + menus =================
-  const OVERLAYS = ["setupOv", "botOv", "liveOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -1918,7 +2258,7 @@ function engineFactory() {
   function pause() {
     if (openOverlay()) return;
     $("drawBtn").textContent = mode === "two" ? "🤝 Agree to a draw" : "🤝 Offer a draw";
-    $("drawBtn").style.display = result ? "none" : "";
+    $("drawBtn").style.display = result || mode === "online" ? "none" : "";
     $("resignBtn").style.display = result ? "none" : "";
     show("pauseOv");
   }
@@ -1969,13 +2309,14 @@ function engineFactory() {
       case "startBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame({ mode: "cpu", level: setup.level, color: setup.color, time: setup.time }); break;
       case "startLive": setup.mode = "two"; store.set("chess-setup", setup); newGame({ mode: "two", level: setup.level, color: "w", time: setup.liveTime }); break;
       case "resume": hideAll(); refresh(); break;
-      case "rematch": newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
-      case "newgame": showSetup(); break;
+      case "rematch": if (mode === "online") { onlineRematch(); break; } newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
+      case "newgame": if (mode === "online" && online && !result) { if (!confirm("Leave this online game? You will resign.")) break; onlineResign(); } showSetup(); break;
       case "settings": settingsReturn = openOverlay() || "pauseOv"; paintOptions(); show("settingsOv"); break;
       case "settingsDone": if (settingsReturn === "setupOv" || !mode) showSetup(); else { hideAll(); refresh(); } break;
       case "review": hideAll(); goTo(0); break;
       case "pgn": copyPGN(); break;
-      case "resign": hideAll(); resign(); break;
+      case "resign": hideAll(); if (mode === "online") onlineResign(); else resign(); break;
+      case "social": openSocial(); break;
       case "draw": offerDraw(); break;
     }
   }
@@ -2041,6 +2382,8 @@ function engineFactory() {
         else if (ov === "promoOv") { pendingPromo = null; selected = -1; hideAll(); refresh(); }
         else if (ov === "overOv" && btn === "B") act("review");
         else if (ov === "setupOv" && btn === "START") $("startBtn").click();
+        else if (ov === "socialOv" && btn === "B") act("toStart");
+        else if (ov === "userOv" && btn === "B") act("social");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
@@ -2065,6 +2408,10 @@ function engineFactory() {
 
   window.addEventListener("keydown", e => {
     const k = e.key;
+    if (e.target && e.target.matches && e.target.matches("input, textarea")) {
+      if (k === "Enter") { e.preventDefault(); if (e.target.id === "suName") dact("signup"); else e.target.blur(); }
+      return;
+    }
     const dirs = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0] };
     if (dirs[k]) { e.preventDefault(); onDir(...dirs[k]); return; }
     if (k === "Enter" || k === " ") { e.preventDefault(); onButton("A"); }
@@ -2106,9 +2453,11 @@ function engineFactory() {
   function tickClock(now) {
     const dt = now - lastTick; lastTick = now;
     if (!clocks || result || !mode || history.length === 0 || openOverlay()) return;
+    if (mode === "online" && (!online || online.ended || history.length < 2)) return;
     clocks[state.turn] -= dt;
     if (clocks[state.turn] <= 0) {
       clocks[state.turn] = 0;
+      if (mode === "online") { if (!online.flagSent) { online.flagSent = true; api("flag", { id: online.id }).then(j => syncOnline(j.game)).catch(() => {}); } paintPlayers(); return; }
       const loser = state.turn, winner = loser === "w" ? "b" : "w";
       const wp = state.b.filter(p => p && sideOf(p) === winner && p.toLowerCase() !== "k");
       const cantWin = wp.length === 0 || (wp.length === 1 && "nb".includes(wp[0].toLowerCase()));
