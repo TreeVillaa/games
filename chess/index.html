@@ -482,6 +482,9 @@
   .plusb.fr { background: rgba(255,255,255,.12); box-shadow: none; font-size: 1.1rem; }
   .plusb.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
   .offnote { text-align: left; background: rgba(255,180,60,.18); border: 2px solid rgba(255,190,80,.7); border-radius: 14px; padding: 10px 12px; font-size: .88rem; line-height: 1.35; margin-bottom: 10px; }
+  .health { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0,0,0,.25); font-size: .82rem; line-height: 1.4; }
+  .health code { background: rgba(255,255,255,.15); padding: 1px 5px; border-radius: 5px; font-size: .78rem; }
+  .health .ok { color: #7ee08f; font-weight: 900; }
   .offnote ol.setup { margin: 6px 0 0; padding-left: 20px; } .offnote ol.setup li { margin: 2px 0; }
   .offnote .mini { display: block; margin: 8px 0 0; min-height: 38px; width: auto; padding: 0 14px; }
   .su-err.big { margin: 10px 0 6px; font-size: .95rem; text-align: center; }
@@ -7317,13 +7320,26 @@ function engineFactory() {
     try { const j = await api("me"); setMe(j.me); soc.rank = j.rank; if (j.me.msgPolicy && prefs.msgPolicy !== j.me.msgPolicy) { prefs.msgPolicy = j.me.msgPolicy; store.set("chess-prefs", prefs); } renderSocialMain(); pollInbox(); }
     catch (e) {
       if (e.code === "no_user") { soc.offline = null; setMe(null); renderSignup(); }
-      else if (e.code === "not_configured" || e.code === "no_server" || e.code === "offline") { soc.offline = e.code; renderSignup(); }
+      else if (["not_configured", "no_server", "offline", "server"].includes(e.code)) {
+        soc.offline = e.code; soc.health = null; renderSignup();
+        if (e.code !== "offline") api("health").then(h => { soc.health = h; const n = $("healthBox"); if (n) n.innerHTML = healthHTML(); }).catch(() => { soc.health = { failed: true }; const n = $("healthBox"); if (n) n.innerHTML = healthHTML(); });
+      }
       else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p><button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
     }
   }
-  const offlineNote = () => !soc.offline ? "" : `<div class="offnote">⚠️ <b>${soc.offline === "offline" ? "You're offline." : soc.offline === "no_server" ? "The game server isn't running yet." : "The online database isn't connected yet."}</b>
+  // What the server can see, so the owner knows exactly which step is missing.
+  function healthHTML() {
+    const h = soc.health;
+    if (!h) return `<div class="health">Checking the server…</div>`;
+    if (h.failed) return `<div class="health"><b>Server check:</b> the game server didn't answer. Redeploy the games project in Vercel.</div>`;
+    const vars = h.vars && h.vars.length ? h.vars.map(v => `<code>${esc(v)}</code>`).join(" ") : "<i>none</i>";
+    const conn = h.mode === "none" ? "No database connected." : h.ping === "PONG" ? `<span class="ok">Connected and working!</span> Tap Try again.` : `Found the database but couldn't connect: ${esc(h.ping || "")}`;
+    return `<div class="health"><b>Server check</b><br>Database settings the server sees: ${vars}<br>${conn}${h.mode === "none" && h.vars && h.vars.length ? "<br>These settings aren't the kind the game needs. Make sure you picked <b>Upstash for Redis</b> or <b>Redis</b>, connected it to <b>games</b>, then redeployed." : ""}${h.mode === "none" && !(h.vars && h.vars.length) ? "<br>Nothing is connected yet, or the site wasn't redeployed after connecting." : ""}</div>`;
+  }
+  const offlineNote = () => !soc.offline ? "" : `<div class="offnote">⚠️ <b>${soc.offline === "offline" ? "You're offline." : soc.offline === "no_server" ? "The game server isn't running yet." : soc.offline === "server" ? "The game server had a problem." : "The online database isn't connected yet."}</b>
     ${soc.offline === "offline" ? "Connect to the internet to create your user." : soc.offline === "no_server" ? "The site was deployed without its server part. Redeploy the games project in Vercel." : "Leaderboard, friend requests and messages turn on once the owner connects it:"}
     ${soc.offline === "not_configured" ? `<ol class="setup"><li>vercel.com → your <b>games</b> project → <b>Storage</b></li><li><b>Create Database</b> → <b>Upstash for Redis</b> (free)</li><li><b>Connect</b> it to the games project</li><li><b>Deployments</b> → newest → <b>⋯</b> → <b>Redeploy</b></li></ol>` : ""}
+    ${soc.offline !== "offline" ? `<div id="healthBox">${healthHTML()}</div>` : ""}
     <button class="mini" data-dact="socialRetry">🔄 Try again</button></div>`;
   function renderSignup(msg, open) {
     if (!open && !msg) {

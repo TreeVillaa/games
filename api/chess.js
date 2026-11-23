@@ -294,7 +294,43 @@ const E = engineFactory();
 const envEnding = ends => { for (const e of ends) { if (process.env[e]) return process.env[e]; const k = Object.keys(process.env).find(n => n.endsWith("_" + e) && process.env[n]); if (k) return process.env[k]; } return undefined; };
 const DB_URL = envEnding(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL", "REDIS_REST_URL"]);
 const DB_TOKEN = envEnding(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN", "REDIS_REST_TOKEN"]);
+// Vercel's newer "Redis" database gives a single REDIS_URL (redis:// or rediss://) instead of a REST URL.
+// For that, talk to Redis directly over its normal protocol (no extra packages needed).
+const REDIS_TCP = DB_URL && DB_TOKEN ? undefined : (() => { const v = envEnding(["REDIS_URL", "KV_URL", "REDIS_TLS_URL"]); return v && /^rediss?:\/\//.test(v) ? v : undefined; })();
+const DB_MODE = DB_URL && DB_TOKEN ? "rest" : REDIS_TCP ? "redis" : "none";
+const net = require("net"), tls = require("tls");
+const respEnc = args => "*" + args.length + "\r\n" + args.map(a => { const s = String(a); return "$" + Buffer.byteLength(s) + "\r\n" + s + "\r\n"; }).join("");
+function respParse(b, i) {   // -> { v, err, end } or null if more bytes are needed
+  if (i >= b.length) return null;
+  const nl = b.indexOf("\r\n", i); if (nl < 0) return null;
+  const t = String.fromCharCode(b[i]), line = b.toString("utf8", i + 1, nl), next = nl + 2;
+  if (t === "+") return { v: line, end: next };
+  if (t === "-") return { v: line, err: true, end: next };
+  if (t === ":") return { v: Number(line), end: next };
+  if (t === "$") { const n = +line; if (n < 0) return { v: null, end: next }; if (b.length < next + n + 2) return null; return { v: b.toString("utf8", next, next + n), end: next + n + 2 }; }
+  if (t === "*") { const n = +line; if (n < 0) return { v: null, end: next }; const out = []; let at = next; for (let k = 0; k < n; k++) { const e = respParse(b, at); if (!e) return null; out.push(e.v); at = e.end; } return { v: out, end: at }; }
+  throw new Error("db: bad reply");
+}
+let tcp = null;
+function tcpClient() {
+  if (tcp && !tcp.dead) return tcp;
+  const u = new URL(REDIS_TCP), port = +u.port || 6379;
+  const sock = u.protocol === "rediss:" ? tls.connect({ host: u.hostname, port, servername: u.hostname }) : net.connect({ host: u.hostname, port });
+  const c = { buf: Buffer.alloc(0), q: [], dead: false };
+  const kill = e => { if (c.dead) return; c.dead = true; if (tcp === c) tcp = null; for (const w of c.q.splice(0)) w.rej(e || new Error("db: connection closed")); try { sock.destroy(); } catch (x) {} };
+  sock.on("data", d => {
+    c.buf = Buffer.concat([c.buf, d]);
+    for (;;) { let p; try { p = respParse(c.buf, 0); } catch (e) { return kill(e); } if (!p) break; c.buf = c.buf.subarray(p.end); const w = c.q.shift(); if (w) p.err ? w.rej(new Error("db: " + p.v)) : w.res(p.v); }
+  });
+  sock.on("error", e => kill(e)); sock.on("close", () => kill());
+  sock.setTimeout(20000, () => kill(new Error("db: timeout")));
+  c.send = args => new Promise((res, rej) => { if (c.dead) return rej(new Error("db: connection closed")); c.q.push({ res, rej }); sock.write(respEnc(args)); });
+  if (u.password) c.send(u.username && u.username !== "default" ? ["AUTH", decodeURIComponent(u.username), decodeURIComponent(u.password)] : ["AUTH", decodeURIComponent(u.password)]).catch(() => {});
+  tcp = c;
+  return c;
+}
 async function r(...cmd) {
+  if (DB_MODE === "redis") return tcpClient().send(cmd.map(String));
   const res = await fetch(DB_URL, { method: "POST", headers: { Authorization: `Bearer ${DB_TOKEN}`, "Content-Type": "application/json" }, body: JSON.stringify(cmd.map(String)) });
   const j = await res.json();
   if (j.error) throw new Error("db: " + j.error);
@@ -697,10 +733,16 @@ async function timeout(g, s, loser) {
 module.exports = async function handler(req, res) {
   const send = (code, obj) => { res.statusCode = code; res.setHeader("Content-Type", "application/json"); res.setHeader("Cache-Control", "no-store"); res.end(JSON.stringify(obj)); };
   if (req.method !== "POST") return send(405, { ok: false, code: "method", msg: "Use POST." });
-  if (!DB_URL || !DB_TOKEN) return send(200, { ok: false, code: "not_configured", msg: "Online play isn't switched on yet." });
+
   let b = req.body;
   if (typeof b === "string") { try { b = JSON.parse(b); } catch (e) { b = {}; } }
   b = b || {};
+  if (b && b.a === "health") {   // what the server can see (setting names only, never values)
+    const vars = Object.keys(process.env).filter(n => /KV|REDIS|UPSTASH/i.test(n)).sort();
+    let ping = null; if (DB_MODE !== "none") { try { ping = String(await r("PING")); } catch (e) { ping = "error: " + String(e.message || e).slice(0, 120); } }
+    return send(200, { ok: true, mode: DB_MODE, vars, ping });
+  }
+  if (DB_MODE === "none") return send(200, { ok: false, code: "not_configured", msg: "Online play isn't switched on yet." });
   const fn = Object.prototype.hasOwnProperty.call(A, b.a) ? A[b.a] : null;
   if (!fn) return send(400, { ok: false, code: "bad_action", msg: "Unknown action." });
   try { send(200, { ok: true, ...(await fn(b, req)) }); }
