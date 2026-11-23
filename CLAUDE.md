@@ -9,7 +9,7 @@ Live site: https://games-smoky-mu.vercel.app
 - `<folder>/index.html` — one game per folder, e.g. `block-dodge/index.html`.
 - `api/chess.js` — the online server for Chess (accounts, friends, leaderboard, live games). Runs as a
   Vercel serverless function and needs an Upstash Redis database connected to the Vercel project
-  (env vars `KV_REST_API_URL` / `KV_REST_API_TOKEN`). Its chess rules are a copy of `engineFactory()`
+  (Upstash REST env vars `KV_REST_API_URL` / `KV_REST_API_TOKEN`, any prefix; or Vercel's Redis `REDIS_URL`). Its chess rules are a copy of `engineFactory()`
   in `chess/index.html`, so keep them in sync.
 
 ## Rules
