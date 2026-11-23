@@ -455,6 +455,35 @@
   .uav { flex: none; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; font-size: 1.3rem;
     background: var(--av); color: #fff; text-shadow: 0 2px 0 rgba(0,0,0,.25); box-shadow: 0 0 0 3px var(--ring, #fff); }
   .uav.big { width: 76px; height: 76px; font-size: 2.2rem; }
+  .uav.look { overflow: hidden; background: #2b2b33; padding: 0; }
+  .uav.look svg { width: 100%; height: 100%; display: block; }
+  .bld-prev { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .bld-prev .uav.big { width: 128px; height: 128px; box-shadow: 0 0 0 4px #ffd84a, 0 8px 18px rgba(0,0,0,.4); }
+  .bld-row { text-align: left; margin-top: 8px; }
+  .bld-row .lbl { margin: 0 0 4px; }
+  .chips.bld { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
+  .chips.bld .chip { min-height: 38px; padding: 6px 11px; font-size: .85rem; flex: none; }
+  .chips.bld .chip.swatch { width: 38px; height: 38px; min-width: 0; padding: 4px; border-radius: 50%; }
+  .chips.bld .swc { display: block; width: 100%; height: 100%; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,.25); }
+  .adduser { font-size: 1.35rem; gap: 10px; }
+  .adduser .plusic { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,.35); font-weight: 900; font-size: 1.6rem; }
+  .lbtop { display: flex; gap: 8px; align-items: center; }
+  .lbtop .sinput { flex: 1; margin: 0; }
+  .reqplus { position: relative; flex: none; width: 54px; height: 50px; border-radius: 16px; border: 0; font: inherit; font-size: 1.9rem; font-weight: 900; color: #fff; cursor: pointer;
+    background: linear-gradient(180deg, #7ee08f, #2fa86a); box-shadow: 0 4px 0 #1d6b42, inset 0 1.5px 0 rgba(255,255,255,.5); touch-action: manipulation; }
+  .reqplus:active { transform: translateY(3px); box-shadow: 0 1px 0 #1d6b42; }
+  .reqplus .nbadge { position: absolute; top: -7px; right: -7px; }
+  .urowwrap { display: flex; gap: 6px; align-items: center; width: 100%; }
+  .urowwrap .urow { flex: 1; min-width: 0; }
+  .plusb { flex: none; width: 46px; height: 46px; border-radius: 14px; border: 0; font: inherit; font-size: 1.6rem; font-weight: 900; color: #fff; cursor: pointer;
+    background: linear-gradient(180deg, #7ee08f, #2fa86a); box-shadow: 0 3px 0 #1d6b42; touch-action: manipulation; }
+  .plusb.sent { background: rgba(255,255,255,.18); box-shadow: none; font-size: 1.2rem; }
+  .plusb.acc { background: linear-gradient(180deg, #ffd84a, #e0a000); box-shadow: 0 3px 0 #8a5300; font-size: 1.3rem; }
+  .plusb.fr { background: rgba(255,255,255,.12); box-shadow: none; font-size: 1.1rem; }
+  .plusb.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
+  .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
+  .empty.sm { padding: 8px; font-size: .85rem; }
+  small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
   .uav.sm { width: 34px; height: 34px; font-size: .95rem; box-shadow: 0 0 0 2px var(--ring, #fff); }
   .soc-name { font-size: 1.35rem; font-weight: 900; }
   .soc-sub { font-size: .85rem; font-weight: 700; opacity: .9; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 3px; }
@@ -5786,7 +5815,8 @@ function engineFactory() {
       </defs><rect width="100" height="100" fill="url(#${id}b)"/><g class="fc" style="transform-origin:50px 97px"><g transform="translate(50 70) scale(1.18) translate(-50 -66)">`;
 
     // ---- body / clothes ----
-    o += `<path d="M3 100 C5 87 17 81 33 78.6 Q41.5 77.4 50 77.4 Q58.5 77.4 67 78.6 C83 81 95 87 97 100Z" fill="url(#${id}c)"/>`;
+    const bwS = P.bw === "slim" ? .86 : P.bw === "broad" ? 1.14 : 1;
+    o += `<path transform="translate(50 0) scale(${bwS} 1) translate(-50 0)" d="M3 100 C5 87 17 81 33 78.6 Q41.5 77.4 50 77.4 Q58.5 77.4 67 78.6 C83 81 95 87 97 100Z" fill="url(#${id}c)"/>`;
     if (P.c === "jersey") o += `<path d="M14 85.5 Q22 80.6 32 79.3 L33 81.6 Q23 83 15.6 88Z M86 85.5 Q78 80.6 68 79.3 L67 81.6 Q77 83 84.4 88Z" fill="${ccL}" opacity=".8"/>
       <text x="71" y="99" font-size="11" font-weight="900" font-family="system-ui,sans-serif" fill="${mixC(cc, "#000000", .55)}" opacity=".75">${P.n || ""}</text>`;
     if (P.c === "suit" || P.c === "blazer" || P.c === "vintage") o += `<path d="M50 100 L37.5 79 Q35 80 34 82 L44 100Z M50 100 L62.5 79 Q65 80 66 82 L56 100Z" fill="${ccD}" opacity=".55"/>`;
@@ -5977,7 +6007,8 @@ function engineFactory() {
       const gs = P.g === "thick" ? 1.8 : P.g === "round" ? 1 : .9;
       const lens = P.g === "round" ? `<circle cx="${xe}" cy="50" r="5.1"/>` : `<rect x="${xe - 5.7}" y="46.2" width="11.4" height="7.8" rx="${P.g === "thick" ? 1.6 : 2.4}"/>`;
       const arm = `<path d="M${xe - (P.g === "round" ? 5.1 : 5.7)} 48.6 L${L + .4} 48"/>`;
-      o += `<g fill="rgba(255,255,255,.1)" stroke="${P.g === "thick" ? "#121212" : "#3a3330"}" stroke-width="${gs}">${lens}${arm}${mir(lens + arm)}<path d="M${xe + (P.g === "round" ? 5.1 : 5.7)} 49.4 Q50 47.8 ${100 - xe - (P.g === "round" ? 5.1 : 5.7)} 49.4" fill="none"/></g>
+      if (P.g === "shades") o += `<g fill="#14161c" stroke="#0b0b0b" stroke-width="1.2"><rect x="${xe - 6}" y="46" width="12" height="7.6" rx="3"/><rect x="${100 - xe - 6}" y="46" width="12" height="7.6" rx="3"/></g><path d="M${xe + 6} 48.6 Q50 47.4 ${100 - xe - 6} 48.6 M${xe - 6} 48 L${L + .4} 47.6 M${100 - xe + 6} 48 L${R - .4} 47.6" stroke="#0b0b0b" stroke-width="1.2" fill="none"/><path d="M${xe - 3.8} 47.6 L${xe - .8} 47 M${100 - xe - 3.8} 47.6 L${100 - xe - .8} 47" stroke="#fff" stroke-width=".8" opacity=".55"/>`;
+      else o += `<g fill="rgba(255,255,255,.1)" stroke="${P.g === "thick" ? "#121212" : "#3a3330"}" stroke-width="${gs}">${lens}${arm}${mir(lens + arm)}<path d="M${xe + (P.g === "round" ? 5.1 : 5.7)} 49.4 Q50 47.8 ${100 - xe - (P.g === "round" ? 5.1 : 5.7)} 49.4" fill="none"/></g>
         <path d="M${xe - 3.5} 47.8 L${xe - 1.5} 47.2 M${100 - xe - 3.5} 47.8 L${100 - xe - 1.5} 47.2" stroke="#fff" stroke-width=".7" opacity=".5"/>`;
     }
     if (X.band) o += `<path d="M${L - 1.5} 31.5 Q50 26 ${R + 1.5} 31.5 L${R + 1.5} 35 Q50 29.8 ${L - 1.5} 35Z" fill="${X.band}"/>`;
@@ -7114,6 +7145,7 @@ function engineFactory() {
     const c = e.target.closest(".chip"); if (!c) return;
     const [kind, a, b] = c.dataset.key.split(":");
     if (kind === "soc") { soc.tab = a; renderSocialMain(); return; }
+    if (kind === "lk") { if (!lookEdit) return; lookEdit[a] = /^[0-9a-f]{6}$/i.test(b) && !/^\d$/.test(b) ? "#" + b : b; if (a === "fem") { lookEdit.hs = b === "1" ? "long" : "short"; } paintBuilder(); return; }
     if (kind === "pl") { const L = +a, pr = puzProg(); if (L > pr.done + 1) { toast("Finish the levels before it first! 🔒"); return; } startPuzzleLevel(L, pr.level === L && L === pr.done + 1 ? pr.i : 0); return; }
     if (kind === "sn") { prefs.moveSound = a; store.set("chess-prefs", prefs); audioUnlock(); playMoveSound(a, false); setTimeout(() => playMoveSound(a, true), 420); paintStyle(); const i = buttonsOf("styleOv").findIndex(x => x.dataset.key === c.dataset.key); if (i >= 0) focusIdx = i; paintFocus(); return; }
     if (kind === "sh") {
@@ -7158,8 +7190,68 @@ function engineFactory() {
   const ONLINE_TC = { bullet: { label: "Bullet", sub: "1 min" }, blitz: { label: "Blitz", sub: "3 | 2" }, rapid: { label: "Rapid", sub: "10 min" } };
   const esc = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
   const userBg = n => { let h = 0; for (const ch of String(n)) h = (h * 31 + ch.charCodeAt(0)) % 360; return `linear-gradient(135deg, hsl(${h} 80% 60%), hsl(${(h + 40) % 360} 75% 42%))`; };
-  const uav = (u, cls = "") => `<span class="uav ${cls}" style="--av:${userBg(u.name)};--ring:${tierOf(u.elo).color}">${esc(u.name[0].toUpperCase())}</span>`;
+  const uav = (u, cls = "") => u.look ? `<span class="uav look ${cls}" style="--ring:${tierOf(u.elo).color}">${lookSVG(u.look, [...u.name].reduce((a, c) => a + c.charCodeAt(0), 0))}</span>`
+    : `<span class="uav ${cls}" style="--av:${userBg(u.name)};--ring:${tierOf(u.elo).color}">${esc(u.name[0].toUpperCase())}</span>`;
   const tierPill = elo => { const t = tierOf(elo); return `<span class="tier" style="--t:${t.color}">${t.name}</span>`; };
+
+  // ---------- Your character (built on "Add user", shown on the leaderboard, friends, chats) ----------
+  const LOOK_OPTS = {
+    s: [["k1", PSK.k1], ["k2", PSK.k2], ["ea", PSK.ea], ["k3", PSK.k3], ["k4", PSK.k4], ["sa", PSK.sa], ["k5", PSK.k5], ["k6", PSK.k6], ["k7", PSK.k7]],
+    fem: [["0", "Face 1"], ["1", "Face 2"]],
+    f: [["oval", "Oval"], ["round", "Round"], ["square", "Square"], ["long", "Long"], ["narrow", "Narrow"]],
+    hs: [["short", "Short"], ["side", "Side part"], ["messy", "Wavy"], ["slick", "Slick"], ["quiff", "Quiff"], ["spiky", "Spiky"], ["curly", "Curly"], ["afro", "Afro"], ["hightop", "High top"], ["locs", "Locs"], ["buzz", "Buzz"], ["shaved", "Shaved"], ["bald", "Bald"], ["receding", "Receding"], ["long", "Long"], ["longcurly", "Long curls"], ["bob", "Bob"], ["bun", "Bun"], ["manbun", "Top knot"]],
+    h: ["#1c1815", "#3b2a1f", "#5e4330", "#8a6a4a", "#d4ae66", "#e6d3a4", "#b8622c", "#7e3f24", "#9b958e", "#e8e4de", "#3f9b46", "#6a3fb5", "#2f6fe0", "#e0407a"],
+    e: ["#4b3224", "#6b4a2a", "#4f7a4a", "#5b8fb0", "#6f8ea6", "#3a3a3a"],
+    b: [["none", "None"], ["stubble", "Stubble"], ["short", "Short beard"], ["full", "Full beard"], ["mus", "Mustache"]],
+    g: [["none", "None"], ["thin", "Thin"], ["round", "Round"], ["thick", "Thick"], ["shades", "Sunglasses"]],
+    c: [["hoodie", "Hoodie"], ["tee", "T-shirt"], ["sweater", "Sweater"], ["shirt", "Shirt"], ["polo", "Polo"], ["jersey", "Jersey"], ["suit", "Suit"], ["blazer", "Blazer"], ["top", "Top"]],
+    cc: ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#00acc1", "#1e88e5", "#3949ab", "#8e24aa", "#ec407a", "#f5f5f5", "#9e9e9e", "#212121", "#6d4c41"],
+    bw: [["slim", "Slim"], ["regular", "Regular"], ["broad", "Broad"]],
+    x: [["none", "None"], ["cap", "Cap"], ["band", "Headband"], ["phones", "Headphones"]],
+    xc: ["#d32f2f", "#1e88e5", "#43a047", "#212121", "#f5f5f5", "#fdd835", "#8e24aa"],
+    sm: [["0", "Calm"], ["1", "Smile"], ["2", "Big smile"]],
+  };
+  const LOOK_SECTIONS = [["s", "Skin"], ["fem", "Face"], ["f", "Face shape"], ["sm", "Smile"], ["e", "Eye colour"], ["hs", "Hair"], ["h", "Hair colour"], ["b", "Facial hair"], ["g", "Eyewear"], ["x", "Hat & extras"], ["xc", "Hat colour"], ["c", "Clothes"], ["cc", "Clothes colour"], ["bw", "Body"]];
+  const randLook = () => { const pk = k => { const o = LOOK_OPTS[k][Math.floor(Math.random() * LOOK_OPTS[k].length)]; return Array.isArray(o) ? o[0] : o; };
+    const fem = Math.random() < .5 ? "1" : "0";
+    return { s: pk("s"), fem, f: pk("f"), sm: "1", e: pk("e"), hs: fem === "1" ? pickOne(["long", "bob", "bun", "longcurly", "curly"]) : pickOne(["short", "side", "messy", "quiff", "curly", "buzz"]), h: LOOK_OPTS.h[Math.floor(Math.random() * 6)],
+      b: "none", g: "none", x: "none", xc: "#1e88e5", c: pk("c"), cc: pk("cc"), bw: "regular" }; };
+  function lookToP(L) {
+    if (!L) return null;
+    const P = { s: L.s || "k2", f: L.f || "oval", hs: L.hs || "short", h: L.h || "#3b2a1f", e: L.e, c: L.c || "hoodie", cc: L.cc || "#1e88e5", sm: +(L.sm || 1), fem: L.fem === "1" ? 1 : 0, bw: L.bw };
+    if (L.b && L.b !== "none") P.b = L.b;
+    if (L.g && L.g !== "none") P.g = L.g;
+    if (L.x === "cap") { P.hs = "cap"; P.x = { cap: L.xc || "#d32f2f" }; } else if (L.x === "band") P.x = { band: L.xc || "#ffffff" }; else if (L.x === "phones") P.x = { phones: 1 };
+    if (P.c === "jersey") P.n = 1 + ([...(L.cc || "")].reduce((a, c) => a + c.charCodeAt(0), 0) % 30);
+    return P;
+  }
+  const lookSVG = (L, seed = 0) => portraitSVG(3000 + seed, lookToP(L));
+  let lookEdit = null;
+  function builderHTML() {
+    const L = lookEdit;
+    let h = `<div class="bld-prev"><span class="uav big look">${lookSVG(L, 1)}</span><button class="mini" data-dact="lookRandom" style="padding:0 14px">🎲 Random</button></div>`;
+    for (const [k, label] of LOOK_SECTIONS) {
+      if (k === "xc" && !(L.x === "cap" || L.x === "band")) continue;
+      const opts = LOOK_OPTS[k];
+      h += `<div class="bld-row"><div class="lbl">${label}</div><div class="chips bld">${opts.map(o => {
+        const [v, t] = Array.isArray(o) ? o : [o, ""], sel = String(L[k]) === v;
+        const sw = /^#/.test(t || v) ? `<i class="swc" style="background:${t || v}"></i>` : "";
+        return `<button class="chip${sel ? " sel" : ""}${sw ? " swatch" : ""}" data-key="lk:${k}:${v.replace("#", "")}">${sw || esc(t)}</button>`;
+      }).join("")}</div></div>`;
+    }
+    return h;
+  }
+  function paintBuilder() { const el = $("bldBox"); if (el) el.innerHTML = builderHTML(); }
+  // ---------- Friendly nickname generator ----------
+  const NICK_A = ["Swift", "Brave", "Happy", "Clever", "Mighty", "Lucky", "Sneaky", "Cosmic", "Turbo", "Jolly", "Sunny", "Rapid", "Silent", "Golden", "Royal", "Witty", "Bold", "Chill", "Epic", "Speedy", "Funky", "Magic", "Super", "Tiny", "Wild"];
+  const NICK_B = ["Knight", "Rook", "Pawn", "Bishop", "Queen", "King", "Fox", "Panda", "Tiger", "Falcon", "Comet", "Rocket", "Dragon", "Otter", "Wizard", "Ninja", "Penguin", "Koala", "Phoenix", "Shark", "Owl", "Wolf", "Bear", "Gecko", "Llama"];
+  function makeNick() {
+    for (let t = 0; t < 30; t++) {
+      const n = pickOne(NICK_A) + pickOne(NICK_B) + (Math.random() < .6 ? Math.floor(Math.random() * 100) : "");
+      if (n.length <= 16 && !isBadName(n)) return n;
+    }
+    return "ChessFriend" + Math.floor(Math.random() * 1000);
+  }
 
   const net = { token: store.get("chess-token", null), me: store.get("chess-me", null) };
   if (!net.token) {
@@ -7187,31 +7279,53 @@ function engineFactory() {
       else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p>${e.code === "not_configured" || e.code === "no_server" ? `<p class="netnote">The owner needs to connect the online database. Until then you can still play bots and friends on this device.</p>` : ""}<button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
     }
   }
-  function renderSignup(msg) {
-    $("socialBody").innerHTML = `<div class="sect"><div class="lbl">Make your user</div>
+  function renderSignup(msg, open) {
+    if (!open && !msg) {
+      $("socialBody").innerHTML = `<div class="sect" style="text-align:center"><div class="lbl">No user yet</div>
+        <p class="netnote" style="margin:4px 0 12px">Make your user to get on the leaderboard, add friends, send messages and play online.</p>
+        <button class="btn play adduser" data-dact="addUser"><span class="plusic">＋</span><span>Add User</span></button></div>`;
+      return;
+    }
+    if (!lookEdit) lookEdit = randLook();
+    $("socialBody").innerHTML = `<div class="sect"><div class="lbl">➕ Add User</div>
       <input class="sinput" id="suName" maxlength="16" placeholder="Pick a username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div class="su-err" id="suErr">${msg ? esc(msg) : ""}</div>
-      <button class="btn play" data-dact="signup">Create user</button>
-      <p class="netnote" style="margin-top:10px">3–16 letters, numbers or _. Only 1 user per device. Be kind: rude names get blocked.</p></div>`;
+      <button class="btn alt" data-dact="nickGen" style="min-height:46px;font-size:1rem">🎲 Nickname generator</button>
+      <p class="netnote" style="margin:6px 0 0">3–16 letters, numbers or _. Only 1 user per device. Be kind: rude names can't be used.</p></div>
+      <div class="sect"><div class="lbl">🎨 Make your character</div><div id="bldBox">${builderHTML()}</div></div>
+      <button class="btn play" data-dact="signup">✅ Create user</button>`;
     const inp = $("suName");
-    inp.addEventListener("input", () => {
-      const v = inp.value.trim(), err = $("suErr");
-      err.className = "su-err";
-      if (!v) err.textContent = "";
-      else if (!/^[A-Za-z0-9_]*$/.test(v)) err.textContent = "Only letters, numbers and _ please.";
-      else if (isBadName(v)) err.textContent = "That name is censored. Try a friendly one!";
-      else if (v.length < 3) err.textContent = "At least 3 characters.";
-      else { err.textContent = "Looks good!"; err.className = "su-err good"; }
-    });
+    inp.addEventListener("input", () => checkName());
+  }
+  let nameT = 0, nameSeq = 0;
+  function checkName() {
+    const inp = $("suName"), err = $("suErr"); if (!inp) return;
+    const v = inp.value.trim();
+    err.className = "su-err";
+    clearTimeout(nameT);
+    if (!v) { err.textContent = ""; return; }
+    if (!/^[A-Za-z0-9_]*$/.test(v)) { err.textContent = "Only letters, numbers and _ please."; return; }
+    if (isBadName(v)) { err.textContent = "🚫 You can't use this name. Make a friendly one!"; return; }
+    if (v.length < 3) { err.textContent = "At least 3 characters."; return; }
+    err.textContent = "Checking…";
+    const seq = ++nameSeq;
+    nameT = setTimeout(async () => {
+      try {
+        const j = await api("nameFree", { name: v });
+        if (seq !== nameSeq) return;
+        if (j.free) { err.textContent = "✅ That name is free!"; err.className = "su-err good"; }
+        else err.textContent = j.why === "censored" ? "🚫 You can't use this name. Make a friendly one!" : "❌ That name is already taken. Try another one!";
+      } catch (e) { if (seq === nameSeq) { err.textContent = "Looks good!"; err.className = "su-err good"; } }
+    }, 350);
   }
   async function doSignup() {
     const inp = $("suName"); if (!inp) return;
     const name = inp.value.trim(), err = $("suErr");
     err.className = "su-err";
     if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) { err.textContent = "Use 3–16 letters, numbers or _ (no spaces)."; return; }
-    if (isBadName(name)) { err.textContent = "That name is censored. Try a friendly one!"; return; }
+    if (isBadName(name)) { err.textContent = "🚫 You can't use this name. Make a friendly one!"; return; }
     err.textContent = "Creating…";
-    try { const j = await api("signup", { name }); setMe(j.me); api("setPrefs", { msgPolicy: prefs.msgPolicy }).catch(() => {}); toast(`Welcome, ${j.me.name}! 🎉`); openSocial(); }
+    try { const j = await api("signup", { name, look: lookEdit }); setMe(j.me); lookEdit = null; api("setPrefs", { msgPolicy: prefs.msgPolicy }).catch(() => {}); toast(`Welcome, ${j.me.name}! 🎉`); openSocial(); }
     catch (e) { err.textContent = e.msg; }
   }
   function renderSocialMain() {
@@ -7222,13 +7336,16 @@ function engineFactory() {
         <div><div class="soc-name">${esc(me.name)}</div>
         <div class="soc-sub"><span class="elo">${me.elo} Elo</span>${tierPill(me.elo)}</div>
         <div class="soc-sub">${me.w}W · ${me.l}L · ${me.d}D${soc.rank ? ` · Rank #${soc.rank}` : ""}</div></div></button>
-      <div class="chips">${[["friends", "Friends"], ["lb", "Leaders"], ["msg", "Messages" + (nmsg ? ` (${nmsg})` : "")], ["req", "Requests" + (nreq ? ` (${nreq})` : "")]].map(([k, l]) => chip("soc:" + k, l, soc.tab === k)).join("")}</div>
-      ${soc.tab === "lb" ? `<input class="sinput" id="lbSearch" placeholder="Search for a user…" value="${esc(soc.q)}" autocomplete="off" autocapitalize="off" spellcheck="false">` : ""}
+      <div class="chips">${[["friends", "Friends"], ["lb", "Leaders"], ["msg", "Messages" + (nmsg ? ` (${nmsg})` : "")], ["req", "＋ Requests" + (reqCount() ? ` (${reqCount()})` : "")]].map(([k, l]) => chip("soc:" + k, l, soc.tab === k)).join("")}</div>
+      ${soc.tab === "lb" ? `<div class="lbtop"><input class="sinput" id="lbSearch" placeholder="🔍 Search any user…" value="${esc(soc.q)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="reqplus" data-dact="openReq" aria-label="Friend requests"><span>＋</span>${reqCount() ? `<i class="nbadge">${reqCount()}</i>` : ""}</button></div>` : ""}
       <div class="slist" id="socList"><div class="empty">Loading…</div></div>`;
     const sInp = $("lbSearch");
     if (sInp) sInp.addEventListener("input", () => { soc.q = sInp.value; clearTimeout(soc.searchT); soc.searchT = setTimeout(loadTab, 300); });
     loadTab();
   }
+  const plusFor = u => !u.rel || u.rel === "self" ? "" : u.rel === "none" ? `<button class="plusb" data-dact="plusFriend" data-arg="${esc(u.key)}" aria-label="Add ${esc(u.name)} as a friend">＋</button>`
+    : u.rel === "sent" ? `<button class="plusb sent" disabled aria-label="Request sent">✓</button>` : u.rel === "received" ? `<button class="plusb acc" data-dact="frAccept" data-arg="${esc(u.key)}" aria-label="Accept">✓</button>` : `<button class="plusb fr" disabled aria-label="Friends">👥</button>`;
+  const userRowP = (u, extra = "", rank = 0) => `<div class="urowwrap">${userRow(u, extra, rank)}${plusFor(u)}</div>`;
   const userRow = (u, extra = "", rank = 0) => `<button class="urow${net.me && u.key === net.me.key ? " me" : ""}" data-user="${esc(u.key)}">${rank ? `<span class="rk">${rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}</span>` : ""}${uav(u, "sm")}<span class="un">${esc(u.name)}</span>${u.online ? '<i class="ondot" title="Online"></i>' : ""}<span class="ue" style="color:${tierOf(u.elo).color}">${u.elo}</span>${extra}</button>`;
   async function loadTab() {
     const el = $("socList"); if (!el) return;
@@ -7241,7 +7358,7 @@ function engineFactory() {
         if (q) {
           const j = await api("search", { q });
           if ($("socList") !== el) return;
-          el.innerHTML = j.list.length ? j.list.map(u => userRow(u)).join("") : `<div class="empty">No users found.</div>`;
+          el.innerHTML = j.list.length ? j.list.map(u => userRowP(u)).join("") : `<div class="empty">No users found.</div>`;
         } else {
           const j = await api("leaderboard", { offset: 0 });
           if ($("socList") !== el) return;
@@ -7252,8 +7369,15 @@ function engineFactory() {
         const ib = soc.inbox;
         let h = "";
         for (const c of ib.challenges) h += `<div class="urow">${uav({ name: c.fromName, elo: c.fromElo }, "sm")}<span class="un">⚔️ ${esc(c.fromName)}<br><small style="opacity:.8">${ONLINE_TC[c.tc].label} ${ONLINE_TC[c.tc].sub}</small></span><button class="mini ok" data-dact="chAccept" data-arg="${esc(c.id)}">Play</button><button class="mini no" data-dact="chDecline" data-arg="${esc(c.id)}">✕</button></div>`;
-        for (const u of ib.friendRequests) h += `<div class="urow">${uav(u, "sm")}<span class="un">${esc(u.name)}<br><small style="opacity:.8">wants to be friends</small></span><button class="mini ok" data-dact="frAccept" data-arg="${esc(u.key)}">✓</button><button class="mini no" data-dact="frDecline" data-arg="${esc(u.key)}">✕</button></div>`;
-        el.innerHTML = h || `<div class="empty">No requests right now.</div>`;
+        if (h) h = `<div class="reqhead">⚔️ Challenges</div>` + h;
+        const rq = await api("requests");
+        if ($("socList") !== el) return;
+        const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? m + "m ago" : m < 1440 ? Math.round(m / 60) + "h ago" : Math.round(m / 1440) + "d ago"; };
+        h += `<div class="reqhead">📨 Sent you a friend request</div>` + (rq.received.length ? rq.received.map(u => `<div class="urow">${uav(u, "sm")}<span class="un">${esc(u.name)}<br><small style="opacity:.8">wants to be friends</small></span><button class="mini ok" data-dact="frAccept" data-arg="${esc(u.key)}">✓</button><button class="mini no" data-dact="frDecline" data-arg="${esc(u.key)}">✕</button></div>`).join("") : `<div class="empty sm">No new requests.</div>`);
+        h += `<div class="reqhead">🤝 Accepted your friend request</div>` + (rq.accepted.length ? rq.accepted.map(u => `<div class="urowwrap">${userRow(u, `<small class="ago${u.at > accSeen() ? " new" : ""}">${u.at > accSeen() ? "NEW · " : ""}${ago(u.at)}</small>`)}</div>`).join("") : `<div class="empty sm">Nobody yet. Tap ＋ next to people on the leaderboard!</div>`);
+        h += `<div class="reqhead">⏳ Waiting for them to accept</div>` + (rq.sent.length ? rq.sent.map(u => userRow(u, `<small class="ago">Sent</small>`)).join("") : `<div class="empty sm">No requests waiting.</div>`);
+        el.innerHTML = h;
+        if (rq.accepted.length) { store.set("chess-accseen", Math.max(...rq.accepted.map(u => u.at))); soc.inbox.accepted = []; paintReqBadge(); }
       } else if (soc.tab === "msg") {
         const j = await api("convos");
         el.innerHTML = j.list.length ? j.list.map(c => `<button class="urow" data-chat="${esc(c.key)}">${uav(c, "sm")}<span class="un">${esc(c.name)}<br><small style="opacity:.75;font-weight:600">${esc(c.text)}</small></span>${c.unread ? `<i class="nbadge" style="position:static;box-shadow:none">${c.unread}</i>` : ""}</button>`).join("")
@@ -7268,7 +7392,7 @@ function engineFactory() {
     let h = `<div class="lbhead">All ${lb.total} player${lb.total === 1 ? "" : "s"}, best to worst</div>`;
     lb.list.forEach((u, i) => {
       const rank = i + 1, tag = rank === 1 ? '<span class="lbtag best">Best</span>' : rank === lb.total && lb.total > 1 ? '<span class="lbtag worst">Lowest</span>' : "";
-      h += userRow(u, tag, rank);
+      h += userRowP(u, tag, rank);
     });
     if (lb.list.length < lb.total) h += `<button class="btn alt" data-dact="lbMore" style="min-height:46px">Show more (${lb.total - lb.list.length} left)</button>`;
     el.innerHTML = h;
@@ -7286,7 +7410,7 @@ function engineFactory() {
     if (su.error) { el.innerHTML = `<div class="empty">${esc(su.error)}</div>`; return; }
     const u = su.user;
     let actions = "";
-    if (su.rel === "self") actions = `<p class="netnote">This is you! Win online games to climb the leaderboard.</p>`;
+    if (su.rel === "self") actions = `<button class="btn alt" data-dact="editLook">🎨 Edit my character</button><p class="netnote">This is you! Win online games to climb the leaderboard.</p>`;
     if (su.rel !== "self") {
       const extra = su.blocked ? `<button class="btn alt" data-dact="unblock" data-arg="${esc(u.key)}" style="min-height:44px;font-size:.95rem">Unblock</button>`
         : `${su.canMsg ? `<button class="btn alt" data-chat="${esc(u.key)}">💬 Message</button>` : `<p class="netnote">💬 ${esc(u.name)} only takes messages from ${su.msgPolicy === "nobody" ? "nobody right now" : su.msgPolicy === "friends" ? "friends" : "some people"}.</p>`}`;
@@ -7316,6 +7440,14 @@ function engineFactory() {
       if (a === "socialRetry") return openSocial();
       if (a === "lesson") return startLesson(+arg);
       if (a === "rvJump") return beginReview(+arg + 1);
+      if (a === "addUser") return renderSignup("", true);
+      if (a === "nickGen") { const inp = $("suName"); if (inp) { inp.value = makeNick(); checkName(); } return; }
+      if (a === "lookRandom") { lookEdit = randLook(); paintBuilder(); return; }
+      if (a === "editLook") { lookEdit = { ...(net.me.look || randLook()) }; $("userBody").innerHTML = `<div class="sect"><div class="lbl">🎨 Edit your character</div><div id="bldBox">${builderHTML()}</div></div><button class="btn play" data-dact="saveLook">💾 Save</button><button class="btn alt" data-dact="cancelLook">Cancel</button>`; return; }
+      if (a === "saveLook") { const j = await api("setLook", { look: lookEdit }); setMe(j.me); lookEdit = null; toast("Character saved! ✨"); return openUser(net.me.key); }
+      if (a === "cancelLook") { lookEdit = null; return openUser(net.me.key); }
+      if (a === "plusFriend") { const j = await api("friendReq", { to: arg }); toast(j.rel === "friends" ? "You're now friends! 🤝" : "Friend request sent! ➕"); return loadTab(); }
+      if (a === "openReq") { soc.tab = "req"; return renderSocialMain(); }
       if (a === "coachToggle") { prefs.coachOn = prefs.coachOn === false; store.set("chess-prefs", prefs); paintCoach(); return; }
       if (a === "coachPick") { prefs.coach = arg; prefs.coachOn = true; store.set("chess-prefs", prefs); paintCoach(); const C = coachObj(); toast(`${coachName(C)} is now your coach!`); return; }
       if (a === "lbMore") { const j = await api("leaderboard", { offset: soc.lb.list.length }); soc.lb.list.push(...j.list); soc.lb.total = j.total; paintLeaderboard(); return; }
@@ -7340,13 +7472,16 @@ function engineFactory() {
   // ---------- Inbox: friend requests, challenges, accepted challenges ----------
   const seenCh = new Set();
   let bannerCh = null;
+  const accSeen = () => store.get("chess-accseen", 0), seenAcc = new Set();
+  const reqCount = () => soc.inbox.friendRequests.length + soc.inbox.challenges.length + ((soc.inbox.accepted || []).length);
+  function paintReqBadge() { const n = reqCount() + (soc.inbox.unreadMsgs || 0), badge = $("reqBadge"); badge.hidden = !n; badge.textContent = n; }
   async function pollInbox() {
     if (!net.me) return;
     let j; try { j = await api("inbox"); } catch (e) { if (e.code === "no_user") setMe(null); return; }
     setMe(j.me);
-    soc.inbox = { friendRequests: j.friendRequests, challenges: j.challenges, unreadMsgs: j.unreadMsgs || 0 };
-    const n = j.friendRequests.length + j.challenges.length + (j.unreadMsgs || 0), badge = $("reqBadge");
-    badge.hidden = !n; badge.textContent = n;
+    soc.inbox = { friendRequests: j.friendRequests, challenges: j.challenges, unreadMsgs: j.unreadMsgs || 0, accepted: (j.accepted || []).filter(a => a.at > accSeen()) };
+    for (const a of soc.inbox.accepted) if (!seenAcc.has(a.key + a.at)) { seenAcc.add(a.key + a.at); toast(`🤝 ${a.name || a.key} accepted your friend request!`); }
+    paintReqBadge();
     for (const c of j.challenges) if (!seenCh.has(c.id)) { seenCh.add(c.id); showBanner(c); }
     if (j.started && j.started.length && !(mode === "online" && online && !online.ended)) {
       try { const g = (await api("game", { id: j.started[0] })).game; if (g.status === "active") startOnline(g); } catch (e) {}

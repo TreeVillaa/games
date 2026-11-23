@@ -306,7 +306,17 @@ const fail = (code, msg) => { const e = new Error(msg); e.code = code; e.userMsg
 const hash = t => crypto.createHash("sha256").update(String(t)).digest("hex");
 const MAX_ELO = 4500, MIN_ELO = 100, START_ELO = 100;
 const TC = { bullet: { name: "bullet", base: 60000, inc: 0 }, blitz: { name: "blitz", base: 180000, inc: 2000 }, rapid: { name: "rapid", base: 600000, inc: 0 } };
-const pub = u => ({ name: u.name, key: u.key, elo: u.elo, w: u.w, l: u.l, d: u.d, created: u.created, online: Date.now() - (u.seen || 0) < 60000 });
+const pub = u => ({ name: u.name, key: u.key, elo: u.elo, w: u.w, l: u.l, d: u.d, created: u.created, online: Date.now() - (u.seen || 0) < 60000, look: u.look || null });
+// A player's character (built in the game's "Add user" screen). Only known fields and safe values are kept.
+const LOOK_FIELDS = { s: /^(k[1-7]|ea|sa)$/, f: /^(oval|square|long|round|narrow)$/, hs: /^(short|side|messy|slick|buzz|receding|shaved|bald|curly|hightop|afro|long|longcurly|bob|bun|manbun|locs|quiff|spiky)$/,
+  h: /^#[0-9a-f]{6}$/i, e: /^#[0-9a-f]{6}$/i, b: /^(none|stubble|short|full|mus)$/, g: /^(none|thin|round|thick|shades)$/, c: /^(hoodie|tee|sweater|shirt|polo|suit|blazer|jersey|top)$/,
+  cc: /^#[0-9a-f]{6}$/i, bw: /^(slim|regular|broad)$/, x: /^(none|cap|band|phones)$/, xc: /^#[0-9a-f]{6}$/i, sm: /^[0-2]$/, fem: /^[01]$/ };
+function cleanLook(l) {
+  if (!l || typeof l !== "object") return null;
+  const out = {};
+  for (const k in LOOK_FIELDS) if (l[k] != null && LOOK_FIELDS[k].test(String(l[k]))) out[k] = String(l[k]);
+  return Object.keys(out).length ? out : null;
+}
 const keyOf = n => String(n || "").toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 16);
 
 // Name filter (bad words / slurs). The list is base64 so it isn't sitting in plain view.
@@ -342,6 +352,12 @@ async function canMessage(me, other) {
 }
 const convoKey = (a, b) => "dm:" + [a, b].sort().join("|");
 
+// Adds "rel" (none / sent / received / friends / self) to each user, for the + buttons.
+async function withRel(b, list) {
+  let me; try { me = await auth(b); } catch (e) { return list; }
+  const fr = new Set(await r("SMEMBERS", "fr:" + me.key)), inc = new Set(await r("SMEMBERS", "freq:" + me.key)), out = new Set(await r("SMEMBERS", "fsent:" + me.key));
+  return list.map(u => ({ ...u, rel: u.key === me.key ? "self" : fr.has(u.key) ? "friends" : inc.has(u.key) ? "received" : out.has(u.key) ? "sent" : "none" }));
+}
 async function auth(b) {
   if (!b.token || String(b.token).length < 16) fail("no_user", "Please make a user first.");
   const key = await r("GET", "dev:" + hash(b.token));
@@ -397,13 +413,26 @@ const A = {
     if (n === 1) await r("EXPIRE", ipk, 86400);
     if (n > 3) fail("too_many", "Too many new users from here today. Try again tomorrow.");
     const key = name.toLowerCase(), now = Date.now();
-    const u = { name, key, elo: START_ELO, w: 0, l: 0, d: 0, created: now, seen: now };
+    const u = { name, key, elo: START_ELO, w: 0, l: 0, d: 0, created: now, seen: now, look: cleanLook(b.look) };
     if (!(await r("SET", "u:" + key, JSON.stringify(u), "NX"))) fail("taken", "That name is already taken. Try another one!");
     if (!(await r("SET", dk, key, "NX"))) { await r("DEL", "u:" + key); fail("one_user", "You already have a user on this device. Only 1 user is allowed."); }
     await r("ZADD", "lb", START_ELO, key);
     return { me: pub(u) };
   },
   async me(b) { const u = await auth(b); await touch(u); return { me: { ...pub(u), msgPolicy: u.msgPolicy || "friends" }, rank: (await r("ZREVRANK", "lb", u.key)) + 1 }; },
+  // Is a username free? (checked while typing on the "Add user" screen)
+  async nameFree(b) {
+    const name = String(b.name || "").trim();
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) return { free: false, why: "format" };
+    if (isBadName(name)) return { free: false, why: "censored" };
+    return { free: !(await r("EXISTS", "u:" + name.toLowerCase())) };
+  },
+  async setLook(b) {
+    const u = await auth(b);
+    u.look = cleanLook(b.look);
+    await setJ("u:" + u.key, u);
+    return { me: { ...pub(u), msgPolicy: u.msgPolicy || "friends" } };
+  },
   async setPrefs(b) {
     const u = await auth(b);
     if (POLICIES.includes(b.msgPolicy)) u.msgPolicy = b.msgPolicy;
@@ -415,7 +444,7 @@ const A = {
     const off = Math.max(0, Math.floor(+b.offset || 0));
     const keys = await r("ZREVRANGE", "lb", off, off + 49);
     const users = (await mgetJ(keys.map(k => "u:" + k))).filter(Boolean).map(pub);
-    return { list: users, offset: off, total: await r("ZCARD", "lb") };
+    return { list: await withRel(b, users), offset: off, total: await r("ZCARD", "lb") };
   },
   async search(b) {
     const q = keyOf(b.q); if (!q) return { list: [] };
@@ -427,7 +456,7 @@ const A = {
     }
     found = found.slice(0, 20);
     const users = (await mgetJ(found.map(k => "u:" + k))).filter(Boolean).map(pub).sort((a, c) => c.elo - a.elo);
-    return { list: users };
+    return { list: await withRel(b, users) };
   },
   async profile(b) {
     const key = keyOf(b.name), u = await getJ("u:" + key);
@@ -444,6 +473,17 @@ const A = {
     } catch (e) {}
     return { user: pub(u), rel, canMsg, blocked, msgPolicy: u.msgPolicy || "friends", rank: (await r("ZREVRANK", "lb", key)) + 1 };
   },
+  // Who sent me requests, who accepted mine, and who I'm still waiting on.
+  async requests(b) {
+    const me = await auth(b);
+    const inKeys = await r("SMEMBERS", "freq:" + me.key), outKeys = await r("SMEMBERS", "fsent:" + me.key);
+    const acc = ((await getJ("facc:" + me.key)) || []).slice(0, 30);
+    const users = async keys => (await mgetJ(keys.map(k => "u:" + k))).filter(Boolean).map(pub);
+    const accUsers = await users(acc.map(a => a.key));
+    const pendingOut = [];
+    for (const k of outKeys) { if (await r("SISMEMBER", "freq:" + k, me.key)) pendingOut.push(k); else await r("SREM", "fsent:" + me.key, k); }
+    return { received: await users(inKeys), accepted: accUsers.map(u => ({ ...u, at: (acc.find(a => a.key === u.key) || {}).at || 0 })), sent: await users(pendingOut) };
+  },
   async friendReq(b) {
     const me = await auth(b), to = keyOf(b.to);
     if (to === me.key) fail("self", "That's you!");
@@ -452,16 +492,18 @@ const A = {
     if (await r("SISMEMBER", "fr:" + me.key, to)) return { rel: "friends" };
     if (await r("SISMEMBER", "freq:" + me.key, to)) { await A.friendAccept({ ...b, from: to }); return { rel: "friends" }; }
     if ((await r("SCARD", "freq:" + to)) >= 100) fail("full", "They have too many friend requests right now.");
-    await r("SADD", "freq:" + to, me.key);
+    await r("SADD", "freq:" + to, me.key); await r("SADD", "fsent:" + me.key, to);
     return { rel: "sent" };
   },
   async friendAccept(b) {
     const me = await auth(b), from = keyOf(b.from);
     if (!(await r("SREM", "freq:" + me.key, from))) fail("gone", "That request is gone.");
-    await r("SADD", "fr:" + me.key, from); await r("SADD", "fr:" + from, me.key);
+    await r("SADD", "fr:" + me.key, from); await r("SADD", "fr:" + from, me.key); await r("SREM", "fsent:" + from, me.key);
+    const acc = ((await getJ("facc:" + from)) || []).filter(a => a.key !== me.key);   // tell them "me accepted your request"
+    acc.unshift({ key: me.key, name: me.name, at: Date.now() }); await setJ("facc:" + from, acc.slice(0, 30));
     return { rel: "friends" };
   },
-  async friendDecline(b) { const me = await auth(b); await r("SREM", "freq:" + me.key, keyOf(b.from)); return {}; },
+  async friendDecline(b) { const me = await auth(b), k = keyOf(b.from); await r("SREM", "freq:" + me.key, k); await r("SREM", "fsent:" + k, me.key); return {}; },
   async unfriend(b) { const me = await auth(b), k = keyOf(b.name); await r("SREM", "fr:" + me.key, k); await r("SREM", "fr:" + k, me.key); return { rel: "none" }; },
   async friends(b) {
     const me = await auth(b);
@@ -493,7 +535,8 @@ const A = {
     const active = await r("GET", "active:" + me.key);
     const meta = (await getJ("dmmeta:" + me.key)) || {};
     const unreadMsgs = Object.values(meta).reduce((n, c) => n + (c.unread || 0), 0);
-    return { me: { ...pub(me), msgPolicy: me.msgPolicy || "friends" }, friendRequests: reqUsers, challenges, started, active, unreadMsgs };
+    const accepted = ((await getJ("facc:" + me.key)) || []).slice(0, 30);
+    return { me: { ...pub(me), msgPolicy: me.msgPolicy || "friends" }, friendRequests: reqUsers, challenges, started, active, unreadMsgs, accepted };
   },
   // ---- messages ----
   async sendMsg(b) {
