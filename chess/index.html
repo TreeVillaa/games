@@ -385,6 +385,19 @@
   .bn-btns { display: flex; gap: 8px; margin-top: 10px; }
   .bn-btns .btn { flex: 1; min-height: 46px; font-size: 1rem; padding: 8px; }
   .netnote { opacity: .85; font-size: .9rem; line-height: 1.4; }
+  .lbhead { font-size: .8rem; font-weight: 800; opacity: .8; text-align: left; padding: 2px 4px; }
+  .lbtag { font-size: .7rem; font-weight: 900; border-radius: 999px; padding: 2px 8px; flex: none; }
+  .lbtag.best { background: #ffd84a; color: #0b1d4d; } .lbtag.worst { background: rgba(255,255,255,.25); }
+  .socialOv .chips .chip, #socialOv .chips .chip { font-size: .8rem; padding: 6px 2px; }
+  .overlay.chat { justify-content: flex-start; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+  .chat-head { width: min(420px, 100%); display: flex; align-items: center; gap: 10px; text-align: left; }
+  .chat-who { display: flex; align-items: center; gap: 10px; }
+  .chat-list { flex: 1; width: min(420px, 100%); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding: 12px 2px; -webkit-user-select: text; user-select: text; }
+  .bub { align-self: flex-start; max-width: 78%; background: rgba(255,255,255,.16); border-radius: 18px 18px 18px 6px; padding: 9px 12px; text-align: left; font-weight: 600; overflow-wrap: anywhere; }
+  .bub.mine { align-self: flex-end; background: linear-gradient(135deg, #ffe36e, #ffb21f); color: #0b1d4d; border-radius: 18px 18px 6px 18px; }
+  .bub small { display: block; font-size: .68rem; opacity: .65; margin-top: 3px; }
+  .chat-bar { width: min(420px, 100%); display: flex; gap: 8px; }
+  .chat-bar .btn { min-height: 50px; padding: 8px 16px; }
 
   /* ---- Intro / loading screen ---- */
   #splash {
@@ -452,7 +465,7 @@
   }
   .fx-text {
     position: relative; font-size: calc(var(--board) * .1); font-weight: 900; color: #fff;
-    background: linear-gradient(135deg, #2fd6b5, #1a9f86); padding: .18em .65em; border-radius: 999px;
+    background: var(--fc, linear-gradient(135deg, #2fd6b5, #1a9f86)); padding: .18em .65em; border-radius: 999px;
     border: 4px solid #fff; box-shadow: 0 0 0 8px rgba(38,194,163,.35), 0 12px 30px rgba(0,0,0,.45);
     animation: fxPop 2.2s ease forwards; white-space: nowrap;
   }
@@ -472,7 +485,30 @@
     0% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
     100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--r)) scale(.3); opacity: 0; }
   }
-  .sq.brill { box-shadow: inset 0 0 0 4px #26c2a3, inset 0 0 18px rgba(38,194,163,.9); }
+  /* rated move: the square is tinted in the rating's colour (and flashes when the rating arrives) */
+  .sq.rt { box-shadow: inset 0 0 0 200px color-mix(in srgb, var(--rc) 48%, transparent); }
+  .sq.rt.popsq { animation: sqFlash .9s ease-out; }
+  @keyframes sqFlash { 0% { box-shadow: inset 0 0 0 200px color-mix(in srgb, var(--rc) 95%, transparent), 0 0 18px var(--rc); } }
+  /* per-rating pop-ups (Brilliant has its own bigger one) */
+  .fx-good .fx-text, .fx-bad .fx-text { font-size: calc(var(--board) * .075); border-width: 3px; box-shadow: 0 0 0 6px color-mix(in srgb, var(--fc) 35%, transparent), 0 10px 24px rgba(0,0,0,.4); }
+  .fx-good .fx-text { animation: fxPop 1.7s ease forwards; }
+  .fx-bad .fx-text { animation: fxDrop 1.8s ease forwards; }
+  .fx-good::before { background: radial-gradient(circle, color-mix(in srgb, var(--fc) 80%, transparent), transparent 70%); }
+  .fx-bad::before { display: none; }
+  .fx-ic {
+    display: inline-grid; place-items: center; width: 1.35em; height: 1.35em; border-radius: 50%; margin-right: .3em; vertical-align: -.15em;
+    background: rgba(255,255,255,.28); font-size: .85em; letter-spacing: -1px;
+  }
+  .fall { position: absolute; top: 8%; font-weight: 900; font-size: 26px; color: var(--fc); text-shadow: 0 2px 4px rgba(0,0,0,.5); opacity: 0;
+    animation: fall 1.4s ease-in forwards; animation-delay: var(--d); left: var(--x); }
+  @keyframes fall { 0% { transform: translateY(-20px) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(calc(var(--board) * .7)) rotate(var(--r)); opacity: 0; } }
+  @keyframes fxDrop {
+    0% { transform: translateY(-70%) rotate(-10deg) scale(.6); opacity: 0; } 14% { transform: translateY(0) rotate(5deg) scale(1.1); opacity: 1; }
+    22% { transform: rotate(-4deg) scale(1); } 30% { transform: rotate(2deg); } 36% { transform: rotate(0); } 82% { opacity: 1; transform: translateY(0); }
+    100% { transform: translateY(40%) scale(.85); opacity: 0; }
+  }
+  #boardWrap.shake { animation: shake .55s ease; }
+  @keyframes shake { 15%, 55% { transform: translateX(-7px) rotate(-1deg); } 35%, 75% { transform: translateX(7px) rotate(1deg); } 90% { transform: translateX(-2px); } }
 
   /* ---- game-over stats ---- */
   .stats { display: flex; flex-direction: column; gap: 8px; width: min(340px, 100%); margin-top: 8px; }
@@ -570,6 +606,13 @@
   <div class="sheet" id="userBody"></div>
 </div>
 
+<div class="overlay hidden chat" id="chatOv">
+  <div class="chat-head"><button class="pill" data-act="chatBack" aria-label="Back">←</button><div id="chatWho" class="chat-who"></div></div>
+  <div class="chat-list" id="chatList"></div>
+  <p class="netnote" id="chatNote" style="display:none">You can't message this user right now.</p>
+  <div class="chat-bar" id="chatBar"><input class="sinput" id="chatInput" maxlength="200" placeholder="Write a message…" autocomplete="off"><button class="btn" data-dact="sendMsg" aria-label="Send">Send</button></div>
+</div>
+
 <div class="overlay hidden" id="pauseOv">
   <h2>Menu</h2>
   <div class="menu">
@@ -591,6 +634,8 @@
     <button class="opt" data-pref="coords"><i class="sic" style="--ic:#b8a4ff">a1</i><span>Coordinates</span><b></b></button>
     <button class="opt" data-pref="animate"><i class="sic" style="--ic:#ff9ecf">➜</i><span>Piece animation</span><b></b></button>
     <button class="opt" data-pref="ratings"><i class="sic" style="--ic:#2fd6b5">!!</i><span>Move ratings</span><b></b></button>
+    <button class="opt" data-pref="rateFx"><i class="sic" style="--ic:#7fba3c">★</i><span>Rating animations</span><b></b></button>
+    <button class="opt" data-pref="msgPolicy"><i class="sic" style="--ic:#9ad0ff">✉</i><span>Who can message me</span><b></b></button>
     <button class="opt" data-pref="evalbar"><i class="sic" style="--ic:#ffb057">±</i><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><i class="sic" style="--ic:#ffe36e">♛</i><span>Always promote to queen</span><b></b></button>
     <button class="opt" data-pref="autoFlip"><i class="sic" style="--ic:#9fd0ff">⇅</i><span>2 players: flip each turn</span><b></b></button>
@@ -954,7 +999,7 @@ function engineFactory() {
   };
   const PREFS = {
     sound: [true, false], theme: ["wood", "green", "blue", "purple"], legal: [true, false], coords: [true, false],
-    animate: [true, false], ratings: [true, false], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
+    animate: [true, false], ratings: [true, false], rateFx: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
   };
   const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), store.get("chess-prefs", {}));
   // ---- Bots: name, Elo, bio, and how hard the engine tries ----
@@ -1155,7 +1200,7 @@ function engineFactory() {
     color: v => ({ w: "⚪ White", b: "⚫ Black", random: "🎲 Random" })[v],
     time: v => (TIMES[v] ? `⏱ ${TIMES[v][0]} min${TIMES[v][1] ? " + " + TIMES[v][1] + "s" : ""}` : "None"),
   };
-  const prefText = { theme: v => v[0].toUpperCase() + v.slice(1) };
+  const prefText = { theme: v => v[0].toUpperCase() + v.slice(1), msgPolicy: v => ({ friends: "Friends", everyone: "Everyone", nobody: "Nobody" })[v] };
   function applyPrefs() {
     document.documentElement.dataset.theme = prefs.theme;
     document.documentElement.classList.toggle("nocoords", !prefs.coords);
@@ -1518,7 +1563,7 @@ function engineFactory() {
       if (showCursor && sq === cursor && !ov && mode) cls.push("cur");
       if (drag && drag.moved && sq === drag.sq) cls.push("ghosted");
       if (drag && drag.moved && sq === drag.over && sq !== drag.sq) cls.push("hover");
-      if (rated && rated.cls === "brilliant" && sq === rated.move.to) cls.push("brill");
+      if (rated && sq === rated.move.to) { cls.push("rt"); if (popEntry === rated) cls.push("popsq"); el.style.setProperty("--rc", CLS[rated.cls].color); }
       el.className = cls.join(" ");
       const p = s.b[sq];
       let html = p ? `<span class="pc ${isW(p) ? "w" : "b"}">${glyph(p)}</span>` : "";
@@ -1717,6 +1762,8 @@ function engineFactory() {
         [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(t + i * 0.07, f, 0.35, 0.1));
         [2093, 2637, 3136].forEach((f, i) => tone(t + 0.45 + i * 0.05, f, 0.25, 0.05));
       }
+      else if (kind === "good") { tone(t, 784, 0.18, 0.08); tone(t + 0.09, 1175, 0.25, 0.08); }
+      else if (kind === "bad") { const o = actx.createOscillator(), g = actx.createGain(); o.type = "sawtooth"; o.frequency.setValueAtTime(220, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.45); g.gain.setValueAtTime(0.07, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.5); o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + 0.5); }
       else if (kind === "coins") { for (let i = 0; i < 6; i++) tone(t + 0.35 + i * 0.09, 1568 + (i % 2) * 523, 0.12, 0.06); }
       else if (kind === "end") { tone(t, 523, 0.3); tone(t + 0.12, 659, 0.3); tone(t + 0.24, 784, 0.45); }
     } catch (e) {}
@@ -1831,8 +1878,35 @@ function engineFactory() {
     if (showing === i + 1) popEntry = h;
     refresh();
     popEntry = null;
-    if (h.cls === "brilliant" && mine && showing === i + 1) celebrate();
+    // Animate the rating of your own recent moves (Brilliant gets the big celebration).
+    if (mine && viewIdx === null && i >= history.length - 2 && prefs.rateFx) { if (h.cls === "brilliant") celebrate(); else rateFx(h.cls); }
     if (!$("overOv").classList.contains("hidden")) paintStats();
+  }
+  function rateFx(cls) {
+    const k = CLS[cls]; if (!k) return;
+    const good = ["great", "best", "excellent", "good", "book"].includes(cls);
+    const wrap = $("boardWrap");
+    wrap.querySelectorAll(".fx").forEach(x => x.remove());
+    const fx = document.createElement("div");
+    fx.className = "fx " + (good ? "fx-good" : "fx-bad");
+    fx.style.setProperty("--fc", k.color);
+    let html = `<div class="fx-text"><span class="fx-ic">${k.sym}</span>${k.label.replace(/[!]+$/, "")}${cls === "great" ? "!" : ""}</div>`;
+    if (good) {
+      const n = cls === "great" ? 30 : cls === "book" ? 10 : 18;
+      for (let j = 0; j < n; j++) {
+        const a = Math.random() * Math.PI * 2, d = 0.25 + Math.random() * 0.35;
+        const star = j % 3 === 0;
+        html += `<span class="spark${star ? " star" : ""}" style="--dx:${(Math.cos(a) * d * wrap.clientWidth).toFixed(0)}px;--dy:${(Math.sin(a) * d * wrap.clientHeight).toFixed(0)}px;--r:${(Math.random() * 540 - 270).toFixed(0)}deg;--c:${j % 2 ? k.color : "#ffffff"};--d:${(Math.random() * 0.2).toFixed(2)}s">${star ? k.sym : ""}</span>`;
+      }
+    } else {
+      const n = cls === "blunder" ? 10 : cls === "inaccuracy" ? 4 : 7;
+      for (let j = 0; j < n; j++) html += `<span class="fall" style="--x:${(5 + Math.random() * 85).toFixed(0)}%;--d:${(Math.random() * 0.5).toFixed(2)}s;--r:${(Math.random() * 120 - 60).toFixed(0)}deg">${k.sym}</span>`;
+      if (cls === "blunder" || cls === "miss") { wrap.classList.remove("shake"); void wrap.offsetWidth; wrap.classList.add("shake"); setTimeout(() => wrap.classList.remove("shake"), 600); }
+    }
+    fx.innerHTML = html;
+    wrap.appendChild(fx);
+    setTimeout(() => fx.remove(), 2000);
+    sound(good ? "good" : "bad");
   }
   function celebrate() {
     const wrap = $("boardWrap");
@@ -1950,7 +2024,7 @@ function engineFactory() {
   async function openSocial() {
     show("socialOv");
     $("socialBody").innerHTML = `<div class="empty">Loading…</div>`;
-    try { const j = await api("me"); setMe(j.me); soc.rank = j.rank; renderSocialMain(); pollInbox(); }
+    try { const j = await api("me"); setMe(j.me); soc.rank = j.rank; if (j.me.msgPolicy && prefs.msgPolicy !== j.me.msgPolicy) { prefs.msgPolicy = j.me.msgPolicy; store.set("chess-prefs", prefs); } renderSocialMain(); pollInbox(); }
     catch (e) {
       if (e.code === "no_user") { setMe(null); renderSignup(); }
       else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p>${e.code === "not_configured" || e.code === "no_server" ? `<p class="netnote">The owner needs to connect the online database. Until then you can still play bots and friends on this device.</p>` : ""}<button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
@@ -1980,18 +2054,18 @@ function engineFactory() {
     if (!/^[A-Za-z0-9_]{3,16}$/.test(name)) { err.textContent = "Use 3–16 letters, numbers or _ (no spaces)."; return; }
     if (isBadName(name)) { err.textContent = "That name is censored. Try a friendly one!"; return; }
     err.textContent = "Creating…";
-    try { const j = await api("signup", { name }); setMe(j.me); toast(`Welcome, ${j.me.name}! 🎉`); openSocial(); }
+    try { const j = await api("signup", { name }); setMe(j.me); api("setPrefs", { msgPolicy: prefs.msgPolicy }).catch(() => {}); toast(`Welcome, ${j.me.name}! 🎉`); openSocial(); }
     catch (e) { err.textContent = e.msg; }
   }
   function renderSocialMain() {
     if (!net.me) return renderSignup();
-    const me = net.me, nreq = soc.inbox.friendRequests.length + soc.inbox.challenges.length;
+    const me = net.me, nreq = soc.inbox.friendRequests.length + soc.inbox.challenges.length, nmsg = soc.inbox.unreadMsgs || 0;
     $("socialBody").innerHTML = `
       <button class="soc-card" data-user="${esc(me.key || me.name)}" style="border:3px solid rgba(190,160,255,.75);font:inherit;color:#fff;cursor:pointer;width:100%">${uav(me, "big")}
         <div><div class="soc-name">${esc(me.name)}</div>
         <div class="soc-sub"><span class="elo">${me.elo} Elo</span>${tierPill(me.elo)}</div>
         <div class="soc-sub">${me.w}W · ${me.l}L · ${me.d}D${soc.rank ? ` · Rank #${soc.rank}` : ""}</div></div></button>
-      <div class="chips">${[["friends", "Friends"], ["lb", "Leaderboard"], ["req", "Requests" + (nreq ? ` (${nreq})` : "")]].map(([k, l]) => chip("soc:" + k, l, soc.tab === k)).join("")}</div>
+      <div class="chips">${[["friends", "Friends"], ["lb", "Leaders"], ["msg", "Messages" + (nmsg ? ` (${nmsg})` : "")], ["req", "Requests" + (nreq ? ` (${nreq})` : "")]].map(([k, l]) => chip("soc:" + k, l, soc.tab === k)).join("")}</div>
       ${soc.tab === "lb" ? `<input class="sinput" id="lbSearch" placeholder="Search for a user…" value="${esc(soc.q)}" autocomplete="off" autocapitalize="off" spellcheck="false">` : ""}
       <div class="slist" id="socList"><div class="empty">Loading…</div></div>`;
     const sInp = $("lbSearch");
@@ -2007,17 +2081,40 @@ function engineFactory() {
         el.innerHTML = j.list.length ? j.list.map(u => userRow(u)).join("") : `<div class="empty">No friends yet. Find people on the Leaderboard and add them!</div>`;
       } else if (soc.tab === "lb") {
         const q = soc.q.trim();
-        const j = q ? await api("search", { q }) : await api("leaderboard");
-        if ($("socList") !== el) return;
-        el.innerHTML = j.list.length ? j.list.map((u, i) => userRow(u, "", q ? 0 : i + 1)).join("") : `<div class="empty">${q ? "No users found." : "Nobody here yet. Be the first!"}</div>`;
-      } else {
+        if (q) {
+          const j = await api("search", { q });
+          if ($("socList") !== el) return;
+          el.innerHTML = j.list.length ? j.list.map(u => userRow(u)).join("") : `<div class="empty">No users found.</div>`;
+        } else {
+          const j = await api("leaderboard", { offset: 0 });
+          if ($("socList") !== el) return;
+          soc.lb = { list: j.list, total: j.total };
+          paintLeaderboard();
+        }
+      } else if (soc.tab === "req") {
         const ib = soc.inbox;
         let h = "";
         for (const c of ib.challenges) h += `<div class="urow">${uav({ name: c.fromName, elo: c.fromElo }, "sm")}<span class="un">⚔️ ${esc(c.fromName)}<br><small style="opacity:.8">${ONLINE_TC[c.tc].label} ${ONLINE_TC[c.tc].sub}</small></span><button class="mini ok" data-dact="chAccept" data-arg="${esc(c.id)}">Play</button><button class="mini no" data-dact="chDecline" data-arg="${esc(c.id)}">✕</button></div>`;
         for (const u of ib.friendRequests) h += `<div class="urow">${uav(u, "sm")}<span class="un">${esc(u.name)}<br><small style="opacity:.8">wants to be friends</small></span><button class="mini ok" data-dact="frAccept" data-arg="${esc(u.key)}">✓</button><button class="mini no" data-dact="frDecline" data-arg="${esc(u.key)}">✕</button></div>`;
         el.innerHTML = h || `<div class="empty">No requests right now.</div>`;
+      } else if (soc.tab === "msg") {
+        const j = await api("convos");
+        el.innerHTML = j.list.length ? j.list.map(c => `<button class="urow" data-chat="${esc(c.key)}">${uav(c, "sm")}<span class="un">${esc(c.name)}<br><small style="opacity:.75;font-weight:600">${esc(c.text)}</small></span>${c.unread ? `<i class="nbadge" style="position:static;box-shadow:none">${c.unread}</i>` : ""}</button>`).join("")
+          : `<div class="empty">No messages yet. Open someone's profile and tap 💬 Message.</div>`;
       }
     } catch (e) { el.innerHTML = `<div class="empty">${esc(e.msg)}</div>`; }
+  }
+  // Everyone on the leaderboard, best (#1) to worst (last place).
+  function paintLeaderboard() {
+    const el = $("socList"), lb = soc.lb; if (!el || !lb) return;
+    if (!lb.list.length) { el.innerHTML = `<div class="empty">Nobody here yet. Be the first!</div>`; return; }
+    let h = `<div class="lbhead">All ${lb.total} player${lb.total === 1 ? "" : "s"}, best to worst</div>`;
+    lb.list.forEach((u, i) => {
+      const rank = i + 1, tag = rank === 1 ? '<span class="lbtag best">Best</span>' : rank === lb.total && lb.total > 1 ? '<span class="lbtag worst">Lowest</span>' : "";
+      h += userRow(u, tag, rank);
+    });
+    if (lb.list.length < lb.total) h += `<button class="btn alt" data-dact="lbMore" style="min-height:46px">Show more (${lb.total - lb.list.length} left)</button>`;
+    el.innerHTML = h;
   }
   async function openUser(key) {
     soc.user = { key, loading: true };
@@ -2033,13 +2130,21 @@ function engineFactory() {
     const u = su.user;
     let actions = "";
     if (su.rel === "self") actions = `<p class="netnote">This is you! Win online games to climb the leaderboard.</p>`;
-    else if (su.rel === "none") actions = `<button class="btn play" data-dact="addFriend" data-arg="${esc(u.key)}">➕ Add friend</button>`;
-    else if (su.rel === "sent") actions = `<button class="btn alt" disabled style="opacity:.7">✓ Friend request sent</button>`;
-    else if (su.rel === "received") actions = `<button class="btn play" data-dact="frAccept" data-arg="${esc(u.key)}">✓ Accept friend request</button>`;
-    else if (su.rel === "friends") actions = `<div class="sect" style="width:100%"><div class="lbl">Challenge ${esc(u.name)} to a 1v1</div>
+    if (su.rel !== "self") {
+      const extra = su.blocked ? `<button class="btn alt" data-dact="unblock" data-arg="${esc(u.key)}" style="min-height:44px;font-size:.95rem">Unblock</button>`
+        : `${su.canMsg ? `<button class="btn alt" data-chat="${esc(u.key)}">💬 Message</button>` : `<p class="netnote">💬 ${esc(u.name)} only takes messages from ${su.msgPolicy === "nobody" ? "nobody right now" : su.msgPolicy === "friends" ? "friends" : "some people"}.</p>`}`;
+      actions = (su.blocked ? `<p class="netnote">You blocked this user.</p>` : "") + "%ACTIONS%" + extra + (su.blocked ? "" : `<button class="mini no" data-dact="block" data-arg="${esc(u.key)}" style="padding:0 14px;opacity:.85">🚫 Block</button>`);
+    }
+    let main = "";
+    if (su.blocked) main = "";
+    else if (su.rel === "none") main = `<button class="btn play" data-dact="addFriend" data-arg="${esc(u.key)}">➕ Add friend</button>`;
+    else if (su.rel === "sent") main = `<button class="btn alt" disabled style="opacity:.7">✓ Friend request sent</button>`;
+    else if (su.rel === "received") main = `<button class="btn play" data-dact="frAccept" data-arg="${esc(u.key)}">✓ Accept friend request</button>`;
+    else if (su.rel === "friends") main = `<div class="sect" style="width:100%"><div class="lbl">Challenge ${esc(u.name)} to a 1v1</div>
         <div class="chips">${Object.entries(ONLINE_TC).map(([k, t]) => chip("ctc:" + k, `${t.label}<small>${t.sub}</small>`, soc.ctc === k)).join("")}</div></div>
       <button class="btn play" data-dact="challenge" data-arg="${esc(u.key)}">⚔️ Send challenge</button>
       <button class="btn alt" data-dact="unfriend" data-arg="${esc(u.key)}" style="min-height:44px;font-size:.95rem">Remove friend</button>`;
+    actions = actions.replace("%ACTIONS%", main);
     el.innerHTML = `<div class="uprof">${uav(u, "big")}
       <div class="soc-name">${esc(u.name)}</div>
       <div class="soc-sub" style="justify-content:center"><span class="elo">${u.elo} Elo</span>${tierPill(u.elo)}${u.online ? '<span>🟢 Online</span>' : '<span style="opacity:.7">Offline</span>'}</div>
@@ -2052,6 +2157,10 @@ function engineFactory() {
     try {
       if (a === "signup") return doSignup();
       if (a === "socialRetry") return openSocial();
+      if (a === "lbMore") { const j = await api("leaderboard", { offset: soc.lb.list.length }); soc.lb.list.push(...j.list); soc.lb.total = j.total; paintLeaderboard(); return; }
+      if (a === "block") { if (!confirm("Block this user? They won't be able to message, friend or challenge you.")) return; await api("block", { name: arg }); toast("User blocked."); return openUser(arg); }
+      if (a === "unblock") { await api("unblock", { name: arg }); toast("User unblocked."); return openUser(arg); }
+      if (a === "sendMsg") return sendChat();
       if (a === "addFriend") { const j = await api("friendReq", { to: arg }); toast(j.rel === "friends" ? "You're now friends! 🤝" : "Friend request sent!"); soc.user.rel = j.rel; renderUser(); }
       else if (a === "frAccept") { await api("friendAccept", { from: arg }); toast("You're now friends! 🤝"); await pollInbox(); if (openOverlay() === "userOv") openUser(arg); else loadTab(); }
       else if (a === "frDecline") { await api("friendDecline", { from: arg }); await pollInbox(); loadTab(); }
@@ -2063,6 +2172,7 @@ function engineFactory() {
   }
   document.addEventListener("click", e => {
     const d = e.target.closest("[data-dact]"); if (d) { audioUnlock(); dact(d.dataset.dact, d.dataset.arg); return; }
+    const ch = e.target.closest("[data-chat]"); if (ch) { audioUnlock(); openChat(ch.dataset.chat); return; }
     const u = e.target.closest("[data-user]"); if (u) { audioUnlock(); openUser(u.dataset.user); }
   });
 
@@ -2073,8 +2183,8 @@ function engineFactory() {
     if (!net.me) return;
     let j; try { j = await api("inbox"); } catch (e) { if (e.code === "no_user") setMe(null); return; }
     setMe(j.me);
-    soc.inbox = { friendRequests: j.friendRequests, challenges: j.challenges };
-    const n = j.friendRequests.length + j.challenges.length, badge = $("reqBadge");
+    soc.inbox = { friendRequests: j.friendRequests, challenges: j.challenges, unreadMsgs: j.unreadMsgs || 0 };
+    const n = j.friendRequests.length + j.challenges.length + (j.unreadMsgs || 0), badge = $("reqBadge");
     badge.hidden = !n; badge.textContent = n;
     for (const c of j.challenges) if (!seenCh.has(c.id)) { seenCh.add(c.id); showBanner(c); }
     if (j.started && j.started.length && !(mode === "online" && online && !online.ended)) {
@@ -2086,6 +2196,44 @@ function engineFactory() {
     if (openOverlay() === "socialOv" && soc.tab === "req") loadTab();
   }
   const resumeOffered = new Set();
+
+  // ---------- Chat ----------
+  const chat = { with: null, list: [], other: null, canMsg: false, back: "socialOv", t: 0 };
+  async function openChat(key) {
+    chat.back = openOverlay() || "socialOv";
+    chat.with = key; chat.list = []; chat.other = null;
+    show("chatOv");
+    $("chatWho").innerHTML = esc(key);
+    $("chatList").innerHTML = `<div class="empty">Loading…</div>`;
+    await loadChat(true);
+  }
+  async function loadChat(scroll) {
+    if (!chat.with) return;
+    try {
+      const j = await api("messages", { with: chat.with });
+      if (openOverlay() !== "chatOv") return;
+      const changed = j.list.length !== chat.list.length || (j.list.length && j.list[j.list.length - 1].at !== chat.list[chat.list.length - 1].at);
+      chat.list = j.list; chat.other = j.other; chat.canMsg = j.canMsg;
+      $("chatWho").innerHTML = `${uav(j.other, "sm")}<span><b>${esc(j.other.name)}</b><br><small style="opacity:.8">${j.other.elo} Elo ${j.other.online ? "· 🟢 Online" : ""}</small></span>`;
+      $("chatBar").style.display = j.canMsg ? "" : "none";
+      $("chatNote").style.display = j.canMsg ? "none" : "";
+      if (changed || scroll) paintChat();
+    } catch (e) { $("chatList").innerHTML = `<div class="empty">${esc(e.msg)}</div>`; }
+  }
+  function paintChat() {
+    const el = $("chatList");
+    const t = at => new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    el.innerHTML = chat.list.length ? chat.list.map(m => `<div class="bub ${net.me && m.f === net.me.key ? "mine" : ""}">${esc(m.t)}<small>${t(m.at)}</small></div>`).join("")
+      : `<div class="empty">Say hi! Be kind: bad words get blocked.</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+  async function sendChat() {
+    const inp = $("chatInput"), text = inp.value.trim();
+    if (!text || !chat.with) return;
+    try { const j = await api("sendMsg", { to: chat.with, text }); inp.value = ""; chat.list.push(j.msg); paintChat(); }
+    catch (e) { toast(e.msg); }
+  }
+  setInterval(() => { if (openOverlay() === "chatOv" && !document.hidden) loadChat(false); }, 2500);
   function showBanner(c) {
     bannerCh = c;
     $("bannerText").innerHTML = c.resume ? `♟️ You have an online game going against <b>${esc(c.resume.white === net.me.key ? c.resume.blackName : c.resume.whiteName)}</b>.` : `⚔️ <b>${esc(c.fromName)}</b> (${c.fromElo}) challenges you to <b>${ONLINE_TC[c.tc].label} ${ONLINE_TC[c.tc].sub}</b>!`;
@@ -2179,7 +2327,7 @@ function engineFactory() {
   }, 1000);
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -2206,7 +2354,8 @@ function engineFactory() {
       if (k === "theme") {
         el.className = "swatches";
         el.innerHTML = PREFS.theme.map(t => `<span class="swt${t === v ? " sel" : ""}" title="${prefText.theme(t)}" style="background:linear-gradient(135deg, ${SW[t][0]} 50%, ${SW[t][1]} 50%)"></span>`).join("");
-      } else { el.className = "sw" + (v ? " on" : ""); el.textContent = ""; }
+      } else if (prefText[k]) { el.className = ""; el.textContent = prefText[k](v); }
+      else { el.className = "sw" + (v ? " on" : ""); el.textContent = ""; }
       b.setAttribute("aria-pressed", k === "theme" ? "" : String(!!v));
     }
     $("contBtn").style.display = loadSave() ? "" : "none";
@@ -2223,6 +2372,10 @@ function engineFactory() {
       applyPrefs(); layout();
       if (k === "evalbar") requestEval();
       if (k === "ratings") judgeLoop();
+      if (k === "msgPolicy") {
+        if (!net.me) toast("Make a user (Friends button) to use messages.");
+        else api("setPrefs", { msgPolicy: prefs.msgPolicy }).then(j => { setMe({ ...net.me, ...j.me }); toast(`Messages: ${prefText.msgPolicy(prefs.msgPolicy)}`); }).catch(e => toast(e.msg));
+      }
       if (k === "sound" && prefs.sound) { audioUnlock(); sound("move"); }
       refresh();
     }
@@ -2317,6 +2470,7 @@ function engineFactory() {
       case "pgn": copyPGN(); break;
       case "resign": hideAll(); if (mode === "online") onlineResign(); else resign(); break;
       case "social": openSocial(); break;
+      case "chatBack": chat.with = null; if (chat.back === "userOv" && soc.user) openUser(soc.user.key); else { soc.tab = "msg"; openSocial(); } break;
       case "draw": offerDraw(); break;
     }
   }
@@ -2384,6 +2538,7 @@ function engineFactory() {
         else if (ov === "setupOv" && btn === "START") $("startBtn").click();
         else if (ov === "socialOv" && btn === "B") act("toStart");
         else if (ov === "userOv" && btn === "B") act("social");
+        else if (ov === "chatOv" && btn === "B") act("chatBack");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
@@ -2409,7 +2564,7 @@ function engineFactory() {
   window.addEventListener("keydown", e => {
     const k = e.key;
     if (e.target && e.target.matches && e.target.matches("input, textarea")) {
-      if (k === "Enter") { e.preventDefault(); if (e.target.id === "suName") dact("signup"); else e.target.blur(); }
+      if (k === "Enter") { e.preventDefault(); if (e.target.id === "suName") dact("signup"); else if (e.target.id === "chatInput") sendChat(); else e.target.blur(); }
       return;
     }
     const dirs = { ArrowUp: [0,-1], ArrowDown: [0,1], ArrowLeft: [-1,0], ArrowRight: [1,0] };

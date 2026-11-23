@@ -321,6 +321,27 @@ function isBadName(name) {
   return toks.some(t => BAD.tok.includes(t) || BAD.tok.includes(squash(t)));
 }
 
+// Replace bad words in a chat message with stars.
+function censorText(t) {
+  return t.split(/(\s+)/).map(w => (/^\s*$/.test(w) || !isBadName(w.replace(/[^A-Za-z0-9_@$!|]/g, "")) ? w : "*".repeat(Math.min(Math.max(w.length, 3), 8)))).join("");
+}
+const POLICIES = ["friends", "everyone", "nobody"];
+async function blockedEither(a, b) { return (await r("SISMEMBER", "blk:" + a, b)) || (await r("SISMEMBER", "blk:" + b, a)); }
+async function canMessage(me, other) {
+  if (me.key === other.key) return false;
+  if (await blockedEither(me.key, other.key)) return false;
+  const pol = other.msgPolicy || "friends";
+  if (pol === "nobody") return false;
+  if (pol === "friends") {
+    if (await r("SISMEMBER", "fr:" + other.key, me.key)) return true;
+    // you can always reply in a conversation the other person started
+    const om = (await getJ("dmmeta:" + other.key)) || {};
+    return !!(om[me.key] && om[me.key].by === other.key);
+  }
+  return true;
+}
+const convoKey = (a, b) => "dm:" + [a, b].sort().join("|");
+
 async function auth(b) {
   if (!b.token || String(b.token).length < 16) fail("no_user", "Please make a user first.");
   const key = await r("GET", "dev:" + hash(b.token));
@@ -382,11 +403,19 @@ const A = {
     await r("ZADD", "lb", START_ELO, key);
     return { me: pub(u) };
   },
-  async me(b) { const u = await auth(b); await touch(u); return { me: pub(u), rank: (await r("ZREVRANK", "lb", u.key)) + 1 }; },
+  async me(b) { const u = await auth(b); await touch(u); return { me: { ...pub(u), msgPolicy: u.msgPolicy || "friends" }, rank: (await r("ZREVRANK", "lb", u.key)) + 1 }; },
+  async setPrefs(b) {
+    const u = await auth(b);
+    if (POLICIES.includes(b.msgPolicy)) u.msgPolicy = b.msgPolicy;
+    await setJ("u:" + u.key, u);
+    return { me: { ...pub(u), msgPolicy: u.msgPolicy || "friends" } };
+  },
+  // Everyone, best to worst, 50 at a time.
   async leaderboard(b) {
-    const keys = await r("ZREVRANGE", "lb", 0, 49);
+    const off = Math.max(0, Math.floor(+b.offset || 0));
+    const keys = await r("ZREVRANGE", "lb", off, off + 49);
     const users = (await mgetJ(keys.map(k => "u:" + k))).filter(Boolean).map(pub);
-    return { list: users, total: await r("ZCARD", "lb") };
+    return { list: users, offset: off, total: await r("ZCARD", "lb") };
   },
   async search(b) {
     const q = keyOf(b.q); if (!q) return { list: [] };
@@ -403,20 +432,23 @@ const A = {
   async profile(b) {
     const key = keyOf(b.name), u = await getJ("u:" + key);
     if (!u) fail("not_found", "That user doesn't exist.");
-    let rel = "none";
+    let rel = "none", canMsg = false, blocked = false;
     try {
       const me = await auth(b);
+      canMsg = await canMessage(me, u);
+      blocked = !!(await r("SISMEMBER", "blk:" + me.key, key));
       if (me.key === key) rel = "self";
       else if (await r("SISMEMBER", "fr:" + me.key, key)) rel = "friends";
       else if (await r("SISMEMBER", "freq:" + key, me.key)) rel = "sent";
       else if (await r("SISMEMBER", "freq:" + me.key, key)) rel = "received";
     } catch (e) {}
-    return { user: pub(u), rel, rank: (await r("ZREVRANK", "lb", key)) + 1 };
+    return { user: pub(u), rel, canMsg, blocked, msgPolicy: u.msgPolicy || "friends", rank: (await r("ZREVRANK", "lb", key)) + 1 };
   },
   async friendReq(b) {
     const me = await auth(b), to = keyOf(b.to);
     if (to === me.key) fail("self", "That's you!");
     if (!(await r("EXISTS", "u:" + to))) fail("not_found", "That user doesn't exist.");
+    if (await blockedEither(me.key, to)) fail("blocked", "You can't send a request to this user.");
     if (await r("SISMEMBER", "fr:" + me.key, to)) return { rel: "friends" };
     if (await r("SISMEMBER", "freq:" + me.key, to)) { await A.friendAccept({ ...b, from: to }); return { rel: "friends" }; }
     if ((await r("SCARD", "freq:" + to)) >= 100) fail("full", "They have too many friend requests right now.");
@@ -441,6 +473,7 @@ const A = {
     const me = await auth(b), to = keyOf(b.to), tc = TC[b.tc];
     if (!tc) fail("bad_tc", "Pick Bullet, Blitz or Rapid.");
     if (!(await r("SISMEMBER", "fr:" + me.key, to))) fail("not_friends", "You can only challenge your friends.");
+    if (await blockedEither(me.key, to)) fail("blocked", "You can't challenge this user.");
     if ((await r("SCARD", "chin:" + to)) >= 20) fail("full", "They have too many challenges right now.");
     const id = crypto.randomBytes(8).toString("hex");
     await setJ("ch:" + id, { id, from: me.key, fromName: me.name, fromElo: me.elo, to, tc: tc.name, created: Date.now() }, "EX", 600);
@@ -458,7 +491,53 @@ const A = {
     const started = await r("SMEMBERS", "started:" + me.key);
     if (started.length) await r("DEL", "started:" + me.key);
     const active = await r("GET", "active:" + me.key);
-    return { me: pub(me), friendRequests: reqUsers, challenges, started, active };
+    const meta = (await getJ("dmmeta:" + me.key)) || {};
+    const unreadMsgs = Object.values(meta).reduce((n, c) => n + (c.unread || 0), 0);
+    return { me: { ...pub(me), msgPolicy: me.msgPolicy || "friends" }, friendRequests: reqUsers, challenges, started, active, unreadMsgs };
+  },
+  // ---- messages ----
+  async sendMsg(b) {
+    const me = await auth(b), to = keyOf(b.to), other = await getJ("u:" + to);
+    if (!other) fail("not_found", "That user doesn't exist.");
+    if (!(await canMessage(me, other))) fail("no_msgs", `${other.name} isn't taking messages from you.`);
+    let text = String(b.text || "").replace(/\s+/g, " ").trim().slice(0, 200);
+    if (!text) fail("empty", "Write something first.");
+    if (!(await r("SET", "rl:" + me.key, "1", "NX", "EX", 2))) fail("slow", "Slow down a little!");
+    text = censorText(text);
+    const now = Date.now(), msg = { f: me.key, t: text, at: now };
+    const ck = convoKey(me.key, to), list = (await getJ(ck)) || [];
+    list.push(msg); if (list.length > 100) list.splice(0, list.length - 100);
+    await setJ(ck, list, "EX", 2592000);
+    const mt = (await getJ("dmmeta:" + to)) || {}, mm = (await getJ("dmmeta:" + me.key)) || {};
+    const by = (mm[to] && mm[to].by) || (mt[me.key] && mt[me.key].by) || me.key;   // who started the conversation
+    mt[me.key] = { name: me.name, last: now, text, by, unread: ((mt[me.key] && mt[me.key].unread) || 0) + 1 };
+    mm[to] = { name: other.name, last: now, text, by, unread: (mm[to] && mm[to].unread) || 0 };
+    await setJ("dmmeta:" + to, mt); await setJ("dmmeta:" + me.key, mm);
+    return { msg };
+  },
+  async messages(b) {
+    const me = await auth(b), other = keyOf(b.with), u = await getJ("u:" + other);
+    if (!u) fail("not_found", "That user doesn't exist.");
+    const list = ((await getJ(convoKey(me.key, other))) || []).slice(-60);
+    const mm = (await getJ("dmmeta:" + me.key)) || {};
+    if (mm[other] && mm[other].unread) { mm[other].unread = 0; await setJ("dmmeta:" + me.key, mm); }
+    return { list, other: pub(u), canMsg: await canMessage(me, u) };
+  },
+  async convos(b) {
+    const me = await auth(b), mm = (await getJ("dmmeta:" + me.key)) || {};
+    const keys = Object.keys(mm).sort((a, c) => mm[c].last - mm[a].last).slice(0, 50);
+    const users = await mgetJ(keys.map(k => "u:" + k));
+    return { list: keys.map((k, i) => users[i] && { ...pub(users[i]), last: mm[k].last, text: mm[k].text, unread: mm[k].unread || 0 }).filter(Boolean) };
+  },
+  async block(b) {
+    const me = await auth(b), k = keyOf(b.name);
+    if (k === me.key) fail("self", "That's you!");
+    await r("SADD", "blk:" + me.key, k);
+    await r("SREM", "fr:" + me.key, k); await r("SREM", "fr:" + k, me.key);
+    await r("SREM", "freq:" + me.key, k); await r("SREM", "freq:" + k, me.key);
+    return { blocked: true };
+  },
+  async unblock(b) { const me = await auth(b); await r("SREM", "blk:" + me.key, keyOf(b.name)); return { blocked: false };
   },
   async accept(b) {
     const me = await auth(b), ch = await getJ("ch:" + String(b.id));
