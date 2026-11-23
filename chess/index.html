@@ -84,18 +84,23 @@
     background: var(--av); color: #fff; font-weight: 900; font-size: 1.25rem; text-shadow: 0 2px 0 rgba(0,0,0,.25);
     box-shadow: 0 0 0 3px var(--ring), 0 3px 6px rgba(0,0,0,.3);
   }
+  .av svg { width: 100%; height: 100%; border-radius: 50%; display: block; }
   .av.big { width: 68px; height: 68px; font-size: 2rem; box-shadow: 0 0 0 4px var(--ring), 0 6px 12px rgba(0,0,0,.35); }
   .av.mini { width: 24px; height: 24px; font-size: .8rem; margin-right: 6px; vertical-align: middle; box-shadow: 0 0 0 2px var(--ring); }
   .av .crown { position: absolute; top: -12px; right: -6px; font-style: normal; font-size: 18px; color: #ffd84a; text-shadow: 0 1px 2px rgba(0,0,0,.5); transform: rotate(18deg); }
   .av.big .crown { font-size: 26px; top: -16px; }
   .av.mini .crown { display: none; }
-  .pelo { opacity: .7; font-weight: 700; }
+  .pelo { opacity: .7; font-weight: 700; margin-left: 5px; }
   .player .name { display: inline-flex; align-items: center; }
   .sect.strip { padding: 10px 6px; }
   .botstrip { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; padding: 6px 4px 4px; touch-action: pan-x; scroll-behavior: smooth; }
   .botstrip::-webkit-scrollbar { display: none; }
-  .botstrip .chip { flex: none; width: 74px; min-height: 96px; gap: 4px; padding-top: 8px; }
-  .botstrip .chip .bn { font-size: .78rem; opacity: 1; }
+  .botstrip .chip { flex: none; width: 86px; min-height: 96px; gap: 4px; padding-top: 8px; }
+  .botstrip .chip .bn { font-size: .74rem; opacity: 1; white-space: normal; line-height: 1.05; text-align: center; max-width: 100%; overflow-wrap: normal; hyphens: auto; }
+  .botcats { margin-bottom: 6px; }
+  .botcats .chip { min-height: 40px; font-size: .85rem; }
+  .bc-name { line-height: 1.1; }
+  .catpill { background: rgba(255,255,255,.2); border-radius: 999px; padding: 2px 9px; font-size: .74rem; font-weight: 900; }
   .botstrip .chip .be { font-size: .74rem; font-weight: 900; opacity: 1; }
   .botstrip .chip.sel .be { color: #0b1d4d !important; }
   .botcard {
@@ -106,7 +111,8 @@
   .bc-name { font-size: 1.5rem; font-weight: 900; }
   .bc-line { display: flex; align-items: center; gap: 8px; margin-top: 3px; font-weight: 800; }
   .bc-line.small { font-size: .88rem; font-weight: 700; opacity: .9; }
-  .elo { font-variant-numeric: tabular-nums; }
+  .elo { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bc-line { flex-wrap: wrap; row-gap: 4px; }
   .tier { background: var(--t); color: #0b1d4d; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 900; }
   .bio {
     margin-top: 12px; padding: 10px 12px; border-radius: 14px; background: rgba(0,0,0,.22);
@@ -441,7 +447,7 @@
   <div class="sheet">
     <h2 class="ttl"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</h2>
     <div class="botcard" id="botCard"></div>
-    <div class="sect strip"><div class="lbl">Choose a bot</div><div class="chips botstrip" id="levelChips"></div></div>
+    <div class="sect strip"><div class="lbl">Choose a bot</div><div class="chips botcats" id="botCats"></div><div class="chips botstrip" id="levelChips"></div></div>
     <div class="sect"><div class="lbl">Play as</div><div class="chips" id="colorChips"></div></div>
     <div class="sect"><div class="lbl">Time</div><div class="chips" id="botCat"></div><div class="chips sub" id="botTimes"></div></div>
     <button class="btn play" data-act="startBots">Start game</button>
@@ -842,30 +848,113 @@ function engineFactory() {
     { name: "Grandmaster",  min: 2800, color: "#ff5d73" },
   ];
   const tierOf = elo => { elo = Math.min(MAX_ELO, elo); let t = TIERS[0]; for (const x of TIERS) if (elo >= x.min) t = x; return t; };
-  const BOT = (name, elo, bio, maxDepth, qd, noise, blunder, time) => ({ name, elo: Math.min(MAX_ELO, elo), bio, maxDepth, qd, noise, blunder, time });
-  const LEVELS = [
-    BOT("Jayden", 100, "Just learned how the horsey moves. Thinks castling means building a sandcastle.", 1, 0, 300, 0.5, 300),
-    BOT("Mia", 200, "Brings her queen out on move one. Every. Single. Game.", 1, 0, 220, 0.38, 300),
-    BOT("Leo", 300, "Plays super fast and talks even faster. Will trade anything that looks shiny.", 1, 1, 160, 0.28, 300),
-    BOT("Priya", 400, "Knows a few openings, sort of. Watch out for her sneaky knight forks.", 1, 2, 120, 0.2, 400),
-    BOT("Marcus", 500, "Football player by day, chess player by night. Attacks like he's going for a touchdown.", 1, 2, 90, 0.14, 400),
-    BOT("Sofia", 600, "Patient and tidy. Never leaves a piece hanging... on purpose.", 2, 2, 70, 0.1, 600),
-    BOT("Kenji", 700, "Solves ten puzzles before breakfast and loves a good pin.", 2, 3, 50, 0.07, 700),
-    BOT("Rosa", 750, "Plays at the park chess tables every weekend. Still mad she lost to her little brother.", 2, 3, 42, 0.06, 700),
-    BOT("Amara", 800, "School chess champion three years running. Calm, quick and hard to trick.", 2, 3, 35, 0.05, 800),
-    BOT("Diego", 1000, "Plays the Italian Game while eating Italian food. Very strong in the endgame.", 2, 3, 25, 0.03, 900),
-    BOT("Hannah", 1500, "Runs the chess club and spots every blunder. Takes no prisoners.", 3, 4, 15, 0.01, 1300),
-    BOT("Viktor", 2000, "Old-school tactician with a notebook full of tricks. Loves a wild sacrifice.", 3, 4, 8, 0, 1600),
-    BOT("Zara", 2500, "Thinks five moves ahead and never smiles until it's checkmate.", 4, 5, 4, 0, 2000),
-    BOT("Orion", 2800, "Named after the stars and plays like it. Welcome to the Grandmaster club.", 4, 5, 0, 0, 2500),
-    BOT("Ingrid", 3200, "Ice-cold endgame machine from the far north. A draw feels like losing to her.", 5, 6, 0, 0, 3000),
-    BOT("Atlas", 3800, "Carries the whole board on his shoulders. Almost nobody has ever beaten him.", 6, 6, 0, 0, 3500),
-    BOT("Nova", 4500, "The highest-rated bot there is. Beat Nova and you're a legend.", 9, 6, 0, 0, 4500),
+  // How hard the engine tries, worked out from the bot's Elo.
+  const STRENGTH = [ // [elo, depth, quiescence, noise, blunder chance, think ms]
+    [100, 1, 0, 300, 0.5, 300], [300, 1, 1, 160, 0.28, 300], [500, 1, 2, 90, 0.14, 400], [700, 2, 3, 50, 0.07, 700],
+    [1000, 2, 3, 25, 0.03, 900], [1500, 3, 4, 15, 0.01, 1300], [2000, 3, 4, 8, 0, 1600], [2500, 4, 5, 4, 0, 2000],
+    [2800, 4, 5, 0, 0, 2500], [2999, 5, 6, 0, 0, 3000], [3999, 6, 6, 0, 0, 3500], [4500, 9, 6, 0, 0, 5000],
   ];
+  function strengthFor(elo) {
+    let i = 0; while (i < STRENGTH.length - 1 && STRENGTH[i + 1][0] <= elo) i++;
+    const a = STRENGTH[i], b = STRENGTH[Math.min(i + 1, STRENGTH.length - 1)];
+    const k = b[0] === a[0] ? 0 : (elo - a[0]) / (b[0] - a[0]), mix = j => a[j] + (b[j] - a[j]) * k;
+    return { maxDepth: a[1], qd: a[2], noise: Math.round(mix(3)), blunder: +mix(4).toFixed(3), time: Math.round(mix(5)) };
+  }
+  // Normal bots top out at 2999; only the engines go higher (up to MAX_ELO).
+  const BOT = (name, elo, cat, bio, face) => ({ name, elo: Math.min(cat === "engines" ? MAX_ELO : 2999, elo), cat, bio, face, ...strengthFor(elo) });
+  // face: [skin, hair colour, hair style, shirt, extras] — extras: g = glasses, b = beard
+  const SK = ["#f6d5bd", "#eab894", "#c98e62", "#a26a42", "#6e4529", "#f1cfa8"];
+  const BOT_CATS = [
+    { id: "bots", label: "Bots" }, { id: "youtubers", label: "YouTubers" }, { id: "legends", label: "Legends" }, { id: "engines", label: "Engines" },
+  ];
+  const LEVELS = [
+    // ---- fun bots ----
+    BOT("Jayden", 100, "bots", "Just learned how the horsey moves. Thinks castling means building a sandcastle.", [SK[2], "#2b1b10", "short", "#ff6b6b"]),
+    BOT("Mia", 200, "bots", "Brings her queen out on move one. Every. Single. Game.", [SK[0], "#e0a83a", "long", "#ff8fc8"]),
+    BOT("Leo", 300, "bots", "Plays super fast and talks even faster. Will trade anything that looks shiny.", [SK[1], "#7a4a21", "spiky", "#4fc3f7"]),
+    BOT("Priya", 400, "bots", "Knows a few openings, sort of. Watch out for her sneaky knight forks.", [SK[3], "#1b1b1b", "long", "#ffb74d"]),
+    BOT("Marcus", 500, "bots", "Football player by day, chess player by night. Attacks like he's going for a touchdown.", [SK[4], "#d32f2f", "cap", "#1e88e5"]),
+    BOT("Sofia", 600, "bots", "Patient and tidy. Never leaves a piece hanging... on purpose.", [SK[1], "#5a3320", "bun", "#9575cd"]),
+    BOT("Kenji", 700, "bots", "Solves ten puzzles before breakfast and loves a good pin.", [SK[5], "#151515", "short", "#26a69a", "g"]),
+    BOT("Rosa", 750, "bots", "Plays at the park chess tables every weekend. Still mad she lost to her little brother.", [SK[2], "#3a2214", "curly", "#ef5350"]),
+    BOT("Amara", 800, "bots", "School chess champion three years running. Calm, quick and hard to trick.", [SK[4], "#151515", "curly", "#ffd54f"]),
+    BOT("Diego", 1000, "bots", "Plays the Italian Game while eating Italian food. Very strong in the endgame.", [SK[2], "#2b1b10", "side", "#66bb6a", "b"]),
+    BOT("Hannah", 1500, "bots", "Runs the chess club and spots every blunder. Takes no prisoners.", [SK[0], "#c9663a", "long", "#7e57c2", "g"]),
+    BOT("Viktor", 2000, "bots", "Old-school tactician with a notebook full of tricks. Loves a wild sacrifice.", [SK[0], "#9e9e9e", "bald", "#5d4037", "b"]),
+    BOT("Zara", 2500, "bots", "Thinks five moves ahead and never smiles until it's checkmate.", [SK[3], "#151515", "bun", "#ec407a"]),
+    BOT("Orion", 2800, "bots", "Named after the stars and plays like it. Welcome to the Grandmaster club.", [SK[1], "#5e35b1", "spiky", "#283593"]),
+    BOT("Valentina", 2999, "bots", "The strongest regular bot. One step below the engines. Good luck!", [SK[0], "#212121", "long", "#00897b", "g"]),
+    // ---- chess YouTubers (bots in their style — not the real people) ----
+    BOT("Alexandra Botez", 1950, "youtubers", "Streamer famous for the 'Botez Gambit': accidentally giving away her queen.", [SK[0], "#3a2214", "long", "#e91e63"]),
+    BOT("agadmator", 2050, "youtubers", "\"Hello everyone!\" The YouTuber who walks you through the greatest games ever played.", [SK[0], "#2b2b2b", "short", "#455a64", "b"]),
+    BOT("Anna Cramling", 2100, "youtubers", "Streamer who makes chess videos with her chess-playing family. Cheerful, but sneaky.", [SK[0], "#e6c36a", "long", "#29b6f6"]),
+    BOT("WittyAlien", 2200, "youtubers", "Beamed down from outer space to make wild, funny chess videos.", ["#7ddc5a", "#3f9a2a", "alien", "#6a1b9a"]),
+    BOT("Eric Rosen", 2400, "youtubers", "International Master and king of sneaky traps. \"Oh no, my queen!\"", [SK[0], "#6b4a2a", "side", "#8bc34a"]),
+    BOT("GothamChess", 2420, "youtubers", "Levy Rozman: International Master and one of the biggest chess YouTubers. Ladies and gentlemen...", [SK[0], "#2b1b10", "short", "#212121", "b"]),
+    BOT("chessbrah", 2500, "youtubers", "Aman Hambleton: Canadian grandmaster and streamer from the chessbrah crew.", [SK[2], "#111111", "cap", "#ff7043", "b"]),
+    // ---- legends: the world's top players (bots in their style — not the real people) ----
+    BOT("Paul Morphy", 2690, "legends", "1850s American prodigy, famous for the 'Opera Game'. Develops fast and attacks hard.", [SK[0], "#3a2a1e", "side", "#37474f"]),
+    BOT("José Raúl Capablanca", 2725, "legends", "Cuban World Champion (1921–1927) known for crystal-clear endgames.", [SK[1], "#151515", "side", "#ffffff"]),
+    BOT("Judit Polgár", 2735, "legends", "The strongest female player in history. Beat many World Champions with sharp attacks.", [SK[0], "#a0522d", "long", "#c62828"]),
+    BOT("Bobby Fischer", 2785, "legends", "American legend who won the 1972 World Championship in Reykjavik. 1.e4: \"best by test\".", [SK[0], "#3a2a1e", "side", "#1565c0"]),
+    BOT("Gukesh D", 2794, "legends", "Became the youngest undisputed World Champion in 2024, at just 18. Fearless and focused.", [SK[3], "#151515", "curly", "#0d47a1"]),
+    BOT("Alireza Firouzja", 2804, "legends", "Broke 2800 as a teenager. Young, bold and super fast.", [SK[1], "#1b1b1b", "short", "#2e7d32"]),
+    BOT("Ding Liren", 2816, "legends", "China's first men's World Champion (2023). Calm, solid and very hard to break.", [SK[5], "#151515", "short", "#b71c1c", "g"]),
+    BOT("Hikaru Nakamura", 2816, "legends", "Speed-chess monster and one of the biggest chess streamers. Blitz faster than you can blink.", [SK[1], "#151515", "short", "#263238", "g"]),
+    BOT("Viswanathan Anand", 2817, "legends", "Five-time World Champion from India, the 'Tiger of Madras'. Lightning-fast calculation.", [SK[3], "#4e4e4e", "curly", "#f9a825", "g"]),
+    BOT("Fabiano Caruana", 2844, "legends", "Top American grandmaster who played for the world title in 2018. Deep opening preparation.", [SK[0], "#3a2a1e", "short", "#1a237e"]),
+    BOT("Garry Kasparov", 2851, "legends", "World Champion for 15 years, famous for fierce attacks and his matches against Deep Blue.", [SK[0], "#2a2a2a", "curly", "#424242"]),
+    BOT("Magnus Carlsen", 2882, "legends", "World Champion from 2013 to 2023 and the highest-rated player ever. Grinds tiny edges into wins.", [SK[0], "#8a6239", "short", "#0b3d91"]),
+    // ---- engines ----
+    BOT("Stockfish 3999", 3999, "engines", "Engine mode. The second-hardest bot in the game: almost never makes a mistake.", ["#26c6da", "#00838f", "fish", "#102a43"]),
+    BOT("Stockfish 4500", 4500, "engines", "Maximum power. The hardest bot there is. No mercy, no mistakes.", ["#ff5252", "#ffd740", "fish", "#1a0f0f"]),
+  ];
+  // Cartoon face for a bot, drawn as SVG.
+  function faceSVG(i) {
+    const [skin, hair, style, shirt, extra = ""] = LEVELS[i].face;
+    const bgH = (i * 47 + 200) % 360, bg = `hsl(${bgH} 70% 62%)`;
+    let o = `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="32" fill="${bg}"/>`;
+    if (style === "fish") {
+      o += `<circle cx="32" cy="32" r="32" fill="${shirt}"/><path d="M45 33 L59 22 L57 33 L59 44Z" fill="${hair}"/>
+        <ellipse cx="29" cy="33" rx="19" ry="12.5" fill="${skin}"/><path d="M22 21 Q30 12 38 21Z" fill="${hair}"/><path d="M26 45 Q30 51 35 45Z" fill="${hair}"/>
+        <path d="M36 25 Q40 33 36 41" stroke="rgba(0,0,0,.3)" stroke-width="1.6" fill="none"/>
+        <circle cx="20" cy="30" r="4.6" fill="#fff"/><circle cx="19" cy="30" r="2.4" fill="${i === LEVELS.length - 1 ? "#d50000" : "#111"}"/>
+        <path d="M12 37 Q15 39 18 37" stroke="#222" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+      return o + "</svg>";
+    }
+    if (style === "alien") {
+      o += `<path d="M8 64 Q10 49 32 49 Q54 49 56 64Z" fill="${shirt}"/><line x1="24" y1="14" x2="19" y2="4" stroke="${skin}" stroke-width="2.4"/><line x1="40" y1="14" x2="45" y2="4" stroke="${skin}" stroke-width="2.4"/>
+        <circle cx="19" cy="4" r="3" fill="#ffd740"/><circle cx="45" cy="4" r="3" fill="#ffd740"/>
+        <path d="M32 10 Q50 10 49 30 Q47 46 32 50 Q17 46 15 30 Q14 10 32 10Z" fill="${skin}"/>
+        <ellipse cx="25" cy="29" rx="5" ry="7" transform="rotate(-20 25 29)" fill="#111"/><ellipse cx="39" cy="29" rx="5" ry="7" transform="rotate(20 39 29)" fill="#111"/>
+        <circle cx="26.5" cy="26.5" r="1.4" fill="#fff"/><circle cx="40.5" cy="26.5" r="1.4" fill="#fff"/>
+        <path d="M27 41 Q32 45 37 41" stroke="#1b5e20" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+      return o + "</svg>";
+    }
+    o += `<path d="M7 64 Q9 48 32 48 Q55 48 57 64Z" fill="${shirt}"/><rect x="27" y="41" width="10" height="9" rx="3" fill="${skin}" style="filter:brightness(.9)"/>`;
+    if (style === "long") o += `<path d="M15 31 Q14 11 32 11 Q50 11 49 31 V50 Q45 53 42 48 V30 H22 V48 Q19 53 15 50Z" fill="${hair}"/>`;
+    o += `<circle cx="18" cy="32" r="3.4" fill="${skin}"/><circle cx="46" cy="32" r="3.4" fill="${skin}"/><ellipse cx="32" cy="31" rx="14" ry="16" fill="${skin}"/>`;
+    const top = `<path d="M17.5 29 Q15.5 12 32 12.5 Q48.5 12 46.5 29 Q44 20 36 19 Q28 22 21 20 Q18.5 23 17.5 29Z" fill="${hair}"/>`;
+    if (style === "short" || style === "long") o += top;
+    else if (style === "side") o += top + `<path d="M19 22 Q30 13 47 25 Q41 15 30 14.5 Q22 15 19 22Z" fill="${hair}"/>`;
+    else if (style === "spiky") o += `<path d="M17 29 L17 18 L22 21 L23 11 L28 17 L32 8 L36 17 L41 11 L42 21 L47 18 L47 29 Q40 20 32 20 Q24 20 17 29Z" fill="${hair}"/>`;
+    else if (style === "curly") o += [[19, 25, 5], [22, 18, 5.5], [28, 14, 6], [36, 14, 6], [42, 18, 5.5], [45.5, 25, 4.8], [32, 12, 5]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${hair}"/>`).join("");
+    else if (style === "bun") o += top + `<circle cx="32" cy="9" r="6" fill="${hair}"/>`;
+    else if (style === "cap") o += `<path d="M16 27 Q16 10 32 10 Q48 10 48 27Z" fill="${hair}"/><path d="M30 24 H55 Q56 29 49 29 H30Z" fill="${hair}" style="filter:brightness(.8)"/><circle cx="32" cy="11" r="1.6" fill="#fff"/>`;
+    else if (style === "bald") o += `<ellipse cx="18.5" cy="27" rx="2.6" ry="5" fill="${hair}"/><ellipse cx="45.5" cy="27" rx="2.6" ry="5" fill="${hair}"/>`;
+    if (extra.includes("b")) o += `<path d="M18.5 33 Q19 48.5 32 49 Q45 48.5 45.5 33 Q43 44 32 44.5 Q21 44 18.5 33Z" fill="${hair}"/>`;
+    o += `<path d="M23.5 26.5 Q26.5 24.8 29.5 26.5 M34.5 26.5 Q37.5 24.8 40.5 26.5" stroke="${hair}" stroke-width="1.7" fill="none" stroke-linecap="round"/>
+      <circle cx="26.5" cy="31" r="2" fill="#1d1d1d"/><circle cx="37.5" cy="31" r="2" fill="#1d1d1d"/><circle cx="27.2" cy="30.3" r=".6" fill="#fff"/><circle cx="38.2" cy="30.3" r=".6" fill="#fff"/>
+      <circle cx="22.5" cy="36.5" r="2.2" fill="rgba(255,90,90,.22)"/><circle cx="41.5" cy="36.5" r="2.2" fill="rgba(255,90,90,.22)"/>
+      <path d="M27.5 39 Q32 42.8 36.5 39" stroke="#6d2b1a" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+    if (extra.includes("g")) o += `<g fill="rgba(255,255,255,.18)" stroke="#1b1b1b" stroke-width="1.4"><circle cx="26.5" cy="31" r="4.4"/><circle cx="37.5" cy="31" r="4.4"/></g><path d="M30.9 31 H33.1" stroke="#1b1b1b" stroke-width="1.4"/>`;
+    return o + "</svg>";
+  }
+
   const botReward = b => Math.max(1, Math.round(b.elo / 100));   // pawns for a win: 100 Elo = 1 pawn ... 4500 = 45
   const initials = n => n.slice(0, 1).toUpperCase();
   const avatarBg = i => { const h = (i * 47 + 200) % 360; return `linear-gradient(135deg, hsl(${h} 85% 62%), hsl(${(h + 35) % 360} 75% 42%))`; };
-  const avatarHTML = (i, cls = "") => { const b = LEVELS[i], t = tierOf(b.elo); return `<span class="av ${cls}" style="--av:${avatarBg(i)};--ring:${t.color}">${initials(b.name)}${t.name === "Grandmaster" ? '<i class="crown">♛</i>' : ""}</span>`; };
+  const avatarHTML = (i, cls = "") => { const b = LEVELS[i], t = tierOf(b.elo); return `<span class="av ${cls}" style="--av:${avatarBg(i)};--ring:${t.color}">${faceSVG(i)}${t.name === "Grandmaster" ? '<i class="crown">♛</i>' : ""}</span>`; };
 
   // ---- Pawns: earned by beating bots (bots never change your rating) ----
   const profile = Object.assign({ pawns: 0, wins: {} }, store.get("chess-profile", {}));
@@ -1606,11 +1695,13 @@ function engineFactory() {
     $(prefix + "Times").innerHTML = cat.id === "none" ? "" : cat.items.map(i => chip(`tm:${key}:${i}`, timeLabel(TIMES[i]), i === cur)).join("");
   }
   function paintSetupScreens() {
-    $("levelChips").innerHTML = LEVELS.map((L, i) => chip("lv:" + i, `${avatarHTML(i)}<small class="bn">${L.name}</small><small class="be" style="color:${tierOf(L.elo).color}">${L.elo}</small>`, setup.level === i)).join("");
+    const cat = LEVELS[setup.level].cat;
+    $("botCats").innerHTML = BOT_CATS.map(c => chip("bcat:" + c.id, c.label, c.id === cat)).join("");
+    $("levelChips").innerHTML = LEVELS.map((L, i) => L.cat !== cat ? "" : chip("lv:" + i, `${avatarHTML(i)}<small class="bn">${L.name}</small><small class="be" style="color:${tierOf(L.elo).color}">${L.elo}</small>`, setup.level === i)).join("");
     const b = LEVELS[setup.level], t = tierOf(b.elo), wins = profile.wins[b.name] || 0;
     $("botCard").innerHTML = `<div class="bc-top">${avatarHTML(setup.level, "big")}<div class="bc-main">
         <div class="bc-name">${b.name}</div>
-        <div class="bc-line"><span class="elo">${b.elo} Elo</span><span class="tier" style="--t:${t.color}">${t.name}</span></div>
+        <div class="bc-line"><span class="elo">${b.elo} Elo</span><span class="tier" style="--t:${t.color}">${t.name}</span>${b.cat !== "bots" ? `<span class="catpill">${BOT_CATS.find(c => c.id === b.cat).label.replace(/s$/, "")}</span>` : ""}</div>
         <div class="bc-line small">Win: <b>+${botReward(b)}</b> <span class="pawnic">♟&#xFE0E;</span>${wins ? ` · Beaten ${wins}×` : ""}</div>
       </div></div>
       <div class="bio">“${b.bio}”</div>`;
@@ -1626,6 +1717,7 @@ function engineFactory() {
     const c = e.target.closest(".chip"); if (!c) return;
     const [kind, a, b] = c.dataset.key.split(":");
     if (kind === "lv") setup.level = +a;
+    else if (kind === "bcat") { if (LEVELS[setup.level].cat !== a) setup.level = LEVELS.findIndex(L => L.cat === a); }
     else if (kind === "col") setup.color = a;
     else if (kind === "cat") { const cat = TIME_CATS.find(x => x.id === b); if (!cat.items.includes(setup[a])) setup[a] = cat.items[cat.id === "rapid" ? 0 : Math.min(1, cat.items.length - 1)]; }
     else if (kind === "tm") setup[a] = +b;
