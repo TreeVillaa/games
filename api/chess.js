@@ -292,11 +292,26 @@ const E = engineFactory();
 // The Upstash database settings. Vercel may add them with a custom prefix (e.g. STORAGE_KV_REST_API_URL),
 // so any variable ending in KV_REST_API_URL / REDIS_REST_URL (and the matching token) is accepted.
 const envEnding = ends => { for (const e of ends) { if (process.env[e]) return process.env[e]; const k = Object.keys(process.env).find(n => n.endsWith("_" + e) && process.env[n]); if (k) return process.env[k]; } return undefined; };
-const DB_URL = envEnding(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL", "REDIS_REST_URL"]);
-const DB_TOKEN = envEnding(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN", "REDIS_REST_TOKEN"]);
+// Vercel lets you pick your own prefix when connecting a database (e.g. "STORAGE" gives STORAGE_REST_API_URL),
+// so also look for ANY *_REST_API_URL / *_REST_URL holding an https address, with its matching *_TOKEN.
+function findRest() {
+  const named = envEnding(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL", "REDIS_REST_URL"]), namedTok = envEnding(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN", "REDIS_REST_TOKEN"]);
+  if (named && namedTok) return [named, namedTok];
+  for (const n of Object.keys(process.env).sort()) {
+    if (!/(REST_API_URL|REST_URL)$/.test(n) || !/^https:\/\//.test(process.env[n] || "") || /READ_ONLY/.test(n)) continue;
+    const t = process.env[n.replace(/URL$/, "TOKEN")];
+    if (t) return [process.env[n], t];
+  }
+  return [undefined, undefined];
+}
+const [DB_URL, DB_TOKEN] = findRest();
 // Vercel's newer "Redis" database gives a single REDIS_URL (redis:// or rediss://) instead of a REST URL.
 // For that, talk to Redis directly over its normal protocol (no extra packages needed).
-const REDIS_TCP = DB_URL && DB_TOKEN ? undefined : (() => { const v = envEnding(["REDIS_URL", "KV_URL", "REDIS_TLS_URL"]); return v && /^rediss?:\/\//.test(v) ? v : undefined; })();
+const REDIS_TCP = DB_URL && DB_TOKEN ? undefined : (() => {
+  const v = envEnding(["REDIS_URL", "KV_URL", "REDIS_TLS_URL"]); if (v && /^rediss?:\/\//.test(v)) return v;
+  const n = Object.keys(process.env).sort().find(k => /^rediss?:\/\//.test(process.env[k] || ""));   // any redis:// setting, whatever its name
+  return n ? process.env[n] : undefined;
+})();
 const DB_MODE = DB_URL && DB_TOKEN ? "rest" : REDIS_TCP ? "redis" : "none";
 const net = require("net"), tls = require("tls");
 const respEnc = args => "*" + args.length + "\r\n" + args.map(a => { const s = String(a); return "$" + Buffer.byteLength(s) + "\r\n" + s + "\r\n"; }).join("");
@@ -738,9 +753,10 @@ module.exports = async function handler(req, res) {
   if (typeof b === "string") { try { b = JSON.parse(b); } catch (e) { b = {}; } }
   b = b || {};
   if (b && b.a === "health") {   // what the server can see (setting names only, never values)
-    const vars = Object.keys(process.env).filter(n => /KV|REDIS|UPSTASH/i.test(n)).sort();
+    const vars = Object.keys(process.env).filter(n => !/^(VERCEL|AWS|LAMBDA|NODE|NOW)_/.test(n) && (/KV|REDIS|UPSTASH|REST_API|STORAGE|DATABASE|_TOKEN$|_URL$/i.test(n) || /^rediss?:\/\/|upstash\.io/i.test(process.env[n] || ""))).sort();
+    const env = process.env.VERCEL_ENV || "local";
     let ping = null; if (DB_MODE !== "none") { try { ping = String(await r("PING")); } catch (e) { ping = "error: " + String(e.message || e).slice(0, 120); } }
-    return send(200, { ok: true, mode: DB_MODE, vars, ping });
+    return send(200, { ok: true, mode: DB_MODE, vars, ping, env });
   }
   if (DB_MODE === "none") return send(200, { ok: false, code: "not_configured", msg: "Online play isn't switched on yet." });
   const fn = Object.prototype.hasOwnProperty.call(A, b.a) ? A[b.a] : null;
