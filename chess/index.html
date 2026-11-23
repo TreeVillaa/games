@@ -7140,6 +7140,11 @@ function engineFactory() {
         <div class="wlbar"><i style="width:${(w / n) * 100}%;background:#7ee08f"></i><i style="width:${(d / n) * 100}%;background:#9aa3ab"></i><i style="width:${(l / n) * 100}%;background:#ff7769"></i></div>
         <div class="strow" style="margin-top:0"><small class="pos">${w} won</small><small>${d} drawn</small><small class="neg">${l} lost</small></div>`;
     };
+    const modeRow = (m, label, note) => {
+      const gs = mine.filter(g => g.mode === m);
+      return `<div class="strow"><span>${label}</span><small>${note}</small></div>
+        <div class="strow" style="margin-top:2px"><small class="pos">${cnt(gs, "w")} won</small><small>${cnt(gs, "d")} drawn</small><small class="neg">${cnt(gs, "l")} lost</small></div>`;
+    };
     const tot = {}; for (const g of mine) for (const k in g.cls || {}) tot[k] = (tot[k] || 0) + g.cls[k];
     const accs = mine.map(g => g.acc).filter(a => a != null), avgAcc = accs.length ? accs.reduce((a, b) => a + b, 0) / accs.length : null;
     const onl = G.filter(g => g.elo), gained = onl.reduce((a, g) => a + Math.max(0, g.elo.d), 0), lost = onl.reduce((a, g) => a + Math.max(0, -g.elo.d), 0);
@@ -7166,6 +7171,7 @@ function engineFactory() {
         <div class="stcard"><b>${profile.pawns}</b><small>Pawns</small></div>
       </div>
       <div class="stsect"><div class="lbl">By colour</div>${colourRow("w")}${colourRow("b")}</div>
+      <div class="stsect"><div class="lbl">Bots vs online</div>${modeRow("cpu", "🤖 Vs bots", "No Elo change")}${modeRow("online", "🌐 Online", "Changes your Elo")}</div>
       <div class="stsect"><div class="lbl">Your move ratings</div><div class="stcls">${CLS_ORDER.map(k => `<span><i class="mb" style="--bc:${CLS[k].color}">${CLS[k].sym}</i>${CLS[k].label.replace(/[!]+$/, "").replace(" move", "")}<em>${tot[k] || 0}</em></span>`).join("")}</div></div>
       <div class="stsect"><div class="lbl">Online rating</div>
         <div class="strow"><span>Current</span><span>${cur == null ? "–" : cur}</span></div>
@@ -7420,6 +7426,7 @@ function engineFactory() {
     if (!result) return;
     $("overTitle").textContent = result.title;
     $("overText").textContent = result.text;
+    if (mode === "cpu" && result.code === (humanColor === "w" ? "0-1" : "1-0")) $("overText").textContent += " No Elo lost: bot games don't change your rating. It's added to your losses in Stats.";
     paintReward();
     paintStats();
     show("overOv");
