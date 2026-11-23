@@ -2,7 +2,7 @@
 
 This repo is a collection of small browser games, published by Vercel from the `main` branch.
 
-Live site: [LIVE LINK]  ← replace with the real Vercel URL (e.g. https://my-games.vercel.app)
+Live site: https://games-smoky-mu.vercel.app
 
 ## Layout
 - `index.html` (top level) — the home page. It lists every game as a big tappable card.
@@ -23,4 +23,4 @@ Live site: [LIVE LINK]  ← replace with the real Vercel URL (e.g. https://my-ga
 5. **Get it onto `main`.** The owner has given permission to push directly to `main` in this
    repo, because Vercel only publishes `main`. Commit on the working branch, then merge it
    into `main` and push `main` (as well as the working branch).
-6. **Always finish with the play link:** `[LIVE LINK]/<folder>/`
+6. **Always finish with the play link:** `https://games-smoky-mu.vercel.app/<folder>/`
