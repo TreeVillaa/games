@@ -161,6 +161,72 @@
     max-width: 90vw; text-align: center;
   }
   #toast.show { opacity: 1; }
+  .overlay { justify-content: safe center; }
+
+  /* ---- move ratings ---- */
+  .badge {
+    position: absolute; top: 3%; right: 3%; z-index: 6; pointer-events: none;
+    width: calc(var(--board) / 8 * .42); height: calc(var(--board) / 8 * .42); border-radius: 50%;
+    background: var(--bc); color: #fff; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,.45);
+    display: grid; place-items: center; font-weight: 900; font-size: calc(var(--board) / 8 * .2); line-height: 1;
+  }
+  .badge i { font-style: normal; letter-spacing: -1px; }
+  .badge em {
+    position: absolute; top: 50%; right: 115%; transform: translateY(-50%);
+    background: var(--bc); color: #fff; border: 2px solid #fff; border-radius: 9px; padding: 3px 8px;
+    font-style: normal; font-size: 12px; font-weight: 900; white-space: nowrap; opacity: 0;
+    box-shadow: 0 3px 8px rgba(0,0,0,.35);
+  }
+  .badge.lr em { right: auto; left: 115%; }
+  .badge.pop { animation: badgePop .55s cubic-bezier(.3,1.7,.5,1); }
+  .badge.pop em { animation: labelShow 2s ease forwards; }
+  @keyframes badgePop { 0% { transform: scale(0) rotate(-30deg); } 100% { transform: scale(1) rotate(0); } }
+  @keyframes labelShow { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  .mb {
+    display: inline-grid; place-items: center; width: 17px; height: 17px; border-radius: 50%;
+    background: var(--bc); color: #fff; font-size: 9px; font-style: normal; font-weight: 900;
+    margin-right: 3px; vertical-align: 1px; letter-spacing: -1px;
+  }
+  #moves .mv.cur .mb { box-shadow: 0 0 0 2px #1d1a36; }
+
+  /* ---- Brilliant celebration ---- */
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 8; display: grid; place-items: center; overflow: visible; }
+  .fx::before {
+    content: ""; position: absolute; left: 50%; top: 50%; width: 40%; height: 40%; border-radius: 50%;
+    transform: translate(-50%, -50%); background: radial-gradient(circle, rgba(38,194,163,.85), rgba(38,194,163,0) 70%);
+    animation: fxGlow 1.4s ease-out forwards;
+  }
+  .fx-text {
+    position: relative; font-size: calc(var(--board) * .1); font-weight: 900; color: #fff;
+    background: linear-gradient(135deg, #2fd6b5, #1a9f86); padding: .18em .65em; border-radius: 999px;
+    border: 4px solid #fff; box-shadow: 0 0 0 8px rgba(38,194,163,.35), 0 12px 30px rgba(0,0,0,.45);
+    animation: fxPop 2.2s ease forwards; white-space: nowrap;
+  }
+  .fx-text b { display: inline-block; margin-left: .25em; animation: fxWiggle .5s ease-in-out 3 .35s; }
+  .spark {
+    position: absolute; left: 50%; top: 50%; width: 11px; height: 11px; border-radius: 3px; background: var(--c);
+    animation: spark 1.3s cubic-bezier(.15,.7,.3,1) forwards; animation-delay: var(--d); opacity: 0;
+  }
+  .spark.star { width: auto; height: auto; background: none; color: var(--c); font-size: 20px; }
+  @keyframes fxGlow { 0% { width: 10%; height: 10%; opacity: 1; } 100% { width: 190%; height: 190%; opacity: 0; } }
+  @keyframes fxPop {
+    0% { transform: scale(0) rotate(-14deg); opacity: 0; } 14% { transform: scale(1.25) rotate(4deg); opacity: 1; }
+    24% { transform: scale(1) rotate(0); } 82% { transform: scale(1); opacity: 1; } 100% { transform: scale(.7) translateY(-60%); opacity: 0; }
+  }
+  @keyframes fxWiggle { 50% { transform: rotate(-14deg) scale(1.2); } }
+  @keyframes spark {
+    0% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--r)) scale(.3); opacity: 0; }
+  }
+  .sq.brill { box-shadow: inset 0 0 0 4px #26c2a3, inset 0 0 18px rgba(38,194,163,.9); }
+
+  /* ---- game-over stats ---- */
+  .stats { display: flex; flex-direction: column; gap: 8px; width: min(340px, 100%); margin-top: 8px; }
+  .srow { background: rgba(255,255,255,.1); border-radius: 14px; padding: 8px 12px; text-align: left; }
+  .srow .top { display: flex; justify-content: space-between; font-weight: 800; }
+  .srow .acc { font-variant-numeric: tabular-nums; }
+  .srow .counts { display: flex; flex-wrap: wrap; gap: 4px 10px; margin-top: 6px; font-size: .9rem; font-weight: 700; }
+  .srow .counts span { display: inline-flex; align-items: center; }
 </style>
 </head>
 <body>
@@ -225,6 +291,7 @@
     <button class="opt" data-pref="legal"><span>Show legal moves</span><b></b></button>
     <button class="opt" data-pref="coords"><span>Coordinates</span><b></b></button>
     <button class="opt" data-pref="animate"><span>Piece animation</span><b></b></button>
+    <button class="opt" data-pref="ratings"><span>Move ratings (Brilliant, Blunder…)</span><b></b></button>
     <button class="opt" data-pref="evalbar"><span>Evaluation bar</span><b></b></button>
     <button class="opt" data-pref="autoQueen"><span>Always promote to queen</span><b></b></button>
     <button class="opt" data-pref="autoFlip"><span>2 players: flip each turn</span><b></b></button>
@@ -240,6 +307,7 @@
 <div class="overlay hidden" id="overOv">
   <h1 id="overTitle">Checkmate!</h1>
   <p id="overText"></p>
+  <div class="stats" id="overStats"></div>
   <div class="menu">
     <button class="btn" data-act="rematch">Rematch</button>
     <button class="btn alt" data-act="review">🔎 Review the game</button>
@@ -294,6 +362,22 @@ function engineFactory() {
       while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) { const p = b[rr * 8 + cc]; if (p) { if (p === q || p === bs) return true; break; } rr += dr; cc += dc; }
     }
     return false;
+  }
+  // Value of the cheapest piece of side `by` attacking `sq` (0 if none).
+  function minAttacker(b, sq, by) {
+    const r = sq >> 3, c = sq & 7, W = by === "w";
+    let best = 0; const upd = v => { if (!best || v < best) best = v; };
+    const pr = W ? r + 1 : r - 1, pawn = W ? "P" : "p";
+    if (pr >= 0 && pr < 8) { if ((c > 0 && b[pr * 8 + c - 1] === pawn) || (c < 7 && b[pr * 8 + c + 1] === pawn)) return 100; }
+    const kn = W ? "N" : "n", kg = W ? "K" : "k";
+    for (const [dr, dc] of N_OFF) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && b[rr * 8 + cc] === kn) upd(320); }
+    const q = W ? "Q" : "q", rk = W ? "R" : "r", bs = W ? "B" : "b";
+    for (const [dirs, pc] of [[DIAG, bs], [ORTH, rk]]) for (const [dr, dc] of dirs) {
+      let rr = r + dr, cc = c + dc;
+      while (rr >= 0 && rr < 8 && cc >= 0 && cc < 8) { const p = b[rr * 8 + cc]; if (p) { if (p === pc) upd(pc.toLowerCase() === "b" ? 330 : 500); else if (p === q) upd(900); break; } rr += dr; cc += dc; }
+    }
+    for (const [dr, dc] of K_OFF) { const rr = r + dr, cc = c + dc; if (rr >= 0 && rr < 8 && cc >= 0 && cc < 8 && b[rr * 8 + cc] === kg) upd(20000); }
+    return best;
   }
   const kingSq = (b, side) => b.indexOf(side === "w" ? "K" : "k");
   function inCheck(s, side = s.turn) { const k = kingSq(s.b, side); return k >= 0 && attacked(s.b, k, side === "w" ? "b" : "w"); }
@@ -481,7 +565,8 @@ function engineFactory() {
   }
   // opts: { maxDepth, qd, noise, blunder, timeMs, avoid: [posKeys already played] }
   function search(s, o) {
-    const moves = orderMoves(s, legalMoves(s));
+    let moves = orderMoves(s, legalMoves(s));
+    if (o.exclude) moves = moves.filter(m => !o.exclude.some(x => x[0] === m.from && x[1] === m.to && (x[2] || "") === (m.promo || "")));
     if (!moves.length) return null;
     const pack = (m, score, depth) => ({ from: m.from, to: m.to, promo: m.promo, flag: m.flag, score, depth });
     if (o.blunder && Math.random() < o.blunder) return pack(moves[(Math.random() * moves.length) | 0], 0, 0);
@@ -513,7 +598,7 @@ function engineFactory() {
     return pack(best, bestScore, done);
   }
 
-  return { startState, fromFEN, legalMoves, makeMove, inCheck, kingSq, posKey, insufficient, toSAN, sqName, evaluate, search, VAL, MATE, isW, sideOf };
+  return { attacked, minAttacker, startState, fromFEN, legalMoves, makeMove, inCheck, kingSq, posKey, insufficient, toSAN, sqName, evaluate, search, VAL, MATE, isW, sideOf };
 }
 
 (() => {
@@ -528,7 +613,7 @@ function engineFactory() {
     } catch (e) { return null; }
   }
   let workersOK = typeof Worker !== "undefined";
-  const slots = { ai: { w: null, busy: 0 }, help: { w: null, busy: 0 }, eval: { w: null, busy: 0 } };
+  const slots = { ai: { w: null, busy: 0 }, help: { w: null, busy: 0 }, eval: { w: null, busy: 0 }, judge: { w: null, busy: 0 } };
   let reqId = 0;
   function runSearch(kind, s, opts, cb) {
     const slot = slots[kind];
@@ -554,7 +639,7 @@ function engineFactory() {
   };
   const PREFS = {
     sound: [true, false], theme: ["wood", "green", "blue", "purple"], legal: [true, false], coords: [true, false],
-    animate: [true, false], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
+    animate: [true, false], ratings: [true, false], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
   };
   const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), store.get("chess-prefs", {}));
   const LEVELS = [
@@ -624,7 +709,7 @@ function engineFactory() {
   function stopAI() { cancelSearch("ai"); thinking = false; aiToken++; }
 
   function newGame(opts, replay) {
-    stopAI(); cancelSearch("help");
+    stopAI(); cancelSearch("help"); judgeGen++;
     mode = opts.mode; level = opts.level; timeIdx = opts.time || 0;
     humanColor = opts.color === "random" ? (Math.random() < .5 ? "w" : "b") : opts.color;
     if (mode === "two") humanColor = "w";
@@ -658,6 +743,7 @@ function engineFactory() {
     if (clocks && history.length > 1) clocks[mover] += inc;
     selected = -1; hintArrow = null; viewIdx = null;
     checkGameOver();
+    judgeLoop();
     if (!silent) {
       save();
       refresh(prefs.animate ? m : null);
@@ -883,7 +969,8 @@ function engineFactory() {
     if (op) html += `<span class="open">📖 ${op}</span>`;
     history.forEach((h, i) => {
       if (i % 2 === 0) html += `<span class="num">${i / 2 + 1}.</span>`;
-      html += `<span class="mv${i + 1 === cur ? " cur" : ""}" data-i="${i + 1}">${h.san}</span>`;
+      const mb = prefs.ratings && h.cls ? `<i class="mb" style="--bc:${CLS[h.cls].color}" title="${CLS[h.cls].label}">${CLS[h.cls].sym}</i>` : "";
+      html += `<span class="mv${i + 1 === cur ? " cur" : ""}" data-i="${i + 1}">${mb}${h.san}</span>`;
     });
     if (!html) html = `<span style="opacity:.45">Moves will show here</span>`;
     el.innerHTML = html;
@@ -900,6 +987,8 @@ function engineFactory() {
     const targets = live && selected >= 0 && prefs.legal ? moves.filter(m => m.from === selected) : [];
     const last = shownLast();
     const ov = openOverlay();
+    const lastEntry = history[(live ? history.length : viewIdx) - 1];
+    const rated = prefs.ratings && lastEntry && lastEntry.cls ? lastEntry : null;
     for (let vi = 0; vi < 64; vi++) {
       const sq = flipped ? 63 - vi : vi, el = sqEls[vi];
       el.dataset.sq = sq;
@@ -913,11 +1002,16 @@ function engineFactory() {
       if (showCursor && sq === cursor && !ov && mode) cls.push("cur");
       if (drag && drag.moved && sq === drag.sq) cls.push("ghosted");
       if (drag && drag.moved && sq === drag.over && sq !== drag.sq) cls.push("hover");
+      if (rated && rated.cls === "brilliant" && sq === rated.move.to) cls.push("brill");
       el.className = cls.join(" ");
       const p = s.b[sq];
       let html = p ? `<span class="pc ${isW(p) ? "w" : "b"}">${glyph(p)}</span>` : "";
       if ((vi & 7) === 0) html += `<span class="coord r">${8 - r}</span>`;
       if ((vi >> 3) === 7) html += `<span class="coord f">${"abcdefgh"[c]}</span>`;
+      if (rated && sq === rated.move.to) {
+        const k = CLS[rated.cls], pop = popEntry === rated;
+        html += `<span class="badge${pop ? " pop" : ""}${(vi & 7) < 4 ? " lr" : ""}" style="--bc:${k.color}"><i>${k.sym}</i><em>${k.label}</em></span>`;
+      }
       el.innerHTML = html;
     }
     if (animMove) animate(animMove, flipped);
@@ -1071,8 +1165,159 @@ function engineFactory() {
       if (kind === "move") knock(t, 900, 1.6, 0.07);
       else if (kind === "capture") { knock(t, 600, 2.2, 0.09); knock(t + 0.05, 1200, 1.4, 0.06); }
       else if (kind === "check") { knock(t, 900, 1.6, 0.07); tone(t + 0.02, 880, 0.15); tone(t + 0.12, 660, 0.2); }
+      else if (kind === "brilliant") {
+        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(t + i * 0.07, f, 0.35, 0.1));
+        [2093, 2637, 3136].forEach((f, i) => tone(t + 0.45 + i * 0.05, f, 0.25, 0.05));
+      }
       else if (kind === "end") { tone(t, 523, 0.3); tone(t + 0.12, 659, 0.3); tone(t + 0.24, 784, 0.45); }
     } catch (e) {}
+  }
+
+  // ================= Move ratings (Brilliant … Blunder) =================
+  // Each move is judged in a background worker: we compare the engine's best
+  // move with the move played, turn both scores into a winning chance, and
+  // rate the move by how much winning chance it gave away.
+  const CLS = {
+    brilliant:  { sym: "!!", color: "#1fbfa0", label: "Brilliant!!" },
+    great:      { sym: "!",  color: "#5b8fc7", label: "Great move!" },
+    best:       { sym: "★",  color: "#7fba3c", label: "Best" },
+    excellent:  { sym: "👍", color: "#68b356", label: "Excellent" },
+    good:       { sym: "✓",  color: "#8aa77c", label: "Good" },
+    book:       { sym: "📖", color: "#b38b6a", label: "Book" },
+    inaccuracy: { sym: "?!", color: "#eebb33", label: "Inaccuracy" },
+    mistake:    { sym: "?",  color: "#e8892c", label: "Mistake" },
+    miss:       { sym: "✕",  color: "#e45c6b", label: "Miss" },
+    blunder:    { sym: "??", color: "#d33a2f", label: "Blunder" },
+  };
+  const CLS_ORDER = Object.keys(CLS);
+  const JUDGE = { maxDepth: 4, qd: 5, timeMs: 900 };
+  const posCache = new Map();
+  let judging = false, judgeGen = 0, popEntry = null, bookSet = null;
+  const winChance = cp => (Math.abs(cp) > MATE - 1000 ? (cp > 0 ? 1 : 0) : 1 / (1 + Math.pow(10, -cp / 400)));
+  const sameMove = (a, b) => a && b && a.from === b.from && a.to === b.to && (a.promo || "") === (b.promo || "");
+
+  function isBook(i) {
+    if (!bookSet) {
+      bookSet = new Set();
+      for (const k of Object.keys(OPENINGS)) { const p = k.split(" "); for (let n = 1; n <= p.length; n++) bookSet.add(p.slice(0, n).join(" ")); }
+    }
+    return bookSet.has(history.slice(0, i + 1).map(h => h.san.replace(/[+#]/g, "")).join(" "));
+  }
+  function searchP(s, opts) { return new Promise(res => runSearch("judge", s, opts, res)); }
+  async function analyzePos(s) {
+    const k = E.posKey(s);
+    if (posCache.has(k)) return posCache.get(k);
+    const n = E.legalMoves(s).length;
+    let v;
+    if (!n) v = { score: E.inCheck(s) ? -MATE : 0, best: null, n: 0 };
+    else { const r = await searchP(s, JUDGE); v = { score: r ? r.score : 0, best: r, n }; }
+    posCache.set(k, v);
+    if (posCache.size > 3000) posCache.delete(posCache.keys().next().value);
+    return v;
+  }
+  // A real sacrifice: a knight or bigger lands where the opponent can win it.
+  function isSacrifice(h, after) {
+    const p = h.state.b[h.move.from], t = p.toLowerCase();
+    if (t === "p" || t === "k" || h.move.promo) return false;
+    const v = VAL[t], taken = h.state.b[h.move.to] ? VAL[h.state.b[h.move.to].toLowerCase()] : 0;
+    const opp = after.turn, me = opp === "w" ? "b" : "w";
+    const att = E.minAttacker(after.b, h.move.to, opp);
+    if (!att || att >= 20000 && E.attacked(after.b, h.move.to, me)) return false;
+    const defended = E.attacked(after.b, h.move.to, me);
+    const loses = !defended || att < v;
+    return loses && taken < v - 100;
+  }
+  function classify(i, h, before, after, afterState, second) {
+    if (i < 16 && isBook(i)) return { cls: "book", loss: 0 };
+    const isBest = sameMove(before.best, h.move);
+    const bestS = before.score;
+    const playedS = isBest ? bestS : -after.score;
+    const wB = winChance(bestS), wP = winChance(playedS);
+    const loss = Math.max(0, wB - wP);
+    let cls;
+    if (isBest || loss <= 0.003) cls = "best";
+    else if (loss <= 0.02) cls = "excellent";
+    else if (loss <= 0.05) cls = "good";
+    else if (loss <= 0.10) cls = "inaccuracy";
+    else if (loss <= 0.20) cls = "mistake";
+    else cls = "blunder";
+    const prev = history[i - 1];
+    // Miss: the opponent just slipped up and this move didn't take advantage.
+    if (prev && ["mistake", "blunder", "miss"].includes(prev.cls) && ["inaccuracy", "mistake", "blunder"].includes(cls) && wB >= 0.7 && wP < 0.6) cls = "miss";
+    const good = cls === "best" || cls === "excellent";
+    // Great: the only good move — every other move is much worse.
+    const recapture = prev && prev.move.to === h.move.to && !!h.state.b[h.move.to];
+    if (isBest && second && before.n > 1 && !recapture && wB < 0.97 && wB - winChance(second.score) >= 0.2) cls = "great";
+    // Brilliant: a (near) best move that gives away a piece and still leaves you fine.
+    if (good && wP >= 0.5 && wB < 0.98 && isSacrifice(h, afterState)) cls = "brilliant";
+    return { cls, loss };
+  }
+  async function judgeLoop() {
+    if (judging || !prefs.ratings || !mode) return;
+    judging = true;
+    const gen = judgeGen;
+    try {
+      while (gen === judgeGen && prefs.ratings) {
+        const i = history.findIndex(h => !h.cls);
+        if (i < 0) break;
+        const h = history[i], afterState = positionAt(i + 1);
+        const before = await analyzePos(h.state);
+        const after = await analyzePos(afterState);
+        if (gen !== judgeGen || history[i] !== h) continue;
+        let second = null;
+        if (sameMove(before.best, h.move) && before.n > 1 && !(i < 16 && isBook(i)))
+          second = await searchP(h.state, { ...JUDGE, exclude: [[h.move.from, h.move.to, h.move.promo || ""]] });
+        if (gen !== judgeGen || history[i] !== h) continue;
+        Object.assign(h, classify(i, h, before, after, afterState, second));
+        onRated(i, h);
+      }
+    } catch (e) { /* rating is a bonus; never break the game */ }
+    judging = false;
+    if (gen !== judgeGen) judgeLoop();
+  }
+  function onRated(i, h) {
+    const mover = h.state.turn;
+    const mine = mode === "two" || mover === humanColor;
+    const showing = viewIdx === null ? history.length : viewIdx;
+    if (showing === i + 1) popEntry = h;
+    refresh();
+    popEntry = null;
+    if (h.cls === "brilliant" && mine && showing === i + 1) celebrate();
+    if (!$("overOv").classList.contains("hidden")) paintStats();
+  }
+  function celebrate() {
+    const wrap = $("boardWrap");
+    const fx = document.createElement("div");
+    fx.className = "fx";
+    let html = `<div class="fx-text">Brilliant<b>!!</b></div>`;
+    const colors = ["#2fd6b5", "#ffffff", "#ffd54a", "#7ef0d9", "#1a9f86"];
+    for (let k = 0; k < 44; k++) {
+      const a = Math.random() * Math.PI * 2, d = 0.35 + Math.random() * 0.45;
+      const dx = Math.cos(a) * d * wrap.clientWidth, dy = Math.sin(a) * d * wrap.clientHeight;
+      const star = k % 4 === 0;
+      html += `<span class="spark${star ? " star" : ""}" style="--dx:${dx.toFixed(0)}px;--dy:${dy.toFixed(0)}px;--r:${(Math.random() * 720 - 360).toFixed(0)}deg;--c:${colors[k % colors.length]};--d:${(Math.random() * 0.25).toFixed(2)}s">${star ? "✦" : ""}</span>`;
+    }
+    fx.innerHTML = html;
+    wrap.appendChild(fx);
+    setTimeout(() => fx.remove(), 2400);
+    sound("brilliant");
+    try { navigator.vibrate && navigator.vibrate([30, 40, 60]); } catch (e) {}
+  }
+  function paintStats() {
+    const el = $("overStats");
+    if (!prefs.ratings || !history.length) { el.innerHTML = ""; return; }
+    const sides = mode === "cpu" ? [humanColor, humanColor === "w" ? "b" : "w"] : ["w", "b"];
+    el.innerHTML = sides.map(side => {
+      const mine = history.filter(h => h.state.turn === side);
+      const done = mine.filter(h => h.cls);
+      const counts = {};
+      for (const h of done) counts[h.cls] = (counts[h.cls] || 0) + 1;
+      const acc = done.length ? done.reduce((a, h) => a + Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * h.loss * 100) - 3.1669)), 0) / done.length : null;
+      const cnt = CLS_ORDER.filter(k => counts[k]).map(k => `<span><i class="mb" style="--bc:${CLS[k].color}">${CLS[k].sym}</i>${counts[k]} ${CLS[k].label.replace(/[!]+$/, "").replace(" move", "")}</span>`).join("");
+      const pending = mine.length - done.length;
+      return `<div class="srow"><div class="top"><span>${playerName(side)}</span><span class="acc">${acc == null ? "…" : "Accuracy " + acc.toFixed(0) + "%"}</span></div>
+        <div class="counts">${cnt}${pending ? `<span style="opacity:.6">rating ${pending} more…</span>` : ""}</div></div>`;
+    }).join("");
   }
 
   // ================= Overlays + menus =================
@@ -1116,6 +1361,7 @@ function engineFactory() {
       store.set("chess-prefs", prefs);
       applyPrefs(); layout();
       if (k === "evalbar") requestEval();
+      if (k === "ratings") judgeLoop();
       if (k === "sound" && prefs.sound) { audioUnlock(); sound("move"); }
       refresh();
     }
@@ -1132,6 +1378,7 @@ function engineFactory() {
     if (!result) return;
     $("overTitle").textContent = result.title;
     $("overText").textContent = result.text;
+    paintStats();
     show("overOv");
   }
   function pause() {
