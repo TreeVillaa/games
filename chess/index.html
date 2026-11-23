@@ -261,6 +261,7 @@
   .minib i { display: grid; place-items: center; background-size: 320% 320%; }
   .minib i svg.pcs, .minib i .pc { width: 92%; height: 92%; font-size: 22px; }
   .chip.tile.sel { outline: 3px solid #ffd84a; outline-offset: 2px; }
+  .sndic { font-size: 2rem; line-height: 1.2; display: block; padding: 6px 0 2px; }
   .sq.hover { box-shadow: inset 0 0 0 4px rgba(255,255,255,.9); }
   #board.dragging { overflow: visible; }
   .sq.cur { box-shadow: inset 0 0 0 4px #3fa9ff, inset 0 0 0 6px #fff; }
@@ -608,6 +609,7 @@
     <button class="opt" data-pref="sound"><i class="sic" style="--ic:#ffd84a">♪</i><span>Sound</span><b></b></button>
     <button class="opt link" data-act="styleBoards"><i class="sic" style="--ic:#7cc4ff">▦</i><span>Board</span><b id="curBoard"></b></button>
     <button class="opt link" data-act="stylePieces"><i class="sic" style="--ic:#ffd84a">♞</i><span>Pieces</span><b id="curPieces"></b></button>
+    <button class="opt link" data-act="styleSounds"><i class="sic" style="--ic:#ff9ecf">♪</i><span>Move sound</span><b id="curSound"></b></button>
     <button class="opt" data-pref="legal"><i class="sic" style="--ic:#5ee0c0">●</i><span>Show legal moves</span><b></b></button>
     <button class="opt" data-pref="coords"><i class="sic" style="--ic:#b8a4ff">a1</i><span>Coordinates</span><b></b></button>
     <button class="opt" data-pref="animate"><i class="sic" style="--ic:#ff9ecf">➜</i><span>Piece animation</span><b></b></button>
@@ -980,7 +982,7 @@ function engineFactory() {
     animate: [true, false], ratings: [true, false], rateFx: [true, false], msgPolicy: ["friends", "everyone", "nobody"], evalbar: [false, true], autoQueen: [false, true], autoFlip: [false, true],
   };
   const prefs0 = store.get("chess-prefs", {});
-  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo" }, prefs0);
+  const prefs = Object.assign(Object.fromEntries(Object.entries(PREFS).map(([k, v]) => [k, v[0]])), { board: "walnut", pieces: "neo", moveSound: "wood" }, prefs0);
   // older saves used "theme" for the board colours
   if (prefs0.theme && !prefs0.board) prefs.board = { wood: "tournament", green: "green", blue: "blue", purple: "purple" }[prefs0.theme] || "walnut";
 
@@ -1824,13 +1826,78 @@ function engineFactory() {
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
     o.connect(g); g.connect(actx.destination); o.start(t); o.stop(t + len);
   }
+  // ---- building blocks for the move sounds ----
+  const OUT = () => actx.destination;
+  function noiseHit(t, { f = 1000, q = 1, type = "bandpass", vol = 1, len = 0.06, curve = 4 }) {
+    const n = Math.max(1, Math.floor(actx.sampleRate * len)), buf = actx.createBuffer(1, n, actx.sampleRate), d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, curve);
+    const src = actx.createBufferSource(); src.buffer = buf;
+    const fl = actx.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    const g = actx.createGain(); g.gain.value = vol;
+    src.connect(fl); fl.connect(g); g.connect(OUT()); src.start(t);
+  }
+  // ringing partials (wood/marble/metal/glass/bells): each partial decays a bit faster than the one before
+  function ring(t, freqs, { decay = 0.15, vol = 0.12, type = "sine", attack = 0.002 } = {}) {
+    freqs.forEach((f, i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), v = vol / (1 + i * 0.6), d = decay / (1 + i * 0.35);
+      o.type = type; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + attack + d);
+      o.connect(g); g.connect(OUT()); o.start(t); o.stop(t + attack + d + 0.02);
+    });
+  }
+  function sweep(t, f0, f1, { len = 0.12, vol = 0.12, type = "sine" } = {}) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + len);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(g); g.connect(OUT()); o.start(t); o.stop(t + len + 0.02);
+  }
+  // 30 move sounds. Each is f(t, k) where k = pitch (captures play lower and a bit louder).
+  const SOUNDS = [
+    ["wood", "Wood", "🪵", (t, k) => { noiseHit(t, { f: 900 * k, q: 1.2, vol: 1.6, len: 0.07 }); ring(t, [480 * k, 1150 * k], { decay: 0.05, vol: 0.05 }); }],
+    ["hardwood", "Hardwood", "🚪", (t, k) => { noiseHit(t, { f: 1300 * k, q: 2, vol: 1.4, len: 0.05 }); ring(t, [620 * k, 1480 * k, 2600 * k], { decay: 0.07, vol: 0.07 }); }],
+    ["softwood", "Soft Wood", "🌳", (t, k) => { noiseHit(t, { f: 600 * k, q: 0.9, vol: 1.6, len: 0.08 }); ring(t, [300 * k, 760 * k], { decay: 0.06, vol: 0.05 }); }],
+    ["bamboo", "Bamboo", "🎋", (t, k) => { noiseHit(t, { f: 1800 * k, q: 3, vol: 0.9, len: 0.04 }); ring(t, [900 * k, 2350 * k], { decay: 0.12, vol: 0.08 }); }],
+    ["marble", "Marble", "🏛️", (t, k) => { noiseHit(t, { f: 3200 * k, q: 2, vol: 0.9, len: 0.03 }); ring(t, [2150 * k, 3420 * k, 5230 * k], { decay: 0.11, vol: 0.06 }); }],
+    ["granite", "Stone", "🪨", (t, k) => { noiseHit(t, { f: 450 * k, type: "lowpass", q: 0.8, vol: 2.2, len: 0.07 }); ring(t, [190 * k, 340 * k], { decay: 0.05, vol: 0.06 }); }],
+    ["ceramic", "Ceramic Tile", "🧱", (t, k) => { noiseHit(t, { f: 2600 * k, q: 2.5, vol: 0.8, len: 0.03 }); ring(t, [1120 * k, 1690 * k, 2930 * k], { decay: 0.09, vol: 0.07 }); }],
+    ["glass", "Glass", "🥛", (t, k) => { ring(t, [1830 * k, 2710 * k, 4130 * k], { decay: 0.32, vol: 0.07 }); noiseHit(t, { f: 5000, q: 3, vol: 0.4, len: 0.015 }); }],
+    ["crystal", "Crystal", "💎", (t, k) => { ring(t, [2640 * k, 3960 * k, 5940 * k], { decay: 0.5, vol: 0.08 }); }],
+    ["ice", "Ice", "🧊", (t, k) => { ring(t, [2400 * k, 3580 * k, 5420 * k], { decay: 0.14, vol: 0.06 }); noiseHit(t, { f: 6000, q: 1.5, vol: 0.5, len: 0.05, curve: 2 }); }],
+    ["metal", "Metal", "⚙️", (t, k) => { ring(t, [820 * k, 1190 * k, 1970 * k, 2710 * k], { decay: 0.32, vol: 0.09, type: "triangle" }); noiseHit(t, { f: 2500, q: 2, vol: 0.5, len: 0.02 }); }],
+    ["steel", "Steel Clank", "🔩", (t, k) => { ring(t, [450 * k, 1012 * k, 1730 * k], { decay: 0.22, vol: 0.06, type: "square" }); noiseHit(t, { f: 1800, q: 1.5, vol: 0.7, len: 0.03 }); }],
+    ["gold", "Gold Coin", "🪙", (t, k) => { ring(t, [2600 * k, 3910 * k], { decay: 0.28, vol: 0.09 }); ring(t + 0.05, [2610 * k, 3920 * k], { decay: 0.2, vol: 0.06 }); }],
+    ["plastic", "Plastic Click", "🔘", (t, k) => { noiseHit(t, { f: 3200 * k, q: 4, vol: 1.6, len: 0.025 }); }],
+    ["felt", "Felt Thud", "🟩", (t, k) => { noiseHit(t, { f: 320 * k, type: "lowpass", q: 0.7, vol: 2.2, len: 0.08 }); ring(t, [95 * k], { decay: 0.07, vol: 0.12 }); }],
+    ["bell", "Bell", "🔔", (t, k) => { ring(t, [880 * k, 2210 * k, 3720 * k], { decay: 0.6, vol: 0.06 }); }],
+    ["chime", "Chime", "🎐", (t, k) => { ring(t, [1320 * k, 1980 * k], { decay: 0.45, vol: 0.09 }); }],
+    ["xylophone", "Xylophone", "🎼", (t, k) => { ring(t, [784 * k, 3136 * k], { decay: 0.25, vol: 0.09 }); }],
+    ["marimba", "Marimba", "🪘", (t, k) => { ring(t, [392 * k, 1568 * k], { decay: 0.3, vol: 0.11 }); }],
+    ["piano", "Piano", "🎹", (t, k) => { ring(t, [523 * k, 1046 * k, 1569 * k], { decay: 0.55, vol: 0.08, attack: 0.004 }); }],
+    ["harp", "Harp", "🪕", (t, k) => { ring(t, [659 * k, 1318 * k], { decay: 0.5, vol: 0.11, type: "triangle" }); }],
+    ["drum", "Drum", "🥁", (t, k) => { sweep(t, 190 * k, 85 * k, { len: 0.18, vol: 0.28 }); noiseHit(t, { f: 900, q: 0.8, vol: 0.5, len: 0.03 }); }],
+    ["snare", "Snare", "🪇", (t, k) => { noiseHit(t, { f: 1800 * k, type: "highpass", q: 0.7, vol: 0.22, len: 0.1, curve: 3 }); sweep(t, 220 * k, 160 * k, { len: 0.06, vol: 0.12 }); }],
+    ["clap", "Clap", "👏", (t, k) => { [0, 0.012, 0.026].forEach(d => noiseHit(t + d, { f: 1400 * k, q: 1, vol: 0.9, len: 0.03 })); }],
+    ["typewriter", "Typewriter", "⌨️", (t, k) => { noiseHit(t, { f: 4200 * k, q: 3, vol: 0.9, len: 0.015 }); noiseHit(t + 0.012, { f: 220 * k, type: "lowpass", vol: 1.5, len: 0.04 }); }],
+    ["pingpong", "Ping Pong", "🏓", (t, k) => { ring(t, [1040 * k], { decay: 0.06, vol: 0.28 }); noiseHit(t, { f: 2000, q: 2, vol: 0.4, len: 0.01 }); }],
+    ["bubble", "Bubble Pop", "🫧", (t, k) => { sweep(t, 300 * k, 900 * k, { len: 0.07, vol: 0.24 }); }],
+    ["water", "Water Drop", "💧", (t, k) => { sweep(t, 1400 * k, 600 * k, { len: 0.1, vol: 0.22 }); }],
+    ["laser", "Laser", "🔫", (t, k) => { sweep(t, 1600 * k, 220 * k, { len: 0.14, vol: 0.2, type: "sawtooth" }); }],
+    ["retro", "8-Bit Blip", "👾", (t, k) => { ring(t, [880 * k], { decay: 0.05, vol: 0.13, type: "square" }); ring(t + 0.045, [1320 * k], { decay: 0.06, vol: 0.13, type: "square" }); }],
+    ["space", "Space", "🚀", (t, k) => { sweep(t, 420 * k, 1250 * k, { len: 0.16, vol: 0.12 }); ring(t + 0.08, [1250 * k], { decay: 0.2, vol: 0.04 }); }],
+  ].map(([id, name, icon, play]) => ({ id, name, icon, play }));
+  const moveSound = () => SOUNDS.find(x => x.id === prefs.moveSound) || SOUNDS[0];
+  function playMoveSound(id, capture) {
+    if (!actx) return;
+    const snd = SOUNDS.find(x => x.id === id) || SOUNDS[0], t = actx.currentTime;
+    if (capture) { snd.play(t, 0.82); snd.play(t + 0.045, 1.0); } else snd.play(t, 1);
+  }
   function sound(kind) {
     if (!prefs.sound || !actx) return;
     try {
       const t = actx.currentTime;
-      if (kind === "move") knock(t, 900, 1.6, 0.07);
-      else if (kind === "capture") { knock(t, 600, 2.2, 0.09); knock(t + 0.05, 1200, 1.4, 0.06); }
-      else if (kind === "check") { knock(t, 900, 1.6, 0.07); tone(t + 0.02, 880, 0.15); tone(t + 0.12, 660, 0.2); }
+      if (kind === "move") playMoveSound(prefs.moveSound, false);
+      else if (kind === "capture") playMoveSound(prefs.moveSound, true);
+      else if (kind === "check") { playMoveSound(prefs.moveSound, false); tone(t + 0.02, 880, 0.15); tone(t + 0.12, 660, 0.2); }
       else if (kind === "brilliant") {
         [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(t + i * 0.07, f, 0.35, 0.1));
         [2093, 2637, 3136].forEach((f, i) => tone(t + 0.45 + i * 0.05, f, 0.25, 0.05));
@@ -1999,6 +2066,7 @@ function engineFactory() {
     const c = e.target.closest(".chip"); if (!c) return;
     const [kind, a, b] = c.dataset.key.split(":");
     if (kind === "soc") { soc.tab = a; renderSocialMain(); return; }
+    if (kind === "sn") { prefs.moveSound = a; store.set("chess-prefs", prefs); audioUnlock(); playMoveSound(a, false); setTimeout(() => playMoveSound(a, true), 420); paintStyle(); const i = buttonsOf("styleOv").findIndex(x => x.dataset.key === c.dataset.key); if (i >= 0) focusIdx = i; paintFocus(); return; }
     if (kind === "st" || kind === "bd" || kind === "ps") {
       if (kind === "st") styleTab = a;
       if (kind === "bd") { prefs.board = a; applyBoard(); }
@@ -2383,6 +2451,7 @@ function engineFactory() {
     }
     $("curBoard").textContent = boardById(prefs.board).name;
     $("curPieces").textContent = pieceSet().name;
+    $("curSound").textContent = moveSound().name;
     for (const b of document.querySelectorAll("[data-pref]")) {
       const k = b.dataset.pref, v = prefs[k], el = b.querySelector("b");
       if (prefText[k]) { el.className = ""; el.textContent = prefText[k](v); }
@@ -2424,9 +2493,11 @@ function engineFactory() {
   const miniBoard = (b, pieces) => `<span class="minib">${pieces.map((p, i) => { const l = ((i % 3) + (i / 3 | 0)) % 2 === 0;
       return `<i style="background-color:${l ? b.light : b.dark};background-image:${l ? b.lightImg : b.darkImg};background-position:${(i * 37) % 100}% ${(i * 53) % 100}%">${p}</i>`; }).join("")}</span>`;
   function paintStyle() {
-    $("styleTitle").textContent = styleTab === "boards" ? "Boards" : "Pieces";
-    $("styleTabs").innerHTML = chip("st:boards", "Boards (" + BOARDS.length + ")", styleTab === "boards") + chip("st:pieces", "Pieces (" + PIECESETS.length + ")", styleTab === "pieces");
-    const tiles = styleTab === "boards"
+    $("styleTitle").textContent = { boards: "Boards", pieces: "Pieces", sounds: "Move Sounds" }[styleTab];
+    $("styleTabs").innerHTML = chip("st:boards", "Boards", styleTab === "boards") + chip("st:pieces", "Pieces", styleTab === "pieces") + chip("st:sounds", "Sounds", styleTab === "sounds");
+    const tiles = styleTab === "sounds"
+      ? SOUNDS.map(x => chip("sn:" + x.id, `<span class="sndic">${x.icon}</span><small>${x.name}</small>`, prefs.moveSound === x.id))
+      : styleTab === "boards"
       ? BOARDS.map(b => chip("bd:" + b.id, miniBoard(b, ["", pieceHTML("k"), "", pieceHTML("P"), "", pieceHTML("n"), "", pieceHTML("Q"), ""]) + `<small>${b.name}</small>`, prefs.board === b.id))
       : PIECESETS.map(ps => chip("ps:" + ps.id, miniBoard(boardById(prefs.board), [pieceHTML("k", ps.id), pieceHTML("q", ps.id), pieceHTML("n", ps.id), "", "", "", pieceHTML("N", ps.id), pieceHTML("Q", ps.id), pieceHTML("K", ps.id)]) + `<small>${ps.name}</small>`, prefs.pieces === ps.id));
     let h = "";
@@ -2512,7 +2583,7 @@ function engineFactory() {
       case "rematch": if (mode === "online") { onlineRematch(); break; } newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
       case "newgame": if (mode === "online" && online && !result) { if (!confirm("Leave this online game? You will resign.")) break; onlineResign(); } showSetup(); break;
       case "settings": settingsReturn = openOverlay() || "pauseOv"; paintOptions(); show("settingsOv"); break;
-      case "styleBoards": case "stylePieces": styleTab = a === "styleBoards" ? "boards" : "pieces"; paintStyle(); show("styleOv"); break;
+      case "styleBoards": case "stylePieces": case "styleSounds": styleTab = { styleBoards: "boards", stylePieces: "pieces", styleSounds: "sounds" }[a]; paintStyle(); show("styleOv"); break;
       case "styleDone": paintOptions(); show("settingsOv"); break;
       case "settingsDone": if (settingsReturn === "setupOv" || !mode) showSetup(); else { hideAll(); refresh(); } break;
       case "review": hideAll(); goTo(0); break;
@@ -2722,7 +2793,7 @@ function engineFactory() {
 
   // exposed for automated tests
   window.__chess = {
-    E, LEVELS, setup, prefs,
+    E, LEVELS, setup, prefs, SOUNDS, _setAudio(ctx) { actx = ctx; },
     perft(s, d) { if (d === 0) return 1; let n = 0; for (const m of E.legalMoves(s)) n += this.perft(E.makeMove(s, m), d - 1); return n; },
     get state() { return state; }, get mode() { return mode; }, get result() { return result; },
     get selected() { return selected; }, get cursor() { return cursor; }, get thinking() { return thinking; },
