@@ -481,6 +481,8 @@
   .plusb.acc { background: linear-gradient(180deg, #ffd84a, #e0a000); box-shadow: 0 3px 0 #8a5300; font-size: 1.3rem; }
   .plusb.fr { background: rgba(255,255,255,.12); box-shadow: none; font-size: 1.1rem; }
   .plusb.focus { outline: 4px solid #3fa9ff; outline-offset: 2px; }
+  .offnote { text-align: left; background: rgba(255,180,60,.18); border: 2px solid rgba(255,190,80,.7); border-radius: 14px; padding: 10px 12px; font-size: .88rem; line-height: 1.35; margin-bottom: 10px; }
+  .offnote .mini { display: block; margin: 8px 0 0; min-height: 38px; width: auto; padding: 0 14px; }
   .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
   .empty.sm { padding: 8px; font-size: .85rem; }
   small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
@@ -7275,19 +7277,21 @@ function engineFactory() {
     $("socialBody").innerHTML = `<div class="empty">Loading…</div>`;
     try { const j = await api("me"); setMe(j.me); soc.rank = j.rank; if (j.me.msgPolicy && prefs.msgPolicy !== j.me.msgPolicy) { prefs.msgPolicy = j.me.msgPolicy; store.set("chess-prefs", prefs); } renderSocialMain(); pollInbox(); }
     catch (e) {
-      if (e.code === "no_user") { setMe(null); renderSignup(); }
-      else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p>${e.code === "not_configured" || e.code === "no_server" ? `<p class="netnote">The owner needs to connect the online database. Until then you can still play bots and friends on this device.</p>` : ""}<button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
+      if (e.code === "no_user") { soc.offline = null; setMe(null); renderSignup(); }
+      else if (e.code === "not_configured" || e.code === "no_server" || e.code === "offline") { soc.offline = e.code; renderSignup(); }
+      else $("socialBody").innerHTML = `<div class="sect"><p class="netnote">${esc(e.msg)}</p><button class="btn alt" data-dact="socialRetry">Try again</button></div>`;
     }
   }
+  const offlineNote = () => !soc.offline ? "" : `<div class="offnote">⚠️ <b>${soc.offline === "offline" ? "You're offline." : "Online accounts aren't switched on yet."}</b> ${soc.offline === "offline" ? "Connect to the internet to create your user." : "The game owner needs to connect the online database in Vercel. You can still build your character now!"}<button class="mini" data-dact="socialRetry">🔄 Try again</button></div>`;
   function renderSignup(msg, open) {
     if (!open && !msg) {
-      $("socialBody").innerHTML = `<div class="sect" style="text-align:center"><div class="lbl">No user yet</div>
+      $("socialBody").innerHTML = offlineNote() + `<div class="sect" style="text-align:center"><div class="lbl">No user yet</div>
         <p class="netnote" style="margin:4px 0 12px">Make your user to get on the leaderboard, add friends, send messages and play online.</p>
         <button class="btn play adduser" data-dact="addUser"><span class="plusic">＋</span><span>Add User</span></button></div>`;
       return;
     }
     if (!lookEdit) lookEdit = randLook();
-    $("socialBody").innerHTML = `<div class="sect"><div class="lbl">➕ Add User</div>
+    $("socialBody").innerHTML = offlineNote() + `<div class="sect"><div class="lbl">➕ Add User</div>
       <input class="sinput" id="suName" maxlength="16" placeholder="Pick a username" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
       <div class="su-err" id="suErr">${msg ? esc(msg) : ""}</div>
       <button class="btn alt" data-dact="nickGen" style="min-height:46px;font-size:1rem">🎲 Nickname generator</button>
@@ -7315,7 +7319,7 @@ function engineFactory() {
         if (seq !== nameSeq) return;
         if (j.free) { err.textContent = "✅ That name is free!"; err.className = "su-err good"; }
         else err.textContent = j.why === "censored" ? "🚫 You can't use this name. Make a friendly one!" : "❌ That name is already taken. Try another one!";
-      } catch (e) { if (seq === nameSeq) { err.textContent = "Looks good!"; err.className = "su-err good"; } }
+      } catch (e) { if (seq === nameSeq) { err.textContent = "Looks good! (can't check if it's taken until online is on)"; err.className = "su-err good"; } }
     }, 350);
   }
   async function doSignup() {
