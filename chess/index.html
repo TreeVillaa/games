@@ -223,6 +223,7 @@
     background: #fff; color: #1b1b2a; font-weight: 800; font-size: .82rem; line-height: 1.2; box-shadow: 0 6px 16px rgba(0,0,0,.35); pointer-events: none; transition: opacity .3s; }
   .botsay::before { content: ""; position: absolute; left: 10px; top: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: #fff; }
   .botsay.hidden { display: block; opacity: 0; }
+  .botsay.shout { font-size: .9rem; color: #c62828; }
   .botsay.pop { animation: sayPop .35s cubic-bezier(.3,1.5,.5,1); }
   @keyframes sayPop { from { transform: scale(.6) translateY(-6px); opacity: 0; } }
   .player.turn .name { opacity: 1; }
@@ -6120,11 +6121,37 @@ function engineFactory() {
     lose: ["Okay, okay, you got me. Rematch!", "Chess is so hard, man. GG!", "I'll practice for six more minutes and come back."],
     draw: ["A draw? So we both won?"],
   };
+  // Personality lines (made up, in the style each creator is known for; no real quotes or catchphrases)
+  const PERSONA_LINES = {
+    "IShowSpeed": { start: ["LET'S GOOO! FASTEST CHESS PLAYER EVER!", "CHAT! WE'RE PLAYING CHESS! LET'S GO!"], botCapture: ["GOOOAL! I TOOK YOUR PIECE!", "YEAHHH! WHAT A STRIKE!"], youCapture: ["NOOO! WHY WOULD YOU DO THAT?!", "BRO! THAT'S A FOUL! REF!"], gotChecked: ["WHAT?! LEAVE MY KING ALONE!"], lose: ["THIS GAME IS RIGGED! REMATCH!", "NAH NAH NAH, I WASN'T READY!"], win: ["I'M THE GOAT! I'M THE GOAT OF CHESS!"] },
+    "MrBeast": { start: ["If you beat me, I'll give you... two whole pawns!", "Last one to lose a queen wins!"], botCapture: ["That piece is now part of the challenge!", "I'm buying that piece. How much?"], youCapture: ["Hey! That was a million-dollar piece!"], lose: ["You win the challenge! Congratulations!"], win: ["I won? Okay, now give everyone a prize!"] },
+    "Mark Rober": { start: ["Let's apply a little science to this game.", "Okay, time to engineer a win."], botCapture: ["Engineering at work!", "Science says that piece is mine."], youCapture: ["Interesting. My hypothesis was wrong.", "Huh. That wasn't in my calculations."], lose: ["Experiment failed. But I learned a lot!"], win: ["The data doesn't lie. Science wins!"] },
+    "MKBHD": { start: ["Alright, let's review this opening.", "Clean board, crisp pieces. Let's play."], botCapture: ["Super clean capture.", "That's a smooth one."], youCapture: ["That's a big downgrade for my bishop.", "Hmm. Not a great look for me."], lose: ["Final verdict: you win. Solid ten out of ten."], win: ["Overall? I'd say this game is worth it."] },
+    "Dude Perfect": { start: ["Trick-shot chess, let's go!", "Bet I can win this blindfolded. Maybe not."], botCapture: ["Nothing but net!", "Bank shot off the bishop!"], youCapture: ["Missed the shot!", "Airball! Brutal!"], lose: ["Overtime loss. Good game!"], win: ["Perfect! Just like the name!"] },
+    "Markiplier": { start: ["Welcome to the scariest game of all... chess.", "Okay. Don't be scared. It's just chess."], gotChecked: ["AAAH! Jump scare!", "Nope. Nope, nope, nope!"], youCapture: ["Why would you do that?! That's terrifying!"], botCapture: ["Ha! Didn't see that coming, did you?"], lose: ["I've been defeated. This is a horror game."], win: ["I survived! I actually survived!"] },
+    "Jacksepticeye": { start: ["Hello everybody! Let's play some chess!", "Oh, I'm so excited for this one!"], botCapture: ["Yes! Get in there!", "Oh, that's mine now, baby!"], youCapture: ["Oh no no no no no!", "Ah, you sneaky little thing!"], lose: ["Ah, you got me! Fair play, good game!"], win: ["I DID IT! I can't believe it!"] },
+    "KSI": { start: ["Round one. Let's box.", "I'm coming in swinging!"], botCapture: ["Knockout!", "Down goes your piece!"], youCapture: ["That's a cheap shot!", "Okay, that one hurt."], lose: ["You got me with the uppercut. Rematch!"], win: ["Undefeated! Who's next?"] },
+    "Kai Cenat": { start: ["Chat, we're playing chess today! This is crazy!", "Yo, I'm locked in. Let's go!"], botCapture: ["Chat, I took a piece! Let's go!"], youCapture: ["CHAT! Did you see that?!", "Nah, bro, that's crazy!"], lose: ["Chat, I'm not even mad. GG."], win: ["WE DID IT, CHAT! WE DID IT!"] },
+    "Airrack": { start: ["Today's challenge: win one game of chess!", "This is the biggest chess game ever. Maybe."], botCapture: ["Challenge progress: one piece!"], youCapture: ["Wait, that wasn't in the plan!"], lose: ["Challenge failed. Gotta go bigger next time!"], win: ["Challenge complete! Let's goooo!"] },
+    "Preston": { start: ["Let's build the ultimate chess base!", "Time to build a fortress!"], botCapture: ["That piece is going in my collection!"], youCapture: ["Hey! That was part of my build!", "My castle! You broke my castle!"], lose: ["Base destroyed. Good game!"], win: ["Best build ever! I win!"] },
+    "PewDiePie": { start: ["Alright, let's do this. Chess time.", "Okay. I've watched one chess video. I'm ready."], botCapture: ["Easy. Too easy.", "Wow, I'm actually good at this."], youCapture: ["Wait, what? Since when can it do that?"], lose: ["Okay, that was humbling. Good game."], win: ["I'm a genius. Everyone, I'm a genius."] },
+  };
+  // Generated-voice style per bot: accent (if the phone has it), speed, pitch, energy
+  const VOICE_STYLE = {
+    "IShowSpeed": { rate: 1.35, pitch: 1.25, shout: 1 }, "Kai Cenat": { rate: 1.25, pitch: 1.1 }, "MrBeast": { rate: 1.18, pitch: 1.05 },
+    "Mark Rober": { rate: 1.05, pitch: 1.02 }, "MKBHD": { rate: .92, pitch: .82 }, "Dude Perfect": { rate: 1.12, pitch: .98 },
+    "Markiplier": { rate: .96, pitch: .72 }, "Jacksepticeye": { lang: "en-IE", rate: 1.28, pitch: 1.2 }, "KSI": { lang: "en-GB", rate: 1.12, pitch: .9 },
+    "Airrack": { rate: 1.2, pitch: 1.05 }, "Preston": { rate: 1.18, pitch: 1.12 }, "PewDiePie": { rate: 1.05, pitch: .95 },
+    "Simon Williams": { lang: "en-GB", rate: 1.1 }, "Jude Bellingham": { lang: "en-GB" }, "Paul Morphy": { rate: .9 },
+    "Samay Raina": { lang: "en-IN", rate: 1.1 }, "Tania Sachdev": { lang: "en-IN" }, "Gukesh D": { lang: "en-IN" }, "Praggnanandhaa R": { lang: "en-IN" },
+    "Arjun Erigaisi": { lang: "en-IN" }, "Viswanathan Anand": { lang: "en-IN", rate: .95 }, "Priya": { lang: "en-IN" },
+    "Ben Finegold": { rate: .85, pitch: .8 }, "GothamChess": { rate: 1.15, pitch: 1 }, "Eric Rosen": { rate: .95, pitch: 1.05 },
+  };
   const NOOBS = new Set(["MrBeast", "Mark Rober", "Dude Perfect", "MKBHD", "PewDiePie", "IShowSpeed", "Markiplier", "Jacksepticeye", "KSI", "Kai Cenat", "Airrack", "Preston"]);
   const talkPrefs = () => mode === "cpu" && prefs.botTalk;
   let talkUntil = 0, lastLines = [], talkTimer = null;
   function pickLine(ev) {
-    const b = LEVELS[level], own = OWN_LINES[b.name] || {}, cat = NOOBS.has(b.name) ? NOOB_LINES : TALK[b.cat] || {};
+    const b = LEVELS[level], own = OWN_LINES[b.name] || PERSONA_LINES[b.name] || {}, cat = NOOBS.has(b.name) ? NOOB_LINES : TALK[b.cat] || {};
     const pool = [...(own[ev] || []), ...(cat[ev] || []), ...((own[ev] || cat[ev]) ? [] : TALK.generic[ev] || [])];
     const fresh = pool.filter(l => !lastLines.includes(l));
     const list = fresh.length ? fresh : pool;
@@ -6138,20 +6165,24 @@ function engineFactory() {
     lastLines = [line, ...lastLines].slice(0, 6);
     talkUntil = now + 2600;
     const el = $("botSay");
-    el.textContent = line; el.classList.remove("hidden"); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
+    el.textContent = line; el.classList.toggle("shout", !!(VOICE_STYLE[LEVELS[level].name] || {}).shout); el.classList.remove("hidden"); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
     clearTimeout(talkTimer); talkTimer = setTimeout(() => el.classList.add("hidden"), Math.max(2600, line.length * 75));
     speak(line, level);
   }
   // ---- generated voices ----
   let voices = [];
   const loadVoices = () => { try { voices = speechSynthesis.getVoices().filter(v => /^en/i.test(v.lang)); } catch (e) { voices = []; } };
+  const accentOf = v => (v.lang || "").replace("_", "-").toLowerCase();
   if ("speechSynthesis" in window) { loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
-  const FEM_V = /female|samantha|victoria|karen|moira|tessa|fiona|zira|susan|serena|allison|ava|kate|libby|sonia|aria|jenny|hazel|emma|joanna|salli|kendra/i;
-  const MALE_V = /\bmale|daniel|alex\b|fred|david|mark|george|ryan|guy|tom\b|oliver|rishi|aaron|arthur|gordon|james|matthew|brian|christopher|eric/i;
+  const FEM_V = /female|samantha|victoria|karen|moira|veena|lekha|neerja|tessa|fiona|zira|susan|serena|allison|ava|kate|libby|sonia|aria|jenny|hazel|emma|joanna|salli|kendra/i;
+  const MALE_V = /\bmale|daniel|alex\b|fred|david|mark|george|ryan|guy|tom\b|oliver|rishi|connor|prabhat|aaron|arthur|gordon|james|matthew|brian|christopher|eric/i;
   function voiceFor(i) {
     const b = LEVELS[i], P = PEOPLE[b.name] || {}, hash = [...b.name].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7);
-    const fem = !!P.fem, set = voices.filter(v => (fem ? FEM_V : MALE_V).test(v.name) && !(fem ? MALE_V : FEM_V).test(v.name.replace(/female/i, "")));
-    const list = set.length ? set : voices;
+    const ST = VOICE_STYLE[b.name] || {};
+    const pool = ST.lang && voices.some(v => accentOf(v) === ST.lang.toLowerCase()) ? voices.filter(v => accentOf(v) === ST.lang.toLowerCase())
+      : voices.filter(v => /^en-(us|gb|au|ca)/.test(accentOf(v))).length ? voices.filter(v => /^en-(us|gb|au|ca)/.test(accentOf(v))) : voices;
+    const fem = !!P.fem, set = pool.filter(v => (fem ? FEM_V : MALE_V).test(v.name) && !(fem ? MALE_V : FEM_V).test(v.name.replace(/female/i, "")));
+    const list = set.length ? set : pool;
     const kid = b.cat === "bots" && b.elo <= 300;
     let pitch = fem ? 1.12 : .92, rate = 1;
     if (kid) { pitch = 1.45; rate = 1.08; }
@@ -6160,7 +6191,9 @@ function engineFactory() {
     if (b.cat === "youtubers") rate = 1.1;
     if (b.cat === "football" || b.cat === "soccer") rate = 1.05;
     pitch += ((hash % 9) - 4) * .025;
-    return { voice: list.length ? list[hash % list.length] : null, pitch, rate };
+    if (ST.rate) rate = ST.rate;
+    if (ST.pitch) pitch = ST.pitch;
+    return { voice: list.length ? list[hash % list.length] : null, pitch, rate, shout: ST.shout };
   }
   function speak(text, i) {
     if (!prefs.sound || !prefs.botVoice || !("speechSynthesis" in window)) return;
@@ -6168,7 +6201,7 @@ function engineFactory() {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text), v = voiceFor(i);
       if (v.voice) u.voice = v.voice;
-      u.pitch = Math.max(0, Math.min(2, v.pitch)); u.rate = v.rate; u.volume = .95; u.lang = v.voice ? v.voice.lang : "en-US";
+      u.pitch = Math.max(0, Math.min(2, v.pitch + (Math.random() - .5) * .08)); u.rate = v.rate; u.volume = v.shout ? 1 : .95; u.lang = v.voice ? v.voice.lang : "en-US";
       speechSynthesis.speak(u);
     } catch (e) {}
   }
