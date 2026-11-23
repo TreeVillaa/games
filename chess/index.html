@@ -38,6 +38,12 @@
   .pill:active { transform: translateY(2px); }
   .pill:disabled { opacity: .3; }
   .bottom .pill { flex: 1; padding: 10px 4px; font-size: 1.05rem; }
+  .bar.hidden, .pill.hidden { display: none; }
+  .rewind .pill { flex-direction: column; gap: 1px; padding: 4px 2px; line-height: 1; }
+  .rewind .pill small { font-size: .72rem; font-weight: 800; opacity: .85; }
+  .rewind .pill .ic { font-size: 1.15rem; }
+  .rewind #playHereBtn { flex: 1.5; background: linear-gradient(135deg, #7ee08f, #3fb56b); color: #10301a; }
+  .pill.wide { flex: 1.6 !important; }
   #status {
     flex: 1; text-align: center; font-weight: 800; font-size: 1.05rem;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -82,7 +88,8 @@
   .sq.last.l { background: var(--lastL); }
   .sq.last.d { background: var(--lastD); }
   .sq.sel { background: #7fc97f !important; }
-  .sq.hover { box-shadow: inset 0 0 0 4px rgba(255,255,255,.8); }
+  .sq.hover { box-shadow: inset 0 0 0 4px rgba(255,255,255,.9); }
+  #board.dragging { overflow: visible; }
   .sq.cur { box-shadow: inset 0 0 0 4px #3fa9ff, inset 0 0 0 6px #fff; }
   .sq.check::before {
     content: ""; position: absolute; inset: 0; pointer-events: none;
@@ -109,8 +116,14 @@
   .coord.r { left: 3px; top: 1px; }
   .sq.l .coord { color: var(--dark); } .sq.d .coord { color: var(--light); }
   html.nocoords .coord { display: none; }
-  #ghost { position: fixed; z-index: 20; pointer-events: none; display: none; transform: translate(-50%, -65%); }
-  #ghost .pc { font-size: calc(var(--board) / 8 * 1.15); }
+  #ghost { position: fixed; z-index: 20; pointer-events: none; display: none; transform: translate(-50%, -60%); }
+  #ghost.touch { transform: translate(-50%, -105%); }   /* lift the piece above the finger so you can see it */
+  #ghost .pc { font-size: calc(var(--board) / 8 * 1.45); filter: drop-shadow(0 10px 8px rgba(0,0,0,.45)); animation: lift .12s ease-out; }
+  @keyframes lift { from { transform: scale(.7); } to { transform: scale(1); } }
+  .sq.hover::after {
+    content: ""; position: absolute; inset: -40%; border-radius: 50%; z-index: 2; pointer-events: none;
+    background: rgba(255,255,255,.35); border: 3px solid rgba(255,255,255,.9); width: auto; height: auto;
+  }
   #moves {
     width: var(--board); height: 40px; display: flex; align-items: center; gap: 2px;
     overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none;
@@ -246,12 +259,21 @@
     <div class="player" id="pBot"><span class="name"></span><span class="caps"></span><span class="clock"></span></div>
     <div id="moves"></div>
   </div>
-  <div class="bar bottom">
+  <div class="bar bottom" id="mainBar">
     <button class="pill" id="backBtn" aria-label="Previous move">◀</button>
     <button class="pill" id="fwdBtn" aria-label="Next move">▶</button>
+    <button class="pill wide hidden" id="rewindBtn">⏪ Rewind</button>
     <button class="pill" id="hintBtn" aria-label="Hint">💡</button>
     <button class="pill" id="undoBtn" aria-label="Take back">↶</button>
     <button class="pill" id="flipBtn" aria-label="Flip board">⇅</button>
+  </div>
+  <!-- Rewind controls (games against the computer) -->
+  <div class="bar bottom rewind hidden" id="rewindBar">
+    <button class="pill" id="rwStartBtn"><span class="ic">⏮</span><small>Start</small></button>
+    <button class="pill" id="rwBackBtn"><span class="ic">◀</span><small>Back</small></button>
+    <button class="pill" id="rwFwdBtn"><span class="ic">▶</span><small>Forward</small></button>
+    <button class="pill" id="rwNowBtn"><span class="ic">⏭</span><small>Back to now</small></button>
+    <button class="pill" id="playHereBtn"><span class="ic">✅</span><small>Play from here</small></button>
   </div>
 </div>
 <div id="ghost"></div>
@@ -268,7 +290,7 @@
     <button class="btn" data-act="start" id="startBtn">Start game</button>
     <button class="btn alt" data-act="settings">⚙️ Settings</button>
   </div>
-  <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB step through moves, Start for menu.</p>
+  <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -862,6 +884,7 @@ function engineFactory() {
     return true;
   }
   function tapSquare(sq) {
+    if (viewIdx !== null && mode === "cpu") { toast("Tap ✅ Play from here to continue from this spot, or ⏭ to go back to now"); return; }
     if (viewIdx !== null) { viewIdx = null; refresh(); requestEval(); return; }
     if (result) { showOver(); return; }
     if (!canAct()) return;
@@ -1022,7 +1045,7 @@ function engineFactory() {
 
     let st;
     if (!mode) st = "Chess";
-    else if (!live) st = `🔎 Move ${viewIdx} of ${history.length}`;
+    else if (!live) st = `${mode === "cpu" ? "⏪" : "🔎"} Move ${viewIdx} of ${history.length}`;
     else if (result) st = result.title;
     else if (thinking) st = "🤖 Thinking…";
     else if (mode === "two") st = (state.turn === "w" ? "⚪ White" : "⚫ Black") + " to move";
@@ -1032,6 +1055,11 @@ function engineFactory() {
     $("undoBtn").disabled = !history.length || (mode === "cpu" && history.length === 1 && humanColor === "b");
     $("backBtn").disabled = !history.length || viewIdx === 0;
     $("fwdBtn").disabled = live;
+    const cpu = mode === "cpu", rewinding = cpu && !live;
+    $("backBtn").classList.toggle("hidden", cpu); $("fwdBtn").classList.toggle("hidden", cpu);
+    $("rewindBtn").classList.toggle("hidden", !cpu); $("rewindBtn").disabled = !history.length;
+    $("mainBar").classList.toggle("hidden", rewinding); $("rewindBar").classList.toggle("hidden", !rewinding);
+    $("rwStartBtn").disabled = $("rwBackBtn").disabled = viewIdx === 0;
     $("hintBtn").disabled = !canAct();
   }
 
@@ -1066,6 +1094,7 @@ function engineFactory() {
       drag = { sq, id: e.pointerId, x: e.clientX, y: e.clientY, moved: false, wasSel: wasSel === sq, over: sq };
       try { boardEl.setPointerCapture(e.pointerId); } catch (err) {}
       ghost.innerHTML = `<span class="pc ${state.turn}">${glyph(state.b[sq])}</span>`;
+      ghost.classList.toggle("touch", e.pointerType !== "mouse");
     }
     refresh();
   });
@@ -1075,13 +1104,14 @@ function engineFactory() {
     const first = !drag.moved;
     drag.moved = true;
     ghost.style.display = "block";
+    boardEl.classList.add("dragging");
     ghost.style.left = e.clientX + "px"; ghost.style.top = e.clientY + "px";
     const over = squareAt(e.clientX, e.clientY);
     if (first || over !== drag.over) { drag.over = over; refresh(); }
   });
   function endDrag(e, cancel) {
     if (!drag || e.pointerId !== drag.id) return;
-    const d = drag; drag = null; ghost.style.display = "none";
+    const d = drag; drag = null; ghost.style.display = "none"; boardEl.classList.remove("dragging");
     if (cancel) { refresh(); return; }
     if (d.moved) {
       const to = squareAt(e.clientX, e.clientY);
@@ -1104,6 +1134,30 @@ function engineFactory() {
   }
   const stepBack = () => goTo((viewIdx === null ? history.length : viewIdx) - 1);
   const stepFwd = () => { if (viewIdx !== null) goTo(viewIdx + 1); };
+
+  // ================= Rewind (games against the computer) =================
+  // Step back through the game, then either jump back to now or carry on
+  // playing from the earlier position (the later moves are thrown away).
+  function playFromHere() {
+    if (viewIdx === null || mode !== "cpu") return;
+    const k = viewIdx;
+    stopAI(); cancelSearch("help");
+    const h = history[k];
+    state = h.state;
+    if (h.clocks) clocks = { ...h.clocks };
+    history = history.slice(0, k);
+    viewIdx = null; selected = -1; hintArrow = null; pendingPromo = null;
+    checkGameOver();
+    hideAll(); save(); refresh(); requestEval();
+    toast(state.turn === humanColor ? "⏪ Rewound! Your move." : "⏪ Rewound! The computer moves next.");
+    maybeAI();
+  }
+  $("rewindBtn").addEventListener("click", () => goTo(history.length - 1));
+  $("rwStartBtn").addEventListener("click", () => goTo(0));
+  $("rwBackBtn").addEventListener("click", () => stepBack());
+  $("rwFwdBtn").addEventListener("click", () => stepFwd());
+  $("rwNowBtn").addEventListener("click", () => goTo(history.length));
+  $("playHereBtn").addEventListener("click", playFromHere);
 
   // ================= Opening names =================
   const OPENINGS = {
@@ -1492,6 +1546,7 @@ function engineFactory() {
       return;
     }
     if (btn === "A") {
+      if (viewIdx !== null && mode === "cpu") { playFromHere(); return; }
       if (viewIdx !== null) { viewIdx = null; refresh(); requestEval(); return; }
       if (result) { showOver(); return; }
       if (selected >= 0 && cursor !== selected && tryMove(selected, cursor, true)) return;
