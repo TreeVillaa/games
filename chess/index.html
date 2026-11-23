@@ -432,7 +432,11 @@
 
   /* ---- Puzzles & Learn ---- */
   #status.wrap { white-space: normal; font-size: .9rem; line-height: 1.15; }
+  .statlogo { width: 34px; height: 28px; flex: none; }
+  .btn.half .statlogo { width: 30px; height: 25px; }
   .btn.half { flex: 1; min-height: 58px; font-size: 1.1rem; gap: 8px; }
+  .menu.trio .btn.half { flex-direction: column; gap: 3px; min-width: 0; padding: 8px 4px; font-size: 1.02rem; min-height: 74px; }
+  .menu.trio .btn.half .statlogo { width: 34px; height: 28px; }
   .pzcard { text-align: left; padding: 14px; border-radius: 20px; border: 3px solid rgba(126,224,143,.75);
     background: linear-gradient(160deg, rgba(40,160,100,.92), rgba(16,90,70,.95)); box-shadow: 0 6px 0 rgba(0,0,0,.25); }
   .pzbig { font-size: 2rem; font-weight: 900; }
@@ -481,6 +485,24 @@
   .rvtable td { padding: 3px 4px; text-align: center; }
   .rvtable td:first-child { text-align: left; }
   .rvkey { display: flex; flex-direction: column; gap: 6px; max-height: 26vh; overflow-y: auto; }
+
+  /* ---- Stats ---- */
+  .statlogo.big { width: 56px; height: 46px; }
+  .stgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .stcard { background: rgba(255,255,255,.1); border-radius: 14px; padding: 9px 4px; border: 2px solid rgba(255,255,255,.1); }
+  .stcard b { display: block; font-size: 1.45rem; font-weight: 900; }
+  .stcard small { font-size: .72rem; font-weight: 700; opacity: .8; }
+  .stsect { text-align: left; background: rgba(255,255,255,.08); border-radius: 16px; padding: 10px 12px; }
+  .stsect .lbl { margin: 0 0 6px; }
+  .wlbar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; background: rgba(0,0,0,.3); margin: 4px 0 2px; }
+  .wlbar i { display: block; height: 100%; }
+  .strow { display: flex; justify-content: space-between; align-items: center; font-weight: 800; margin-top: 6px; }
+  .strow small { font-weight: 700; opacity: .8; }
+  .stcls { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 12px; font-weight: 800; font-size: .9rem; }
+  .stcls span { display: flex; align-items: center; gap: 6px; }
+  .stcls em { margin-left: auto; font-style: normal; font-variant-numeric: tabular-nums; }
+  .elochart { width: 100%; height: 70px; border-radius: 10px; background: rgba(0,0,0,.25); margin-top: 6px; }
+  .pos { color: #7ee08f; } .neg { color: #ff8a8a; }
 
   /* ---- Intro / loading screen ---- */
   #splash {
@@ -626,8 +648,9 @@
     <button class="btn" id="contBtn" data-act="continue">▶ Continue game</button>
     <button class="btn play" data-act="playBots" id="startBtn"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</button>
     <button class="btn alt play" data-act="playLive"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg><span>Play Live<small>Same Device</small></span></button>
-    <div class="menu row" style="margin-top:0;gap:10px">
+    <div class="menu row trio" style="margin-top:0;gap:8px">
       <button class="btn alt play half" data-act="puzzles" style="background:linear-gradient(135deg,#7ee08f,#2fa86a);box-shadow:0 5px 0 #1d6b42">🧩<span>Puzzles</span></button>
+      <button class="btn alt play half" data-act="stats" style="background:linear-gradient(135deg,#2a4fa8,#0b1d4d);box-shadow:0 5px 0 #06122e;color:#fff"><svg class="statlogo" viewBox="0 0 64 52" aria-hidden="true"><defs><linearGradient id="slg" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#7fd3ff"/><stop offset=".55" stop-color="#5eb4f5"/><stop offset="1" stop-color="#ffe36e"/></linearGradient><filter id="slgl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g fill="url(#slg)" filter="url(#slgl)"><circle cx="13" cy="17" r="6.2"/><rect x="5.5" y="23.5" width="15" height="3.6" rx="1.8"/><path d="M9.6 27h6.8c.3 5.6 2 9.4 5.6 12.6H4c3.6-3.2 5.3-7 5.6-12.6z"/><rect x="2.5" y="41" width="21" height="6.5" rx="2.4"/><rect x="26.5" y="34" width="7.5" height="13.5" rx="2"/><rect x="37" y="28.5" width="7.5" height="19" rx="2"/><rect x="47.5" y="21" width="7.5" height="26.5" rx="2"/><path d="M25.5 29.2c8.5-2.8 16.4-7.6 23.6-14.2l-2.8-1.8 9.4-2.6-1.2 9.6-2.4-2.2c-7.4 6.6-15.6 11.6-26.2 12.2z"/></g></svg><span>Stats</span></button>
       <button class="btn alt play half" data-act="learn" style="background:linear-gradient(135deg,#ffb36b,#f07a2a);box-shadow:0 5px 0 #9c4a12">🎓<span>Learn</span></button>
     </div>
   </div>
@@ -713,6 +736,11 @@
   <div class="sheet" style="margin-top:0"><h2 class="ttl">📊 Game Review</h2><div id="reviewBody"></div>
     <button class="btn play" data-act="rvBegin">▶ Start Review</button>
     <button class="btn alt" data-act="rvClose">Back</button></div>
+</div>
+
+<div class="overlay hidden" id="statsOv">
+  <button class="pill backpill" data-act="toStart"><span>←</span><span>Back</span></button>
+  <div class="sheet"><h2 class="ttl"><svg class="statlogo big" viewBox="0 0 64 52" aria-hidden="true"><defs><linearGradient id="slg2" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#7fd3ff"/><stop offset=".55" stop-color="#5eb4f5"/><stop offset="1" stop-color="#ffe36e"/></linearGradient><filter id="slgl2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><g fill="url(#slg2)" filter="url(#slgl2)"><circle cx="13" cy="17" r="6.2"/><rect x="5.5" y="23.5" width="15" height="3.6" rx="1.8"/><path d="M9.6 27h6.8c.3 5.6 2 9.4 5.6 12.6H4c3.6-3.2 5.3-7 5.6-12.6z"/><rect x="2.5" y="41" width="21" height="6.5" rx="2.4"/><rect x="26.5" y="34" width="7.5" height="13.5" rx="2"/><rect x="37" y="28.5" width="7.5" height="19" rx="2"/><rect x="47.5" y="21" width="7.5" height="26.5" rx="2"/><path d="M25.5 29.2c8.5-2.8 16.4-7.6 23.6-14.2l-2.8-1.8 9.4-2.6-1.2 9.6-2.4-2.2c-7.4 6.6-15.6 11.6-26.2 12.2z"/></g></svg>Your Stats</h2><div id="statsBody"></div></div>
 </div>
 
 <div class="overlay hidden" id="pauseOv">
@@ -5559,6 +5587,7 @@ function engineFactory() {
   let mode = null;            // "cpu" | "two"
   let level = 1, timeIdx = 0;
   let humanColor = "w";
+  let gameStartAt = Date.now(), gameRec = null;
   let state = E.startState();
   let history = [];           // [{state, move, san, clocks}]
   let moves = [];
@@ -5600,7 +5629,7 @@ function engineFactory() {
   function stopAI() { cancelSearch("ai"); thinking = false; aiToken++; }
 
   function newGame(opts, replay) {
-    puz = null; lrn = null; flashSq = null;
+    puz = null; lrn = null; flashSq = null; gameRec = null; gameStartAt = Date.now();
     online = null;
     stopAI(); cancelSearch("help"); judgeGen++; rewarded = false; lastReward = 0;
     mode = opts.mode; level = opts.level; timeIdx = opts.time || 0;
@@ -5642,6 +5671,7 @@ function engineFactory() {
       awardPawns();
       save();
       refresh(prefs.animate ? m : null);
+      if (result && mode !== "online" && !(rv && rv.retry)) recordGame();
       if (result) sound("end"); else if (E.inCheck(state)) sound("check"); else sound(captured ? "capture" : "move");
       requestEval();
     }
@@ -5680,6 +5710,7 @@ function engineFactory() {
     saveProfile(); paintWallet();
   }
   function endGame(title, text, code) {
+    setTimeout(() => recordGame(), 0);
     stopAI();
     setResult(title, text, code); awardPawns(); save(); sound("end"); refresh();
     setTimeout(showOver, 500);
@@ -6363,6 +6394,7 @@ function engineFactory() {
     popEntry = null;
     if (!$("overOv").classList.contains("hidden")) paintStats();
     if (rv && !$("reviewOv").classList.contains("hidden")) paintReviewSummary();
+    if (result && gameRec) updateRecRatings();
   }
   function paintStats() {
     const el = $("overStats");
@@ -6713,7 +6745,7 @@ function engineFactory() {
     if (!net.me) return;
     stopAI(); cancelSearch("help"); judgeGen++;
     const color = g.white === net.me.key ? "w" : "b";
-    mode = "online"; level = 0; timeIdx = 0;
+    mode = "online"; level = 0; timeIdx = 0; gameRec = null; gameStartAt = Date.now();
     online = { id: g.id, color, opp: color === "w" ? { name: g.blackName, elo: g.blackElo } : { name: g.whiteName, elo: g.whiteElo }, tc: g.tc, ended: false, flagSent: false };
     humanColor = color; userFlip = false; rewarded = true; lastReward = 0;
     state = E.startState(); history = []; moves = E.legalMoves(state);
@@ -6760,6 +6792,7 @@ function engineFactory() {
         if (net.me) setMe({ ...net.me, elo: after });
       }
       result = { title, text, code: g.result };
+      recordGame(g.eloChange ? { d: g.eloChange[mine], after: g.eloAfter[mine] } : null);
       sound("end"); refresh();
       setTimeout(showOver, 600);
     } else if (changed) refresh();
@@ -7027,6 +7060,88 @@ function engineFactory() {
     } else toast(L.info);
   }
 
+  // ================= Stats (saved on this device) =================
+  // Every finished bot / online / 2-player game is recorded: result, colour, time, your move ratings, Elo change.
+  const statsData = () => Object.assign({ games: [], eloHist: [] }, store.get("chess-stats", {}));
+  function myRatings() {
+    const c = {}, sides = mode === "two" ? [] : [humanColor];
+    for (const h of history) if (h.cls && sides.includes(h.state.turn)) c[h.cls] = (c[h.cls] || 0) + 1;
+    return c;
+  }
+  function recordGame(elo) {
+    if (gameRec || !result || !["cpu", "online", "two"].includes(mode) || result.code === "*") return;
+    const win = humanColor === "w" ? "1-0" : "0-1", lose = humanColor === "w" ? "0-1" : "1-0";
+    const res = mode === "two" ? "d2" : result.code === win ? "w" : result.code === lose ? "l" : "d";
+    const st = statsData();
+    gameRec = { id: Date.now() + Math.random(), t: Date.now(), mode, color: mode === "two" ? null : humanColor, res,
+      dur: Math.min(3 * 3600e3, Date.now() - gameStartAt), moves: history.length, cls: myRatings(), acc: mode === "two" ? null : accuracyOf(humanColor),
+      bot: mode === "cpu" ? LEVELS[level].name : null, botElo: mode === "cpu" ? LEVELS[level].elo : null, opp: mode === "online" && online ? online.opp.name : null,
+      elo: elo || null };
+    st.games.push(gameRec); if (st.games.length > 1000) st.games.shift();
+    if (elo) st.eloHist.push({ t: Date.now(), after: elo.after, d: elo.d });
+    store.set("chess-stats", st);
+  }
+  function updateRecRatings() {   // ratings finish in the background after the game ends
+    if (!gameRec || !result) return;
+    const st = statsData(), r = st.games.find(g => g.id === gameRec.id); if (!r) return;
+    r.cls = myRatings(); r.acc = mode === "two" ? null : accuracyOf(humanColor);
+    store.set("chess-stats", st);
+  }
+  const fmtDur = ms => { const m = Math.round(ms / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`; };
+  function openStats() {
+    const st = statsData(), G = st.games, mine = G.filter(g => g.mode !== "two");
+    const cnt = (arr, r) => arr.filter(g => g.res === r).length;
+    const W = cnt(mine, "w"), L = cnt(mine, "l"), D = cnt(mine, "d");
+    let streak = 0, best = 0; for (const g of mine) { streak = g.res === "w" ? streak + 1 : 0; best = Math.max(best, streak); }
+    const time = G.reduce((a, g) => a + (g.dur || 0), 0);
+    const colourRow = c => {
+      const gs = mine.filter(g => g.color === c), w = cnt(gs, "w"), l = cnt(gs, "l"), d = cnt(gs, "d"), n = gs.length || 1;
+      return `<div class="strow"><span>${c === "w" ? "⚪ As White" : "⚫ As Black"}</span><small>${gs.length} games</small></div>
+        <div class="wlbar"><i style="width:${(w / n) * 100}%;background:#7ee08f"></i><i style="width:${(d / n) * 100}%;background:#9aa3ab"></i><i style="width:${(l / n) * 100}%;background:#ff7769"></i></div>
+        <div class="strow" style="margin-top:0"><small class="pos">${w} won</small><small>${d} drawn</small><small class="neg">${l} lost</small></div>`;
+    };
+    const tot = {}; for (const g of mine) for (const k in g.cls || {}) tot[k] = (tot[k] || 0) + g.cls[k];
+    const accs = mine.map(g => g.acc).filter(a => a != null), avgAcc = accs.length ? accs.reduce((a, b) => a + b, 0) / accs.length : null;
+    const onl = G.filter(g => g.elo), gained = onl.reduce((a, g) => a + Math.max(0, g.elo.d), 0), lost = onl.reduce((a, g) => a + Math.max(0, -g.elo.d), 0);
+    const hist = st.eloHist, cur = net.me ? net.me.elo : hist.length ? hist[hist.length - 1].after : null;
+    const peak = Math.max(cur || 0, ...hist.map(h => h.after));
+    let chart = "";
+    if (hist.length > 1) {
+      const vals = [hist[0].after - hist[0].d, ...hist.map(h => h.after)], lo = Math.min(...vals), hi = Math.max(...vals, lo + 1);
+      const pts = vals.map((v, i) => `${((i / (vals.length - 1)) * 200).toFixed(1)},${(66 - ((v - lo) / (hi - lo)) * 60).toFixed(1)}`).join(" ");
+      chart = `<svg class="elochart" viewBox="0 0 200 70" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="#ffd84a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>`;
+    }
+    const botsBeat = mine.filter(g => g.mode === "cpu" && g.res === "w"), toughest = botsBeat.reduce((b, g) => (!b || g.botElo > b.botElo ? g : b), null);
+    const pr = puzProg(), lessons = Object.keys(learnDone()).length;
+    $("statsBody").innerHTML = `
+      <div class="stgrid">
+        <div class="stcard"><b>${G.length}</b><small>Games</small></div>
+        <div class="stcard"><b class="pos">${W}</b><small>Wins</small></div>
+        <div class="stcard"><b class="neg">${L}</b><small>Losses</small></div>
+        <div class="stcard"><b>${D}</b><small>Draws</small></div>
+        <div class="stcard"><b>${mine.length ? Math.round((W / mine.length) * 100) : 0}%</b><small>Win rate</small></div>
+        <div class="stcard"><b>${best}</b><small>Best streak</small></div>
+        <div class="stcard"><b>${fmtDur(time)}</b><small>Time played</small></div>
+        <div class="stcard"><b>${avgAcc == null ? "–" : avgAcc.toFixed(0) + "%"}</b><small>Avg accuracy</small></div>
+        <div class="stcard"><b>${profile.pawns}</b><small>Pawns</small></div>
+      </div>
+      <div class="stsect"><div class="lbl">By colour</div>${colourRow("w")}${colourRow("b")}</div>
+      <div class="stsect"><div class="lbl">Your move ratings</div><div class="stcls">${CLS_ORDER.map(k => `<span><i class="mb" style="--bc:${CLS[k].color}">${CLS[k].sym}</i>${CLS[k].label.replace(/[!]+$/, "").replace(" move", "")}<em>${tot[k] || 0}</em></span>`).join("")}</div></div>
+      <div class="stsect"><div class="lbl">Online rating</div>
+        <div class="strow"><span>Current</span><span>${cur == null ? "–" : cur}</span></div>
+        <div class="strow"><span>Highest</span><span>${peak || "–"}</span></div>
+        <div class="strow"><span>Elo gained</span><span class="pos">+${gained}</span></div>
+        <div class="strow"><span>Elo lost</span><span class="neg">−${lost}</span></div>
+        ${chart || `<p class="netnote" style="margin:6px 0 0">Play online games to see your rating graph. (Bots don't change your rating.)</p>`}</div>
+      <div class="stsect"><div class="lbl">Bots, puzzles & lessons</div>
+        <div class="strow"><span>Bots beaten</span><span>${botsBeat.length}</span></div>
+        <div class="strow"><span>Toughest bot beaten</span><span>${toughest ? `${esc(toughest.bot)} (${toughest.botElo})` : "–"}</span></div>
+        <div class="strow"><span>Puzzle levels done</span><span>${pr.done}</span></div>
+        <div class="strow"><span>Lessons done</span><span>${lessons} / ${LESSONS.length}</span></div></div>
+      <p class="netnote">Stats are saved on this device. They count from when this page was added.</p>`;
+    show("statsOv");
+  }
+
   // ================= Game Review (like Chess.com) =================
   // Summary (accuracy + counts + your bad moves), then a review board with coach comments,
   // the best-move arrow, an evaluation graph, "next mistake" and "retry".
@@ -7170,7 +7285,7 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -7338,6 +7453,7 @@ function engineFactory() {
       case "puzPrev": puzPage = Math.max(0, puzPage - 1); openPuzzles(); break;
       case "puzNextPage": puzPage = Math.min(Math.ceil(PUZ_LEVELS / 20) - 1, puzPage + 1); openPuzzles(); break;
       case "learn": openLearn(); break;
+      case "stats": openStats(); break;
       case "startBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame({ mode: "cpu", level: setup.level, color: setup.color, time: setup.time }); break;
       case "startLive": setup.mode = "two"; store.set("chess-setup", setup); newGame({ mode: "two", level: setup.level, color: "w", time: setup.liveTime }); break;
       case "resume": hideAll(); refresh(); break;
@@ -7435,6 +7551,7 @@ function engineFactory() {
         else if ((ov === "puzzleOv" || ov === "learnOv") && btn === "B") act("toStart");
         else if (ov === "puzDoneOv" && btn === "B") act("puzzles");
         else if (ov === "reviewOv" && btn === "B") act("rvClose");
+        else if (ov === "statsOv" && btn === "B") act("toStart");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
