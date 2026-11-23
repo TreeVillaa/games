@@ -229,6 +229,13 @@
   }
   #evalbar.hidden { display: none; }
   #boardWrap { position: relative; width: var(--board); height: var(--board); }
+  /* board frame (wooden / stone border, like a real board) */
+  html.framed #boardWrap::before {
+    content: ""; position: absolute; inset: calc(var(--board) * -.03); border-radius: 12px; z-index: 0;
+    background-color: var(--frame); background-image: var(--frameImg); background-size: 240px 240px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.3), 0 16px 34px rgba(0,0,0,.4), inset 0 2px 0 rgba(255,255,255,.18), inset 0 -2px 0 rgba(0,0,0,.3);
+  }
+  html.framed #board { position: relative; z-index: 1; border-radius: 3px; box-shadow: 0 0 0 1.5px rgba(0,0,0,.35); }
   #board {
     width: 100%; height: 100%;
     display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
@@ -238,7 +245,7 @@
   }
   #arrows { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; }
   .sq { position: relative; display: grid; place-items: center; cursor: pointer; }
-  .sq { background-size: 320% 320%; }
+  .sq { background-size: 240% 240%; }
   .sq.l { background-color: var(--light); background-image: var(--lightImg, none); }
   .sq.d { background-color: var(--dark); background-image: var(--darkImg, none); }
   .sq.last { box-shadow: inset 0 0 0 200px var(--lastTint); }
@@ -5065,51 +5072,96 @@ function engineFactory() {
   // ================= Boards & piece sets =================
   // Textures are generated SVG noise (wood grain, marble veins, stone...), so no image files are needed.
   const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
-  function texture(kind, ink, seed = 3) {
+  // Layered SVG textures (no image files): each layer is coloured noise with its own alpha curve.
+  //   layer = [noise type, baseFrequency, octaves, colour, alpha slope, alpha offset, seed offset]
+  const L = (type, freq, oct, col, a, c, so = 0) => ({ type, freq, oct, col, a, c, so });
+  const TEX = {
+    wood:     (k, i) => [L("fractalNoise", "0.005 0.06", 2, i, 2.2, -0.75), L("fractalNoise", "0.55 0.018", 4, i, 4.6, -1.85, 1), L("turbulence", "0.012 0.09", 3, k, -4.5, 0.7, 2)],
+    woodfine: (k, i) => [L("fractalNoise", "0.006 0.08", 2, i, 2, -0.7), L("fractalNoise", "1 0.03", 4, i, 4.2, -1.75, 1)],
+    burl:     (k, i) => [L("fractalNoise", "0.02", 3, i, 2, -0.7), L("turbulence", "0.04", 5, i, -6, 1.2, 1), L("turbulence", "0.1", 3, k, -7, 0.9, 2)],
+    marble:   (k, i, j) => [L("fractalNoise", "0.008", 4, j, 2.2, -0.75), L("turbulence", "0.008 0.012", 6, i, -7, 1.55, 1), L("turbulence", "0.025", 5, k, -9, 1.25, 2)],
+    onyx:     (k, i, j) => [L("fractalNoise", "0.003 0.04", 3, i, 2.8, -1.1), L("fractalNoise", "0.002 0.11", 3, j, 2.6, -1.05, 1), L("turbulence", "0.02 0.05", 4, k, -7, 0.95, 2)],
+    travertine: (k, i) => [L("fractalNoise", "0.004 0.06", 3, i, 2.4, -0.9), L("fractalNoise", "0.5 0.9", 2, k, 9, -6, 1)],
+    stone:    (k, i) => [L("fractalNoise", "0.02", 3, i, 1.8, -0.6), L("fractalNoise", "0.75", 3, i, 3, -1.2, 1), L("fractalNoise", "1.4", 1, k, 8, -5.4, 2)],
+    slate:    (k, i) => [L("fractalNoise", "0.003 0.3", 3, i, 2.6, -1), L("fractalNoise", "0.9", 2, k, 2, -0.75, 1)],
+    sandstone:(k, i) => [L("fractalNoise", "0.002 0.05", 3, i, 2.4, -0.9), L("fractalNoise", "1.1", 2, k, 2.4, -0.9, 1)],
+    leather:  (k, i) => [L("fractalNoise", "0.012", 3, i, 1.8, -0.6), L("turbulence", "0.16", 3, k, -5, 0.9, 1)],
+    frost:    (k, i) => [L("fractalNoise", "0.03", 4, i, 2, -0.75)],
+    brushed:  (k, i) => [L("fractalNoise", "0.004 1.2", 2, i, 1.6, -0.6)],
+    waves:    (k, i) => [L("turbulence", "0.006 0.05", 3, i, -2.4, 0.75)],
+    felt:     (k, i) => [L("fractalNoise", "1.6", 2, i, 1.5, -0.55)],
+    stars:    (k, i) => [L("fractalNoise", "0.3", 1, i, 30, -21.6)],
+  };
+
+  function texture(kind, ink, seed = 3, ink2, tint) {
     if (!kind) return "none";
-    const [r, g, b] = hexRgb(ink), col = `0 0 0 0 ${r.toFixed(3)} 0 0 0 0 ${g.toFixed(3)} 0 0 0 0 ${b.toFixed(3)}`;
-    const T = {
-      wood:    ["fractalNoise", "0.9 0.028", 4, `${col} 2.6 0 0 0 -1.05`],
-      woodfine:["fractalNoise", "1.4 0.04", 3, `${col} 2.2 0 0 0 -0.85`],
-      marble:  ["turbulence", "0.011 0.016", 5, `${col} -3.6 0 0 0 1.05`],
-      stone:   ["fractalNoise", "0.75", 3, `${col} 2.4 0 0 0 -0.95`],
-      frost:   ["fractalNoise", "0.03", 4, `${col} 2 0 0 0 -0.75`],
-      brushed: ["fractalNoise", "0.004 1.2", 2, `${col} 1.6 0 0 0 -0.6`],
-      waves:   ["turbulence", "0.006 0.05", 3, `${col} -2.4 0 0 0 0.75`],
-      felt:    ["fractalNoise", "1.6", 2, `${col} 1.5 0 0 0 -0.55`],
-      stars:   ["fractalNoise", "0.3", 1, `${col} 30 0 0 0 -21.6`],
-    }[kind];
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='f' x='0' y='0' width='100%' height='100%'><feTurbulence type='${T[0]}' baseFrequency='${T[1]}' numOctaves='${T[2]}' seed='${seed}'/><feColorMatrix values='${T[3]}'/></filter><rect width='240' height='240' filter='url(%23f)'/></svg>`;
+    const layers = TEX[kind](ink2 || ink, ink, tint || ink);
+    let defs = "", rects = "";
+    layers.forEach((l, n) => {
+      const [r, g, b] = hexRgb(l.col);
+      defs += `<filter id='f${n}' x='0' y='0' width='100%' height='100%'><feTurbulence type='${l.type}' baseFrequency='${l.freq}' numOctaves='${l.oct}' seed='${seed + l.so * 7}'/><feColorMatrix values='0 0 0 0 ${r.toFixed(3)} 0 0 0 0 ${g.toFixed(3)} 0 0 0 0 ${b.toFixed(3)} ${l.a} 0 0 0 ${l.c}'/></filter>`;
+      rects += `<rect width='240' height='240' filter='url(%23f${n})'/>`;
+    });
+    // soft polish / varnish shine
+    defs += `<linearGradient id='sh' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='white' stop-opacity='.16'/><stop offset='.5' stop-color='white' stop-opacity='0'/><stop offset='1' stop-color='black' stop-opacity='.08'/></linearGradient>`;
+    rects += `<rect width='240' height='240' fill='url(%23sh)'/>`;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><defs>${defs}</defs>${rects}</svg>`;
     return `url("data:image/svg+xml;utf8,${svg.replace(/</g, "%3C").replace(/>/g, "%3E").replace(/"/g, "'")}")`;
   }
-  // [id, name, light colour, dark colour, light texture, light ink, dark texture, dark ink, last-move tint]
+  // [id, name, light, dark, light texture, light ink, dark texture, dark ink, last-move tint, frame colour, frame texture, frame ink, extra light ink/tint, extra dark ink/tint]
   const BOARDS = [
-    ["walnut", "Walnut", "#e3c08c", "#8a5a33", "wood", "#b07a3c", "wood", "#4a2a12"],
-    ["maple", "Maple", "#f3dcb3", "#c79a63", "woodfine", "#c9965a", "woodfine", "#8a5a2c"],
-    ["ebony", "Ebony", "#c9a27a", "#3b2418", "wood", "#7d5634", "wood", "#140a05"],
-    ["cherry", "Cherry", "#f0c9a6", "#9b4a32", "wood", "#c48058", "wood", "#5a1f12"],
-    ["oak", "Oak", "#e8d3a8", "#a5783f", "wood", "#b89660", "wood", "#6a4618"],
-    ["bamboo", "Bamboo", "#f2e3a6", "#b9a44f", "woodfine", "#c8b25a", "woodfine", "#7d6a1e"],
-    ["marble", "White Marble", "#f1f1ee", "#a9a9ad", "marble", "#9a9aa2", "marble", "#56565e"],
-    ["jade", "Jade Marble", "#d6efdf", "#3c7d5c", "marble", "#7bb595", "marble", "#123d28"],
-    ["stone", "Granite", "#d4d0c8", "#7d7670", "stone", "#8d877f", "stone", "#3d3833"],
+    // ---- woods ----
+    ["walnut", "Walnut", "#e3c08c", "#8a5a33", "wood", "#a06a32", "wood", "#3f220d", "", "#5a3519", "wood", "#2a1405"],
+    ["maple", "Maple", "#f3dcb3", "#c79a63", "woodfine", "#c08a4c", "woodfine", "#7d4f22", "", "#a8773f", "woodfine", "#5c3a14"],
+    ["ebony", "Ebony", "#c9a27a", "#3b2418", "wood", "#7d5634", "wood", "#0d0603", "", "#1e120b", "wood", "#000000"],
+    ["cherry", "Cherry", "#f0c9a6", "#9b4a32", "wood", "#b9734c", "wood", "#4d170c", "", "#6b2a18", "wood", "#2e0b04"],
+    ["oak", "Oak", "#e8d3a8", "#a5783f", "wood", "#b08c55", "wood", "#5c3c12", "", "#7a5426", "wood", "#3a2408"],
+    ["rosewood", "Rosewood", "#e6b48f", "#6e2f22", "wood", "#b0704c", "wood", "#2f0e08", "", "#4a1d14", "wood", "#1c0603"],
+    ["mahogany", "Mahogany", "#e8b896", "#7d3a24", "woodfine", "#b26d48", "woodfine", "#3c1309", "", "#5a2616", "woodfine", "#240a03"],
+    ["teak", "Teak", "#e9c995", "#9a6a35", "wood", "#b88c4f", "wood", "#4f3010", "", "#73491f", "wood", "#2e1a05"],
+    ["driftwood", "Driftwood", "#dcd6cc", "#8f877c", "wood", "#a49c90", "wood", "#4e4740", "", "#6d665e", "wood", "#3a342e"],
+    ["burl", "Burl Wood", "#e2bb87", "#8e5a2f", "burl", "#9c6634", "burl", "#3b1d08", "", "#5a3519", "burl", "#2a1405"],
+    ["bamboo", "Bamboo", "#f2e3a6", "#b9a44f", "woodfine", "#c3ab52", "woodfine", "#6e5c17", "", "#8f7c2c", "woodfine", "#4a3c08"],
+    // ---- marble & stone ----
+    ["marble", "White Marble", "#f2f2ef", "#a9a9ad", "marble", "#8e8e96", "marble", "#4b4b53", "", "#d9d9d6", "marble", "#7d7d84", "#b9b9c0", "#c4c4cc"],
+    ["carrara", "Carrara Marble", "#f6f5f1", "#c9c7c2", "marble", "#9aa0a8", "marble", "#6f747c", "", "#e7e5e0", "marble", "#8a9098", "#c3c8ce", "#dcdcd8"],
+    ["blackgold", "Black & Gold Marble", "#ecebe6", "#1d1d21", "marble", "#a7a39a", "marble", "#d4af37", "rgba(212,175,55,.38)", "#141417", "marble", "#c9a227", "#d8d4ca", "#3a3a40"],
+    ["jade", "Jade Marble", "#d6efdf", "#2f6e4f", "marble", "#6aa585", "marble", "#0d3322", "", "#1f4d36", "marble", "#0a2618", "#a6d8bb", "#4f9a75"],
+    ["pink", "Pink Marble", "#fbe7e6", "#d58f95", "marble", "#c48b8f", "marble", "#7d3b44", "", "#b96f77", "marble", "#6b2a33", "#efc4c6", "#e2a7ad"],
+    ["bluemarble", "Blue Marble", "#e6eef8", "#3f6fa8", "marble", "#8fa9c9", "marble", "#122f57", "", "#2a5184", "marble", "#0c2243", "#c3d4ea", "#6f95c4"],
+    ["onyx", "Honey Onyx", "#f6e2b5", "#b9782f", "onyx", "#d9a75a", "onyx", "#6b3a0c", "", "#8c5520", "onyx", "#4a2706", "#fff1cf", "#e3a456"],
+    ["travertine", "Travertine", "#efe4cf", "#bba98a", "travertine", "#cbb48e", "travertine", "#7d6a4b", "", "#a99677", "travertine", "#6b5a3d"],
+    ["stone", "Granite", "#d4d0c8", "#7d7670", "stone", "#8d877f", "stone", "#3d3833", "", "#5f5953", "stone", "#2a2622"],
+    ["slate", "Slate", "#9aa3a8", "#4b5358", "slate", "#6f797f", "slate", "#20262a", "", "#353c40", "slate", "#15191c"],
+    ["sandstone", "Sandstone", "#f0d6ad", "#c48f5a", "sandstone", "#d0a06a", "sandstone", "#7d4f22", "", "#a8733f", "sandstone", "#5c3a14"],
+    // ---- flat classics ----
     ["tournament", "Tournament", "#f0d9b5", "#b58863"],
     ["green", "Classic Green", "#eeeed2", "#769656"],
     ["blue", "Steel Blue", "#dee3e6", "#8ca2ad"],
     ["purple", "Lavender", "#ece4f7", "#9b7fc9"],
-    ["ice", "Ice", "#eef9ff", "#86bfe3", "frost", "#bfe3f7", "frost", "#4f93c4"],
-    ["ocean", "Ocean", "#c7ecfb", "#2a7ab0", "waves", "#7fc7e6", "waves", "#0d4a78"],
-    ["metal", "Brushed Metal", "#dfe3e8", "#8a939c", "brushed", "#9aa3ab", "brushed", "#4a525a"],
-    ["felt", "Green Felt", "#bfd9a7", "#3f7a3a", "felt", "#88b06c", "felt", "#1f4d1d"],
     ["coral", "Coral", "#ffe3d6", "#ec8a76"],
     ["candy", "Candy", "#ffe6f2", "#f59ac6"],
-    ["night", "Night Sky", "#3b3f6b", "#1c1f3d", "stars", "#ffffff", "stars", "#cfd6ff", "rgba(130,170,255,.35)"],
-  ].map(([id, name, light, dark, lt, li, dt, di, last]) => ({ id, name, light, dark, lightImg: texture(lt, li, 3), darkImg: texture(dt, di, 11), last: last || "rgba(255,235,59,.42)" }));
+    // ---- fun textures ----
+    ["leather", "Leather", "#c89a6a", "#6b3f22", "leather", "#8d5f37", "leather", "#2e170a", "", "#3d2212", "leather", "#1a0b03"],
+    ["felt", "Green Felt", "#bfd9a7", "#3f7a3a", "felt", "#88b06c", "felt", "#1f4d1d", "", "#5a3519", "wood", "#2a1405"],
+    ["ice", "Ice", "#eef9ff", "#86bfe3", "frost", "#bfe3f7", "frost", "#4f93c4", "", "#cfe9f8", "frost", "#8fc3e3"],
+    ["ocean", "Ocean", "#c7ecfb", "#2a7ab0", "waves", "#7fc7e6", "waves", "#0d4a78", "", "#0f3f63", "waves", "#06263f"],
+    ["metal", "Brushed Metal", "#dfe3e8", "#8a939c", "brushed", "#9aa3ab", "brushed", "#4a525a", "", "#5f6870", "brushed", "#2e3338"],
+    ["night", "Night Sky", "#3b3f6b", "#1c1f3d", "stars", "#ffffff", "stars", "#cfd6ff", "rgba(130,170,255,.35)", "#111329", "stars", "#ffffff"],
+  ].map(([id, name, light, dark, lt, li, dt, di, last, fr, ft, fi, lx, dx]) => ({
+    id, name, light, dark,
+    lightImg: texture(lt, li, 3, undefined, lx), darkImg: texture(dt, di, 11, undefined, dx),
+    last: last || "rgba(255,235,59,.42)",
+    frame: fr || "", frameImg: fr ? texture(ft, fi, 21) : "none",
+  }));
   const boardById = id => BOARDS.find(b => b.id === id) || BOARDS[0];
   function applyBoard() {
     const b = boardById(prefs.board), st = document.documentElement.style;
     st.setProperty("--light", b.light); st.setProperty("--dark", b.dark);
     st.setProperty("--lightImg", b.lightImg); st.setProperty("--darkImg", b.darkImg); st.setProperty("--lastTint", b.last);
+    st.setProperty("--frame", b.frame || "transparent"); st.setProperty("--frameImg", b.frameImg);
+    document.documentElement.classList.toggle("framed", !!b.frame);
+    layout();
   }
 
   // Piece sets: our own piece shapes, drawn with different fills/strokes. w/b = [fill, stroke, detail, extra class, glow colour, stroke width]
@@ -5668,7 +5720,8 @@ function engineFactory() {
     const app = $("app");
     const H = app.clientHeight, Wd = app.clientWidth;
     const extra = 50 * 2 + 34 * 2 + 40 + (prefs.evalbar ? 17 : 0) + 34;
-    const avail = Math.min(Wd - 8, H - extra, 640);
+    const fr = document.documentElement.classList.contains("framed") ? 1.07 : 1;
+    const avail = Math.min((Wd - 8) / fr, (H - extra) / fr, 640);
     document.documentElement.style.setProperty("--board", Math.max(200, Math.floor(avail / 8) * 8) + "px");
   }
   window.addEventListener("resize", () => { layout(); refresh(); });
