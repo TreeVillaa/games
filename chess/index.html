@@ -562,6 +562,9 @@
   .lbtag.bot { background: rgba(255,255,255,.22); color: #fff; }
   .pfgame { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; margin-top: 6px; border: 0; border-radius: 12px; background: rgba(255,255,255,.08); color: #fff; font: inherit; text-align: left; }
   button.pfgame { cursor: pointer; } .pfgame .pfg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pfgame > span:last-child { font-weight: 900; }
+  .uav.waiting { animation: waitPulse 1s ease-in-out infinite; } @keyframes waitPulse { 50% { box-shadow: 0 0 0 6px rgba(255,216,74,.6); } }
+  .dots::after { content: ""; animation: dots 1.2s steps(4) infinite; } @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+  #contBtn.abandon { background: linear-gradient(135deg, #ff6b5e, #c62828); color: #fff; box-shadow: 0 5px 0 #7a130e; animation: menuGlow 2s ease-in-out infinite; }
   .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
   .empty.sm { padding: 8px; font-size: .85rem; }
   small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
@@ -6257,7 +6260,7 @@ function engineFactory() {
     store.set("chess-game", {
       mode, level, timeIdx, humanColor, userFlip, inc, clocks,
       moves: history.map(h => [h.move.from, h.move.to, h.move.promo || ""]), ladder: ladderGame,
-      clockInit: history.length ? history[0].clocks : clocks, over: !!result,
+      clockInit: history.length ? history[0].clocks : clocks, over: !!result, savedAt: Date.now(),
     });
   }
   function loadSave() { const d = store.get("chess-game", null); return d && d.mode && !d.over && d.moves && d.moves.length ? d : null; }
@@ -6397,7 +6400,7 @@ function engineFactory() {
     return list.length ? list[Math.floor(Math.random() * list.length)] : null;
   }
   function botSay(ev, force) {
-    if (!talkPrefs()) return;
+    if (!talkPrefs() || openOverlay()) return;   // only talk while you're looking at the board
     const now = Date.now();
     if (!force && now < talkUntil) return;
     const line = pickLine(ev); if (!line) return;
@@ -6435,7 +6438,7 @@ function engineFactory() {
   }
 
   function newGame(opts, replay) {
-    if (ladderGame && !ladderGame.done && !result && mode === "cpu" && history.length >= 2) ladderFinish(true);   // leaving a rated game = loss
+    if (ladderGame && !ladderGame.done && !result && mode === "cpu" && history.length >= 2) abandonCurrent();   // leaving a rated game: it keeps going
     ladderGame = opts.ladder || (replay && replay.ladder) || null;
     if (ladderGame) setLadderSlot(ladderGame);
     puz = null; lrn = null; flashSq = null; gameRec = null; gameStartAt = Date.now();
@@ -7652,6 +7655,24 @@ function engineFactory() {
       <div class="stsect"><div class="lbl">Recent ${LMODES[pfMode].label} games</div>${recent.length ? recent.map(r => `<${r.id && r.id !== "me" && !me ? `button data-dact="pfOpp" data-arg="${esc(r.id)}"` : "div"} class="pfgame"><span class="hres ${r.res === "w" ? "win" : r.res === "l" ? "loss" : "draw"}">${r.res.toUpperCase()}</span><span class="pfg">${resTxt(r)}</span><span class="${r.dd >= 0 ? "pos" : "neg"}">${r.dd >= 0 ? "+" : ""}${r.dd}</span></${r.id && r.id !== "me" && !me ? "button" : "div"}>`).join("") : `<p class="netnote" style="margin:4px 0 0">No ${LMODES[pfMode].label} games yet.</p>`}</div>
       ${me ? "" : `<button class="btn play" data-dact="pfChallenge">Challenge to ${LMODES[pfMode].label} · ${LMODES[pfMode].sub}</button>`}`;
   }
+  // ---- challenging someone: famous players almost always say no (98%), others say yes 70% of the time ----
+  let chalT = 0;
+  function sendChallenge(p) {
+    const fam = p.kind === "real" || p.kind === "yt", m = ladder.mode;
+    $("matchBody").innerHTML = `<div class="mlbl">Challenge sent!</div><div class="mvs"><div class="mside">${ladAv({ kind: "me" }, "big")}<b>${esc(ladder.name)}</b><span>${ladder.r[m]}</span></div><div class="vs">VS</div><div class="mside">${ladAv(p, "big waiting")}<b>${esc(p.name)}</b><span>${ratingOf(p, m)}</span></div></div>
+      <p class="mstakes">${LMODES[m].label} · ${LMODES[m].sub}<br><span class="dots">Waiting for ${esc(p.name)} to answer</span></p><div class="menu"><button class="btn alt" data-dact="chalCancel">Cancel challenge</button></div>`;
+    show("matchOv"); focusIdx = 0; paintFocus();
+    clearTimeout(chalT);
+    chalT = setTimeout(() => {
+      if (openOverlay() !== "matchOv") return;
+      const yes = Math.random() < (fam ? .02 : .7);
+      if (yes) { toast(`${p.name} accepted your challenge!`); return startMatch(p); }
+      const why = fam ? pickOne(["is busy right now.", "only plays in big tournaments today.", "is streaming and can't play.", "said maybe next time.", "is preparing for a match."]) : pickOne(["said no this time.", "is taking a break.", "doesn't want to play right now.", "is already in a game."]);
+      $("matchBody").innerHTML = `<div class="mlbl">Challenge declined</div><div class="mvs"><div class="mside">${ladAv(p, "big")}<b>${esc(p.name)}</b><span>${ratingOf(p, m)}</span></div></div>
+        <p class="mstakes"><b>${esc(p.name)}</b> ${why}</p><div class="menu"><button class="btn" data-dact="ladPlay">Find another opponent</button><button class="btn alt" data-dact="pfBack">Back to the leaderboard</button></div>`;
+      focusIdx = 0; paintFocus();
+    }, 1400 + Math.random() * 1400);
+  }
   // ---- match ----
   function startMatch(p) {
     const m = ladder.mode, elo = ratingOf(p, m);
@@ -7681,18 +7702,60 @@ function engineFactory() {
     if (!ladderGame || ladderGame.done) return;
     if (!forceLoss && !result) return;
     ladderGame.done = true;
-    const m = ladderGame.m, my = ladder.r[m], opp = ladderGame.elo;
     const win = humanColor === "w" ? "1-0" : "0-1", loss = humanColor === "w" ? "0-1" : "1-0";
     const sc = forceLoss ? 0 : result.code === win ? 1 : result.code === loss ? 0 : .5;
+    const r = applyLadderResult(ladderGame, sc);
+    ladderGame.delta = r.d; ladderGame.after = r.after;
+  }
+  // Rating change for one rated game (used for finished games and for games you walked away from).
+  function applyLadderResult(lg, sc) {
+    const m = lg.m, my = ladder.r[m], opp = lg.elo;
     const d = eloDelta(my, opp, sc);
     ladder.r[m] = my + d; ladder.peak[m] = Math.max(ladder.peak[m] || 0, ladder.r[m]);
     ladder.g[m][sc === 1 ? 0 : sc === 0 ? 1 : 2]++;
-    const oppP = ladderPool().byId.get(ladderGame.id);
-    if (!(oppP && pinnedOf(oppP, m))) ladder.ovr[m][ladderGame.id] = Math.max(100, opp - d);
-    noteGame(m, ladderGame.id, oppP && pinnedOf(oppP, m) ? opp : Math.max(100, opp - d), -d, sc === 1 ? "l" : sc === 0 ? "w" : "d", "me");
+    const oppP = ladderPool().byId.get(lg.id);
+    if (!(oppP && pinnedOf(oppP, m))) ladder.ovr[m][lg.id] = Math.max(100, opp - d);
+    noteGame(m, lg.id, oppP && pinnedOf(oppP, m) ? opp : Math.max(100, opp - d), -d, sc === 1 ? "l" : sc === 0 ? "w" : "d", "me");
     simulateLadder(30); ladder.lastSim = Date.now();
     saveLadder();
-    ladderGame.delta = d; ladderGame.after = ladder.r[m];
+    return { d, after: ladder.r[m] };
+  }
+  // ---- leaving a rated game doesn't end it: your clock keeps running until it runs out ----
+  const getAb = () => store.get("chess-abandoned", null);
+  const abLeft = ab => ab.savedAt + Math.max(0, ab.clocks[ab.humanColor]) - Date.now();
+  function abandonCurrent() {
+    if (!ladderGame || ladderGame.done || result || mode !== "cpu" || history.length < 2 || !clocks) return false;
+    store.set("chess-abandoned", { ladder: ladderGame, moves: history.map(h => [h.move.from, h.move.to, h.move.promo || ""]), humanColor, clocks: { ...clocks }, inc, timeIdx, clockInit: history[0].clocks, savedAt: Date.now() });
+    store.set("chess-game", null);
+    ladderGame = null;
+    toast("Your rated game is still going and your clock keeps running! Tap \"Back to your game\" before it runs out.");
+    return true;
+  }
+  function resolveAbandoned() {
+    const ab = getAb(); if (!ab || abLeft(ab) > 0) { paintContBtn(); return; }
+    store.set("chess-abandoned", null);
+    const r = applyLadderResult(ab.ladder, 0), m = ab.ladder.m;
+    const st = statsData();
+    st.games.push({ id: Date.now() + Math.random(), t: Date.now(), mode: "cpu", color: ab.humanColor, res: "l", dur: 0, moves: ab.moves, cls: {}, acc: null, bot: ab.ladder.name, botElo: ab.ladder.elo,
+      elo: { d: r.d, after: r.after, tc: m }, tc: m, code: ab.humanColor === "w" ? "0-1" : "1-0", reason: "Lost on time (left the game)" });
+    store.set("chess-stats", st);
+    toast(`You left your ${LMODES[m].label} game vs ${ab.ladder.name} and your clock ran out. ${LMODES[m].label} rating ${r.after - r.d} → ${r.after} (${r.d}).`);
+    paintContBtn();
+  }
+  function resumeAbandoned() {
+    const ab = getAb(); if (!ab) return false;
+    if (abLeft(ab) <= 0) { resolveAbandoned(); return true; }
+    const clk = { ...ab.clocks }; clk[ab.humanColor] -= Date.now() - ab.savedAt;
+    store.set("chess-abandoned", null);
+    newGame({ mode: "cpu", level: LADDER_I, time: ab.timeIdx, color: ab.humanColor, ladder: ab.ladder }, { ...ab, clocks: clk, userFlip: false });
+    return true;
+  }
+  function paintContBtn() {
+    const b = $("contBtn"); if (!b) return;
+    const ab = getAb(), live = ladderGame && !ladderGame.done && !result && mode === "cpu" && clocks;
+    if (live) { const t = Math.ceil(Math.max(0, clocks[humanColor]) / 1000); b.style.display = ""; b.textContent = `Back to your rated game · ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")} left on your clock`; b.classList.add("abandon"); }
+    else if (ab && abLeft(ab) > 0) { const t = Math.ceil(abLeft(ab) / 1000); b.style.display = ""; b.textContent = `Back to your rated game · ${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")} left on your clock`; b.classList.add("abandon"); }
+    else { b.classList.remove("abandon"); b.textContent = "▶ Continue game"; b.style.display = loadSave() ? "" : "none"; }
   }
 
   const net = { token: store.get("chess-token", null), me: store.get("chess-me", null) };
@@ -7956,12 +8019,13 @@ function engineFactory() {
       if (a === "ladMore") { ladPage++; return paintLadList(); }
       if (a === "ladJump") { ladQ = ""; const s2 = $("ladSearch"); if (s2) s2.value = ""; const b = ladderBoard(ladder.mode), r = b.findIndex(x => x.p.kind === "me") + 1; ladPage = Math.max(1, Math.ceil(r / 50)); return paintLadList(true); }
       if (a === "ladProfile") return openPlayer(arg);
-      if (a === "pfBack") { show("ladOv"); return renderLadder(); }
+      if (a === "pfBack") { clearTimeout(chalT); show("ladOv"); return renderLadder(); }
+      if (a === "chalCancel") { clearTimeout(chalT); return openPlayer(pfId); }
       if (a === "pfMode") { pfMode = arg; return paintPlayer(); }
       if (a === "pfOpp") return openPlayer(arg);
       if (a === "ladVs") { const p = ladderPool().all.find(x => x.id === arg); if (p) startMatch(p); return; }
       if (a === "matchGo") return goMatch();
-      if (a === "pfChallenge") { const p = ladderPool().byId.get(pfId); if (!p) return; ladder.mode = pfMode; saveLadder(); show("ladOv"); renderLadder(); return startMatch(p); }
+      if (a === "pfChallenge") { const p = ladderPool().byId.get(pfId); if (!p) return; ladder.mode = pfMode; saveLadder(); return sendChallenge(p); }
       if (a === "histView") return openHistView(+arg);
       if (a === "histMore") { statsHistN += 30; return openStats(); }
       if (a === "hvBack") { clearInterval(hv.timer); hv.timer = 0; return openStats(); }
@@ -8813,7 +8877,7 @@ function engineFactory() {
   // Default controller focus: the first big button (Continue / Start game / Resume / Rematch…)
   const defaultFocus = id => Math.max(0, buttonsOf(id).findIndex(b => b.matches(id === "askOv" ? "#askNo" : ".btn")));
   function show(id) { $("botSay").classList.add("hidden"); for (const o of OVERLAYS) $(o).classList.toggle("hidden", o !== id); focusIdx = defaultFocus(id); paintFocus(); refresh(); }
-  function hideAll() { for (const o of OVERLAYS) $(o).classList.add("hidden"); lastTick = performance.now(); paintFocus(); }
+  function hideAll() { for (const o of OVERLAYS) $(o).classList.add("hidden"); if (!(ladderGame && !ladderGame.done)) lastTick = performance.now(); paintFocus(); }
   function paintFocus() {
     document.querySelectorAll(".focus").forEach(b => b.classList.remove("focus"));
     const ov = openOverlay(); if (!ov || !showCursor) return;
@@ -8837,7 +8901,7 @@ function engineFactory() {
       else { el.className = "sw" + (v ? " on" : ""); el.textContent = ""; }
       b.setAttribute("aria-pressed", prefText[k] ? "" : String(!!v));
     }
-    $("contBtn").style.display = loadSave() ? "" : "none";
+    paintContBtn();
   }
   function cycle(btn, dir) {
     if (btn.dataset.opt) {
@@ -9011,7 +9075,7 @@ function engineFactory() {
 
   function act(a) {
     switch (a) {
-      case "continue": { const d = loadSave(); if (d) newGame({ mode: d.mode, level: d.level, color: d.humanColor, time: d.timeIdx || 0 }, d); break; }
+      case "continue": { if (ladderGame && !ladderGame.done && !result && mode === "cpu") { hideAll(); refresh(); break; } if (resumeAbandoned()) break; const d = loadSave(); if (d) newGame({ mode: d.mode, level: d.level, color: d.humanColor, time: d.timeIdx || 0 }, d); break; }
       case "start": newGame(setup); break;
       case "playBots": paintSetupScreens(); show("botOv"); break;
       case "playLive": paintSetupScreens(); show("liveOv"); break;
@@ -9208,7 +9272,7 @@ function engineFactory() {
   let lastClockPaint = 0;
   function tickClock(now) {
     const dt = now - lastTick; lastTick = now;
-    if (!clocks || result || rv || !mode || history.length === 0 || openOverlay()) return;
+    if (!clocks || result || rv || !mode || history.length === 0 || (openOverlay() && !(ladderGame && !ladderGame.done))) return;
     if (mode === "online" && (!online || online.ended || history.length < 2)) return;
     clocks[state.turn] -= dt;
     if (clocks[state.turn] <= 0) {
@@ -9225,6 +9289,14 @@ function engineFactory() {
     if (now - lastClockPaint > 100) { lastClockPaint = now; paintPlayers(); }
   }
   function loop(t) { pollPads(t); tickClock(performance.now()); requestAnimationFrame(loop); }
+  { const d = store.get("chess-game", null);
+    if (d && d.ladder && !d.over && d.moves && d.moves.length >= 2 && d.clocks && !getAb())
+      store.set("chess-abandoned", { ladder: d.ladder, moves: d.moves, humanColor: d.humanColor, clocks: d.clocks, inc: d.inc, timeIdx: d.timeIdx, clockInit: d.clockInit, savedAt: d.savedAt || Date.now() });
+    if (d && d.ladder && !d.over) store.set("chess-game", null); }
+  addEventListener("pagehide", () => save());
+  document.addEventListener("visibilitychange", () => { if (document.hidden) save(); });
+  setInterval(() => { resolveAbandoned(); }, 1000);
+  resolveAbandoned();
 
   // ================= Intro / loading screen =================
   // Plays the logo video with a loading bar for 7 seconds, then shows the start screen.
