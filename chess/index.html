@@ -557,6 +557,11 @@
   .hmv { flex: none; border: 0; background: transparent; color: #fff; font: inherit; font-weight: 800; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
   .hmv.cur { background: #fff; color: #1b1b2a; }
   .youav { margin-right: 7px; }
+  .pfhead { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; text-align: left; }
+  .pfhead .uav.big { width: 84px; height: 84px; box-shadow: 0 0 0 3px #fff; }
+  .lbtag.bot { background: rgba(255,255,255,.22); color: #fff; }
+  .pfgame { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px; margin-top: 6px; border: 0; border-radius: 12px; background: rgba(255,255,255,.08); color: #fff; font: inherit; text-align: left; }
+  button.pfgame { cursor: pointer; } .pfgame .pfg { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .pfgame > span:last-child { font-weight: 900; }
   .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
   .empty.sm { padding: 8px; font-size: .85rem; }
   small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
@@ -960,6 +965,11 @@
     <div class="netnote" id="hvPos" style="margin:0 0 4px"></div>
     <div class="hvmoves" id="hvMoves"></div>
   </div>
+</div>
+
+<div class="overlay hidden" id="pfOv">
+  <button class="pill backpill" data-dact="pfBack"><span>←</span><span>Back</span></button>
+  <div class="sheet"><div id="pfBody"></div></div>
 </div>
 
 <div class="overlay hidden" id="ladOv">
@@ -7426,7 +7436,10 @@ function engineFactory() {
     ["Divya Deshmukh", 2510, 80], ["Anna Muzychuk", 2510, 40], ["Mariya Muzychuk", 2500, 40], ["Bibisara Assaubayeva", 2490, 160], ["Rameshbabu Vaishali", 2480, 60],
   ];
   const ladder = Object.assign({ name: null, look: null, r: { bullet: 400, blitz: 400, rapid: 400 }, peak: { bullet: 400, blitz: 400, rapid: 400 }, g: { bullet: [0, 0, 0], blitz: [0, 0, 0], rapid: [0, 0, 0] }, ovr: { bullet: {}, blitz: {}, rapid: {} }, mode: "blitz" }, store.get("chess-ladder", {}));
-  const saveLadder = () => store.set("chess-ladder", ladder);
+  const saveLadder = () => {
+    try { localStorage.setItem("chess-ladder", JSON.stringify(ladder)); }
+    catch (e) { for (const m in ladder.bs || {}) for (const id in ladder.bs[m]) ladder.bs[m][id][6].length = Math.min(1, ladder.bs[m][id][6].length); store.set("chess-ladder", ladder); }
+  };
   const hashStr = t => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
   const mulberry = a => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   const gauss = rng => { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
@@ -7465,9 +7478,14 @@ function engineFactory() {
     }
     const real = TOP_REAL.map(([name, base, boost], k) => ({ id: "r" + k, name, kind: "real", base, boost }));
     const yt = LEVELS.filter(L => L.cat === "youtubers").map(L => ({ id: "y:" + L.name, name: L.name, kind: "yt", base: L.elo }));
-    return (LPOOL = { gen, real, yt, all: [...real, ...yt, ...gen] });
+    const all = [...real, ...yt, ...gen];
+    return (LPOOL = { gen, real, yt, all, byId: new Map(all.map(p => [p.id, p])) });
   }
+  // Fixed ratings that never drift (Magnus #1 and Hikaru #2 in Blitz).
+  const PINNED = { blitz: { "Magnus Carlsen": 2935, "Hikaru Nakamura": 2915 } };
+  const pinnedOf = (p, m) => (PINNED[m] && PINNED[m][p.name]) || null;
   function ratingOf(p, m, skillOnly) {
+    const pin = pinnedOf(p, m); if (pin) return pin;
     const o = !skillOnly && ladder.ovr[m] && ladder.ovr[m][p.id]; if (o != null && o !== false) return o;
     const mi = LMODE_KEYS.indexOf(m), j = (hashStr(p.name + m) % 61) - 30;
     if (p.kind === "gen") return Math.max(100, Math.min(2700, Math.round(p.base + p.d[mi])));
@@ -7493,6 +7511,15 @@ function engineFactory() {
     return rows;
   }
   function paintMeBtn() { const a = $("meAv"); if (a) a.innerHTML = faceInner({ kind: "me" }); }
+  // Each player's record per mode: [peak, Elo gained, Elo lost, wins, losses, draws, last 4 results "oppId|w/l/d|change"]
+  function botRec(m, id) { const bs = ladder.bs || (ladder.bs = {}), mm = bs[m] || (bs[m] = {}); return mm[id]; }
+  function noteGame(m, id, ratingAfter, d, res, oppId) {
+    const mm = (ladder.bs || (ladder.bs = {}))[m] || (ladder.bs[m] = {});
+    const e = mm[id] || (mm[id] = [ratingAfter - d, 0, 0, 0, 0, 0, []]);
+    e[0] = Math.max(e[0], ratingAfter); if (d > 0) e[1] += d; else e[2] -= d;
+    e[res === "w" ? 3 : res === "l" ? 4 : 5]++;
+    e[6].unshift(oppId + "|" + res + "|" + d); if (e[6].length > 4) e[6].length = 4;
+  }
   // Bots play each other: each game moves both ratings (K 20). Results follow each bot's true skill,
   // so strong bots climb and weak ones fall over time.
   function simulateLadder(games) {
@@ -7501,21 +7528,27 @@ function engineFactory() {
       const ov = ladder.ovr[m] || (ladder.ovr[m] = {});
       const rows = pool.all.map(p => ({ p, r: ratingOf(p, m), sk: ratingOf(p, m, true) })).sort((a, b) => a.r - b.r);
       for (let k = 0; k < games; k++) {
-        const i = Math.floor(Math.random() * rows.length), j = Math.max(0, Math.min(rows.length - 1, i + Math.round((Math.random() - .5) * 40)));
+        // a quarter of the games are among the top ~200, so famous players build a record too
+        const i = Math.random() < .25 ? rows.length - 1 - Math.floor(Math.random() * 200) : Math.floor(Math.random() * rows.length), j = Math.max(0, Math.min(rows.length - 1, i + Math.round((Math.random() - .5) * 40)));
         if (i === j) continue;
         const A = rows[i], B = rows[j];
         const ex = 1 / (1 + Math.pow(10, (B.sk - A.sk) / 400)), roll = Math.random();
         const sc = roll < .08 ? .5 : roll < .08 + ex * .92 ? 1 : 0;
         const eA = 1 / (1 + Math.pow(10, (B.r - A.r) / 400)), d = Math.round(20 * (sc - eA));
-        A.r = Math.max(100, A.r + d); B.r = Math.max(100, B.r - d);
-        ov[A.p.id] = A.r; ov[B.p.id] = B.r; played++;
+        // pinned players (Magnus/Hikaru in Blitz) still play and build a record, but their rating stays put
+        if (!pinnedOf(A.p, m)) { A.r = Math.max(100, A.r + d); ov[A.p.id] = A.r; }
+        if (!pinnedOf(B.p, m)) { B.r = Math.max(100, B.r - d); ov[B.p.id] = B.r; }
+        played++;
+        const ra = sc === 1 ? "w" : sc === 0 ? "l" : "d", rb = sc === 1 ? "l" : sc === 0 ? "w" : "d";
+        noteGame(m, A.p.id, A.r, d, ra, B.p.id); noteGame(m, B.p.id, B.r, -d, rb, A.p.id);
       }
     }
     return Math.round(played / 3);
   }
   function catchUpLadder() {
     const now = Date.now(), last = ladder.lastSim || now;
-    const n = Math.min(3000, Math.max(40, Math.floor((now - last) / 60000) * 25));   // ~25 games a minute while you're away
+    let n = Math.min(3000, Math.max(40, Math.floor((now - last) / 60000) * 25));   // ~25 games a minute while you're away
+    if (!ladder.warm) { ladder.warm = 1; n = Math.max(n, 3000); }   // first visit: a season's worth of games so every profile has a history
     ladder.lastSim = now; const played = simulateLadder(n); saveLadder();
     return played;
   }
@@ -7572,7 +7605,7 @@ function engineFactory() {
     let h = "";
     for (const x of shown) {
       const tag = x.p.kind === "real" ? '<span class="lbtag gm">GM</span>' : x.p.kind === "yt" ? '<span class="lbtag yt">YouTuber</span>' : x.p.kind === "me" ? '<span class="lbtag best">You</span>' : "";
-      h += `<button class="urow${x.p.kind === "me" ? " me" : ""}" ${x.p.kind === "me" ? "" : `data-dact="ladVs" data-arg="${esc(x.p.id)}"`}><span class="rk${x.rank <= 3 ? " m" + x.rank : ""}">${x.rank}</span>${ladAv(x.p, "sm")}<span class="un">${esc(x.p.name)}</span>${tag}<span class="ue" style="color:${tierOf(x.r).color}">${x.r}</span></button>`;
+      h += `<button class="urow${x.p.kind === "me" ? " me" : ""}" data-dact="ladProfile" data-arg="${esc(x.p.id)}"><span class="rk${x.rank <= 3 ? " m" + x.rank : ""}">${x.rank}</span>${ladAv(x.p, "sm")}<span class="un">${esc(x.p.name)}</span>${tag}<span class="ue" style="color:${tierOf(x.r).color}">${x.r}</span></button>`;
     }
     if (!shown.length) h = `<div class="empty">No players found.</div>`;
     if (list.length > shown.length) h += `<button class="btn alt" data-dact="ladMore" style="min-height:46px">Show more (${(list.length - shown.length).toLocaleString()} left)</button>`;
@@ -7587,6 +7620,37 @@ function engineFactory() {
     if (isBadName(v)) { err.textContent = "You can't use this name. Make a friendly one!"; return false; }
     if (ladderPool().all.some(p => p.name.toLowerCase() === v.toLowerCase())) { err.textContent = "That name is already taken. Try another one!"; return false; }
     err.textContent = "That name is free!"; err.className = "su-err good"; return true;
+  }
+  // ---- player profile ----
+  let pfId = null, pfMode = "blitz";
+  function openPlayer(id) { pfId = id; pfMode = ladder.mode; show("pfOv"); paintPlayer(); }
+  function paintPlayer() {
+    const pool = ladderPool(), me = pfId === "me", p = me ? { id: "me", name: ladder.name, kind: "me" } : pool.byId.get(pfId); if (!p) return;
+    const name = id => id === "me" ? (ladder.name || "You") : (pool.byId.get(id) || { name: "Unknown" }).name;
+    const tag = p.kind === "real" ? '<span class="lbtag gm">GM</span>' : p.kind === "yt" ? '<span class="lbtag yt">YouTuber</span>' : p.kind === "me" ? '<span class="lbtag best">You</span>' : '<span class="lbtag bot">Bot</span>';
+    const rate = m => (me ? ladder.r[m] : ratingOf(p, m));
+    const rankIn = m => ladderBoard(m).findIndex(x => (me ? x.p.kind === "me" : x.p.id === p.id)) + 1;
+    let peak, gain, lost, w, l, d, recent;
+    if (me) {
+      const gs = statsData().games.filter(g => g.tc === pfMode && g.elo);
+      peak = ladder.peak[pfMode]; gain = gs.reduce((a, g) => a + Math.max(0, g.elo.d), 0); lost = gs.reduce((a, g) => a + Math.max(0, -g.elo.d), 0);
+      [w, l, d] = ladder.g[pfMode]; recent = gs.slice(-6).reverse().map(g => ({ n: g.bot, res: g.res, dd: g.elo.d }));
+    } else {
+      const e = botRec(pfMode, p.id) || [rate(pfMode), 0, 0, 0, 0, 0, []];
+      peak = Math.max(e[0], rate(pfMode)); gain = e[1]; lost = e[2]; w = e[3]; l = e[4]; d = e[5];
+      recent = e[6].map(x => { const [oid, res, dd] = x.split("|"); return { id: oid, n: name(oid), res, dd: +dd }; });
+    }
+    const resTxt = r => (r.res === "w" ? `Beat <b>${esc(r.n)}</b>` : r.res === "l" ? `Lost to <b>${esc(r.n)}</b>` : `Drew with <b>${esc(r.n)}</b>`);
+    $("pfBody").innerHTML = `<div class="pfhead">${ladAv(p, "big")}<div><div class="soc-name">${esc(p.name)} ${tag}</div><div class="soc-sub">#${rankIn(pfMode).toLocaleString()} in ${LMODES[pfMode].label}</div></div></div>
+      <div class="lmodes">${LMODE_KEYS.map(k => `<button class="lmode${k === pfMode ? " sel" : ""}" data-dact="pfMode" data-arg="${k}"><b>${LMODES[k].label}</b><small>${LMODES[k].sub}</small><span>${rate(k)}</span></button>`).join("")}</div>
+      <div class="stsect"><div class="lbl">${LMODES[pfMode].label} record</div>
+        <div class="strow"><span>Rating</span><span>${rate(pfMode)}</span></div>
+        <div class="strow"><span>Highest rating</span><span>${peak}</span></div>
+        <div class="strow"><span>Elo gained</span><span class="pos">+${gain}</span></div>
+        <div class="strow"><span>Elo lost</span><span class="neg">−${lost}</span></div>
+        <div class="strow"><span>Games</span><span><span class="pos">${w}W</span> · <span class="neg">${l}L</span> · ${d}D</span></div></div>
+      <div class="stsect"><div class="lbl">Recent ${LMODES[pfMode].label} games</div>${recent.length ? recent.map(r => `<${r.id && r.id !== "me" && !me ? `button data-dact="pfOpp" data-arg="${esc(r.id)}"` : "div"} class="pfgame"><span class="hres ${r.res === "w" ? "win" : r.res === "l" ? "loss" : "draw"}">${r.res.toUpperCase()}</span><span class="pfg">${resTxt(r)}</span><span class="${r.dd >= 0 ? "pos" : "neg"}">${r.dd >= 0 ? "+" : ""}${r.dd}</span></${r.id && r.id !== "me" && !me ? "button" : "div"}>`).join("") : `<p class="netnote" style="margin:4px 0 0">No ${LMODES[pfMode].label} games yet.</p>`}</div>
+      ${me ? "" : `<button class="btn play" data-dact="pfChallenge">Challenge to ${LMODES[pfMode].label} · ${LMODES[pfMode].sub}</button>`}`;
   }
   // ---- match ----
   function startMatch(p) {
@@ -7623,7 +7687,9 @@ function engineFactory() {
     const d = eloDelta(my, opp, sc);
     ladder.r[m] = my + d; ladder.peak[m] = Math.max(ladder.peak[m] || 0, ladder.r[m]);
     ladder.g[m][sc === 1 ? 0 : sc === 0 ? 1 : 2]++;
-    ladder.ovr[m][ladderGame.id] = Math.max(100, opp - d);
+    const oppP = ladderPool().byId.get(ladderGame.id);
+    if (!(oppP && pinnedOf(oppP, m))) ladder.ovr[m][ladderGame.id] = Math.max(100, opp - d);
+    noteGame(m, ladderGame.id, oppP && pinnedOf(oppP, m) ? opp : Math.max(100, opp - d), -d, sc === 1 ? "l" : sc === 0 ? "w" : "d", "me");
     simulateLadder(30); ladder.lastSim = Date.now();
     saveLadder();
     ladderGame.delta = d; ladderGame.after = ladder.r[m];
@@ -7889,8 +7955,13 @@ function engineFactory() {
       if (a === "ladPlay") return startMatch(opponentFor(ladder.mode));
       if (a === "ladMore") { ladPage++; return paintLadList(); }
       if (a === "ladJump") { ladQ = ""; const s2 = $("ladSearch"); if (s2) s2.value = ""; const b = ladderBoard(ladder.mode), r = b.findIndex(x => x.p.kind === "me") + 1; ladPage = Math.max(1, Math.ceil(r / 50)); return paintLadList(true); }
+      if (a === "ladProfile") return openPlayer(arg);
+      if (a === "pfBack") { show("ladOv"); return renderLadder(); }
+      if (a === "pfMode") { pfMode = arg; return paintPlayer(); }
+      if (a === "pfOpp") return openPlayer(arg);
       if (a === "ladVs") { const p = ladderPool().all.find(x => x.id === arg); if (p) startMatch(p); return; }
       if (a === "matchGo") return goMatch();
+      if (a === "pfChallenge") { const p = ladderPool().byId.get(pfId); if (!p) return; ladder.mode = pfMode; saveLadder(); show("ladOv"); renderLadder(); return startMatch(p); }
       if (a === "histView") return openHistView(+arg);
       if (a === "histMore") { statsHistN += 30; return openStats(); }
       if (a === "hvBack") { clearInterval(hv.timer); hv.timer = 0; return openStats(); }
@@ -8735,7 +8806,7 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["histOv", "ladOv", "matchOv", "lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["pfOv", "histOv", "ladOv", "matchOv", "lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -9062,6 +9133,7 @@ function engineFactory() {
         else if (ov === "ladOv" && btn === "B") { if (ladEditing && ladder.name) { ladEditing = false; lookEdit = null; renderLadder(); } else act("toStart"); }
         else if (ov === "matchOv" && btn === "B") dact("matchCancel");
         else if (ov === "histOv" && btn === "B") dact("hvBack");
+        else if (ov === "pfOv" && btn === "B") dact("pfBack");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
