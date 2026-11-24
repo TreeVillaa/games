@@ -500,6 +500,7 @@ function transfer(i, to) {
   const from = owner[i]; if (from === to) return;
   if (from) { const L = lists[from], p = posIn[i], last = L.pop(); if (last !== i) { L[p] = last; posIn[last] = p; } cells[from]--; }
   owner[i] = to; posIn[i] = lists[to].length; lists[to].push(i); cells[to]++;
+  markCapture(i, from, to);
   updBorder(i); for (let k = 0; k < 4; k++) { const n = nb(i, k); if (n >= 0) updBorder(n); }
   paintCell(i); for (let k = 0; k < 4; k++) { const n = nb(i, k); if (n >= 0) paintCell(n); }
   labelsDirty = true;
@@ -676,6 +677,21 @@ let dirty = null, palDirty = true, warDirty = true, allDirty = true;
 function markDirty(i) { const y = (i / W) | 0; if (!dirty) dirty = [y, y]; else { if (y < dirty[0]) dirty[0] = y; if (y > dirty[1]) dirty[1] = y; } }
 function paintCell(i) { markDirty(i); }
 function repaintAll() { palDirty = warDirty = true; }
+// smooth captures: each captured cell fades from its old owner to the new one, staggered between game days
+const cellTex = new Uint8Array(W * H * 4), trans = [];
+const now16 = () => (performance.now() * 0.06) % 65536;
+const transDur = () => G && G.speed ? Math.max(0.18, 1.4 / [1, 4, 8, 16][G.speed]) : 0.35;
+function markCapture(i, from, to) {
+  const j = i * 4, delay = G && G.speed ? rnd() / [1, 4, 8, 16][G.speed] : 0;
+  const t16 = Math.floor(now16() + delay * 60) & 0xffff;
+  cellTex[j] = to; cellTex[j + 1] = from || to; cellTex[j + 2] = t16 >> 8; cellTex[j + 3] = t16 & 255;
+  trans.push(i, performance.now() + delay * 1000 + 2000);
+}
+function endTransitions() {
+  if (!trans.length) return; const now = performance.now(); let k = 0;
+  while (k < trans.length && trans[k + 1] <= now) { const i = trans[k], j = i * 4; cellTex[j] = cellTex[j + 1] = owner[i]; markDirty(i); k += 2; }
+  if (k) trans.splice(0, k);
+}
 const GLR = (function initGL() {
   let gl = null;
   try { gl = cv.getContext("webgl", { antialias: false, alpha: false, premultipliedAlpha: false, preserveDrawingBuffer: false }); } catch (e) {}
@@ -686,9 +702,15 @@ const GLR = (function initGL() {
   const FS = `#extension GL_OES_standard_derivatives : enable
 precision highp float;
 uniform sampler2D uOwner, uPal, uWar;
-uniform vec2 uGrid, uScreen; uniform vec3 uCam; uniform float uTime, uDpr, uPlayer;
+uniform vec2 uGrid, uScreen; uniform vec3 uCam; uniform float uTime, uDpr, uPlayer, uNow, uT;
 varying vec2 vPos;
-float idAt(vec2 c){ c.x = mod(c.x, uGrid.x); if (c.y < 0.0 || c.y >= uGrid.y) return 0.0; return floor(texture2D(uOwner, (c + 0.5) / uGrid).r * 255.0 + 0.5); }
+// cell texture: R = owner, G = previous owner, B/A = capture time (1/60 s) -> captured land slides in smoothly
+vec4 cellAt(vec2 c){ c.x = mod(c.x, uGrid.x); if (c.y < 0.0 || c.y >= uGrid.y) return vec4(0.0, 0.0, 1.0, 1.0);
+  vec4 s = texture2D(uOwner, (c + 0.5) / uGrid); float id = floor(s.r * 255.0 + 0.5), pv = floor(s.g * 255.0 + 0.5);
+  if (pv == id) return vec4(id, id, 1.0, 0.0);
+  float age = mod(uNow - (floor(s.b * 255.0 + 0.5) * 256.0 + floor(s.a * 255.0 + 0.5)), 65536.0); if (age > 32768.0) age -= 65536.0; age /= 60.0;
+  float k = clamp(age / uT, 0.0, 1.0); k = k * k * (3.0 - 2.0 * k);
+  return vec4(id, pv, k, age < 0.0 ? 0.0 : clamp(1.0 - age / 1.6, 0.0, 1.0)); }
 vec4 pal(float id, float row){ return texture2D(uPal, vec2((id + 0.5) / 256.0, (row + 0.5) / 2.0)); }
 float warOf(float a, float b){ return texture2D(uWar, vec2((a + 0.5) / 256.0, (b + 0.5) / 256.0)).r; }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
@@ -697,16 +719,20 @@ float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f
 void main(){
   vec2 g = uCam.xy + (vPos - uScreen * 0.5) / uCam.z;
   vec2 base = floor(g);
-  float ids[9]; float w[9]; float tot = 0.0;
+  float ids[9]; float pvs[9]; float ks[9]; float w[9]; float tot = 0.0, heat = 0.0; bool anyT = false;
   for (int k = 0; k < 9; k++) {
     vec2 o = vec2(float(k - (k / 3) * 3) - 1.0, float(k / 3) - 1.0);
-    vec2 c = base + o; ids[k] = idAt(c); vec2 d = g - (c + 0.5); w[k] = exp(-dot(d, d) * 1.5); tot += w[k];
+    vec2 c = base + o; vec4 cl = cellAt(c); ids[k] = cl.x; pvs[k] = cl.y; ks[k] = cl.z; vec2 d = g - (c + 0.5); w[k] = exp(-dot(d, d) * 1.5); tot += w[k];
+    if (cl.x != cl.y) { anyT = true; heat += cl.w * w[k]; }
   }
+  heat /= tot;
   float best = -1.0, sb = -1.0, second = -1.0, s2 = 0.0;
-  for (int j = 0; j < 9; j++) {
-    float id = ids[j];
+  for (int j = 0; j < 18; j++) {
+    if (j >= 9 && !anyT) break;
+    float id = j < 9 ? ids[j] : pvs[j - 9];
     if (id == best || id == second) continue;
-    float s = 0.0; for (int k = 0; k < 9; k++) s += ids[k] == id ? w[k] : 0.0;
+    float s = 0.0;
+    for (int k = 0; k < 9; k++) s += (ids[k] == id ? w[k] * ks[k] : 0.0) + (pvs[k] == id && pvs[k] != ids[k] ? w[k] * (1.0 - ks[k]) : 0.0);
     if (s > sb) { if (best > -0.5) { second = best; s2 = sb; } best = id; sb = s; }
     else if (s > s2) { second = id; s2 = s; }
   }
@@ -753,6 +779,7 @@ void main(){
       col = mix(col, vec3(0.08, 0.07, 0.06), e * 0.75);
     }
   }
+  if (heat > 0.0 && best > 0.5) col = mix(col, vec3(1.0, 0.55, 0.15), heat * 0.55);
   gl_FragColor = vec4(col, 1.0);
 }`;
   const sh = (t, s) => { const o = gl.createShader(t); gl.shaderSource(o, s); gl.compileShader(o); if (!gl.getShaderParameter(o, gl.COMPILE_STATUS)) { console.warn(gl.getShaderInfoLog(o)); return null; } return o; };
@@ -768,15 +795,17 @@ void main(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, fmt, w, h, 0, fmt, gl.UNSIGNED_BYTE, data); return t; };
   const palData = new Uint8Array(256 * 2 * 4), warData = new Uint8Array(256 * 256);
-  const tOwner = mk(0, W, H, gl.LUMINANCE, owner), tPal = mk(1, 256, 2, gl.RGBA, palData), tWar = mk(2, 256, 256, gl.LUMINANCE, warData);
+  const tOwner = mk(0, W, H, gl.RGBA, cellTex), tPal = mk(1, 256, 2, gl.RGBA, palData), tWar = mk(2, 256, 256, gl.LUMINANCE, warData);
   const U = n => gl.getUniformLocation(pr, n);
   gl.uniform1i(U("uOwner"), 0); gl.uniform1i(U("uPal"), 1); gl.uniform1i(U("uWar"), 2); gl.uniform2f(U("uGrid"), W, H);
-  const uScreen = U("uScreen"), uCam = U("uCam"), uTime = U("uTime"), uDpr = U("uDpr"), uPlayer = U("uPlayer");
+  const uScreen = U("uScreen"), uCam = U("uCam"), uTime = U("uTime"), uDpr = U("uDpr"), uPlayer = U("uPlayer"), uNow = U("uNow"), uT = U("uT");
   return {
     draw(t) {
       gl.viewport(0, 0, cv.width, cv.height);
-      if (allDirty) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.LUMINANCE, gl.UNSIGNED_BYTE, owner); allDirty = false; dirty = null; }
-      else if (dirty) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, dirty[0], W, dirty[1] - dirty[0] + 1, gl.LUMINANCE, gl.UNSIGNED_BYTE, owner.subarray(dirty[0] * W, (dirty[1] + 1) * W)); dirty = null; }
+      endTransitions();
+      if (allDirty) { for (let i = 0, j = 0; i < W * H; i++, j += 4) { cellTex[j] = cellTex[j + 1] = owner[i]; cellTex[j + 2] = cellTex[j + 3] = 0; } trans.length = 0;
+        gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, cellTex); allDirty = false; dirty = null; }
+      else if (dirty) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, dirty[0], W, dirty[1] - dirty[0] + 1, gl.RGBA, gl.UNSIGNED_BYTE, cellTex.subarray(dirty[0] * W * 4, (dirty[1] + 1) * W * 4)); dirty = null; }
       if (palDirty) { palData.fill(0);
         for (let id = 1; id <= N; id++) { const [r, g, b] = C[id].rgb, o = id * 4, f = 1024 + id * 4; palData[o] = r; palData[o + 1] = g; palData[o + 2] = b; palData[o + 3] = 255;
           palData[f] = id === G.player ? 255 : 0; palData[f + 1] = id === selected ? 255 : 0; palData[f + 2] = id !== G.player && atWar(id, G.player) ? 255 : 0; palData[f + 3] = 255; }
@@ -785,6 +814,7 @@ void main(){
         gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tWar); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 256, gl.LUMINANCE, gl.UNSIGNED_BYTE, warData); warDirty = false; }
       gl.uniform2f(uScreen, cv.width, cv.height); gl.uniform3f(uCam, cam.x, cam.y, cam.z * DPR);
       gl.uniform1f(uTime, (t / 1000) % 1000); gl.uniform1f(uDpr, DPR); gl.uniform1f(uPlayer, G.player);
+      gl.uniform1f(uNow, now16()); gl.uniform1f(uT, transDur());
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   };
@@ -821,7 +851,7 @@ function boom(i, big) { if (fx.length > 260) return; fx.push({ x: i % W + 0.5, y
 // labels + front lines (for attack arrows)
 let labelsDirty = true, labels = [], fronts = [], lastLabel = 0;
 function computeLabels() {
-  labels = []; const seen = new Uint8Array(W * H); const stack = [];
+  const seen = new Uint8Array(W * H); const stack = [];
   const best = new Array(M).fill(null);
   for (let o = 1; o <= N; o++) { const L = lists[o]; if (!L) continue;
     for (let q = 0; q < L.length; q++) { const i = L[q]; if (seen[i]) continue;
@@ -830,7 +860,9 @@ function computeLabels() {
         for (let k = 0; k < 4; k++) { const z = nb(c, k); if (z >= 0 && !seen[z] && owner[z] === o) { seen[z] = 1; stack.push(z); } } }
       if (!best[o] || n > best[o].n) best[o] = { o, n, x: sx / n + 0.5, y: sy / n + 0.5 };
       if (n > L.length / 2) break; } }
-  for (let o = 1; o <= N; o++) if (best[o]) labels.push(best[o]);
+  const prevL = {}; for (const L of labels) prevL[L.o] = L;
+  labels = [];
+  for (let o = 1; o <= N; o++) if (best[o]) { const L = best[o], q = prevL[o]; L.vx = q ? q.vx : L.x; L.vy = q ? q.vy : L.y; L.vn = q ? q.vn : L.n; labels.push(L); }
   // fronts: where two warring countries touch
   const acc = new Map();
   for (const c of borderArr) { const X = owner[c]; if (!warCount[X]) continue;
@@ -838,13 +870,16 @@ function computeLabels() {
       const key = X * M + Y; let a = acc.get(key); const x = c % W, y = (c / W) | 0;
       if (!a) { a = { a: X, b: Y, x0: x, sx: 0, sy: 0, n: 0 }; acc.set(key, a); }
       let ux = x; if (ux - a.x0 > W / 2) ux -= W; else if (a.x0 - ux > W / 2) ux += W; a.sx += ux; a.sy += y; a.n++; break; } }
+  const prevF = {}; for (const f of fronts) prevF[Math.min(f.att, f.def) * M + Math.max(f.att, f.def)] = f;
   fronts = [];
   const pos = {}; for (const L of labels) pos[L.o] = L;
   for (const f of acc.values()) { if (f.n < 3 || !pos[f.a] || !pos[f.b]) continue;
     const S1 = strength(f.a), S2 = strength(f.b); const [att, def] = S1 >= S2 ? [f.a, f.b] : [f.b, f.a];
     let dx = pos[def].x - pos[att].x, dy = pos[def].y - pos[att].y; if (dx > W / 2) dx -= W; else if (dx < -W / 2) dx += W;
     const d = Math.hypot(dx, dy) || 1;
-    fronts.push({ att, def, x: f.sx / f.n + 0.5, y: f.sy / f.n + 0.5, dx: dx / d, dy: dy / d, n: f.n, r: Math.max(S1, S2) / (S1 + S2) }); }
+    const nf = { att, def, x: f.sx / f.n + 0.5, y: f.sy / f.n + 0.5, dx: dx / d, dy: dy / d, n: f.n, r: Math.max(S1, S2) / (S1 + S2) }, q = prevF[Math.min(att, def) * M + Math.max(att, def)];
+    nf.vx = q ? q.vx : nf.x; nf.vy = q ? q.vy : nf.y; nf.vdx = q && q.att === att ? q.vdx : nf.dx; nf.vdy = q && q.att === att ? q.vdy : nf.dy; nf.vn = q ? q.vn : nf.n;
+    fronts.push(nf); }
   labelsDirty = false;
 }
 function drawArrow(x, y, dx, dy, len, wid, color, t) {
@@ -944,15 +979,53 @@ function drawNukes(sxOf, oy, now) {
     ctx.fillStyle = col(0.7); ctx.beginPath(); ctx.ellipse(x, cyy + ch * 0.7, cw * 0.55, ch * 0.35, 0, 0, 7); ctx.fill();
   }
 }
+// gunfire, tracers and smoke along every active front line
+const ffx = []; let lastDraw = 0;
+function frontFx(now) {
+  if (!G.speed || cam.z < 1.4 || !borderArr.length || $("modal").classList.contains("on")) return;
+  const want = 260 * [0, 1, 1.4, 1.8][G.speed];
+  for (let k = 0; k < want && ffx.length < 520; k++) {
+    const c = borderArr[(rnd() * borderArr.length) | 0], X = owner[c]; if (!warCount[X]) continue;
+    const vx = wrapDx(cx(c) - cam.x) * cam.z, vy = (cy(c) - cam.y) * cam.z; if (Math.abs(vx) > SW / 2 + 20 || Math.abs(vy) > SH / 2 + 20) continue;
+    for (let q = 0; q < 4; q++) { const n = nb(c, q); if (n < 0) continue; const Y = owner[n]; if (!Y || Y === X || !war[X * M + Y]) continue;
+      if (rnd() > 0.35) break;
+      const dx = wrapDx(cx(n) - cx(c)), dy = cy(n) - cy(c), r = rnd();
+      if (r < 0.6) ffx.push({ k: 0, x: cx(c) + (rnd() - 0.5) * 0.9, y: cy(c) + (rnd() - 0.5) * 0.9, dx: dx + (rnd() - 0.5) * 0.5, dy: dy + (rnd() - 0.5) * 0.5, t: now, life: 200 + rnd() * 160 });
+      else if (r < 0.88) ffx.push({ k: 1, x: cx(n) + (rnd() - 0.5) * 1.2, y: cy(n) + (rnd() - 0.5) * 1.2, t: now, life: 140 + rnd() * 100 });
+      else ffx.push({ k: 2, x: cx(n) + (rnd() - 0.5) * 1.5, y: cy(n) + (rnd() - 0.5) * 1.5, t: now, life: 1500 + rnd() * 1200, vx: 0.15 + rnd() * 0.35, vy: -0.25 - rnd() * 0.35 });
+      break; }
+  }
+}
+function drawFrontFx(sxOf, oy, now) {
+  const z = cam.z;
+  for (let k = ffx.length - 1; k >= 0; k--) { const e = ffx[k], a = (now - e.t) / e.life; if (a >= 1) { ffx.splice(k, 1); continue; }
+    if (e.k !== 2) continue; const sec = (now - e.t) / 1000, x = sxOf(e.x + e.vx * sec), y = oy + (e.y + e.vy * sec) * z, R = z * (0.5 + a * 1.8);
+    ctx.fillStyle = `rgba(${150 - a * 60 | 0},${145 - a * 60 | 0},${140 - a * 60 | 0},${0.32 * (1 - a) * Math.min(1, a * 6)})`; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill(); }
+  ctx.globalCompositeOperation = "lighter"; ctx.lineCap = "round";
+  for (const e of ffx) { const a = (now - e.t) / e.life; if (a >= 1 || e.k === 2) continue;
+    if (e.k === 0) { const x = sxOf(e.x), y = oy + e.y * z, p0 = a * 2.4, p1 = p0 + 0.9;
+      ctx.strokeStyle = `rgba(255,${200 + (55 * (1 - a)) | 0},120,${1 - a})`; ctx.lineWidth = Math.max(1, z * 0.16);
+      ctx.beginPath(); ctx.moveTo(x + e.dx * p0 * z, y + e.dy * p0 * z); ctx.lineTo(x + e.dx * p1 * z, y + e.dy * p1 * z); ctx.stroke();
+      if (a < 0.25) { ctx.fillStyle = `rgba(255,240,170,${1 - a * 4})`; ctx.beginPath(); ctx.arc(x, y, Math.max(1.5, z * 0.3), 0, 7); ctx.fill(); } }
+    else { const x = sxOf(e.x), y = oy + e.y * z, R = Math.max(2, z * 0.55 * (1 + a));
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, `rgba(255,235,170,${1 - a})`); g.addColorStop(1, "rgba(255,90,20,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill(); } }
+  ctx.globalCompositeOperation = "source-over";
+}
 function draw(t) {
   if (GLR) GLR.draw(t); else drawFallback();
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.clearRect(0, 0, SW, SH);
-  if (labelsDirty && performance.now() - lastLabel > 900) { computeLabels(); lastLabel = performance.now(); }
+  if (labelsDirty && performance.now() - lastLabel > 500) { computeLabels(); lastLabel = performance.now(); }
   const shk = Math.max(0, 1 - (performance.now() - shake) / 900) * shakeAmt;
   const ox = SW / 2 - cam.x * cam.z + (rnd() - 0.5) * shk, oy = SH / 2 - cam.y * cam.z + (rnd() - 0.5) * shk, ww = W * cam.z;
   const sxOf = x => { let s = ox + x * cam.z; if (s < -ww / 2) s += ww; else if (s > SW + ww / 2) s -= ww; return s; };
   if (shk > 0.5) cv.style.transform = `translate(${(rnd() - 0.5) * shk}px,${(rnd() - 0.5) * shk}px)`; else if (cv.style.transform) cv.style.transform = "";
+  const dt = Math.min(0.1, (t - lastDraw) / 1000 || 0); lastDraw = t; const ease = 1 - Math.exp(-dt * 4);
+  for (const L of labels) { L.vx += wrapDx(L.x - L.vx) * ease; L.vy += (L.y - L.vy) * ease; L.vn += (L.n - L.vn) * ease; }
+  for (const f of fronts) { f.vx += wrapDx(f.x - f.vx) * ease; f.vy += (f.y - f.vy) * ease; f.vdx += (f.dx - f.vdx) * ease; f.vdy += (f.dy - f.vdy) * ease; f.vn += (f.n - f.vn) * ease; }
   drawScars(sxOf, oy, t);
+  frontFx(performance.now());
+  drawFrontFx(sxOf, oy, performance.now());
   drawUnits(sxOf, oy, t);
   // explosions
   const now = performance.now();
@@ -969,20 +1042,21 @@ function draw(t) {
   for (const f of fronts) {
     if (!atWar(f.att, f.def)) continue;
     const imp = f.att === G.player || f.def === G.player || f.att === selected || f.def === selected;
-    const sizeCells = Math.min(60, 8 + Math.sqrt(f.n) * 2.2), len = sizeCells * cam.z;
+    const sizeCells = Math.min(60, 8 + Math.sqrt(f.vn) * 2.2), len = sizeCells * cam.z;
     if (len < 28 || (!imp && len < 44)) continue;
-    const sx = sxOf(f.x), sy = oy + f.y * cam.z; if (sx < -len || sx > SW + len || sy < -len || sy > SH + len) continue;
+    const sx = sxOf(f.vx), sy = oy + f.vy * cam.z; if (sx < -len || sx > SW + len || sy < -len || sy > SH + len) continue;
+    const dl = Math.hypot(f.vdx, f.vdy) || 1, fdx = f.vdx / dl, fdy = f.vdy / dl;
     const L = Math.min(len, 170), wid = Math.max(7, Math.min(22, L * 0.16));
     const color = f.att === G.player ? "rgba(255,214,70,A)" : f.def === G.player ? "rgba(255,60,50,A)" : "rgba(255,120,60,A)";
-    drawArrow(sx - f.dx * L * 0.15, sy - f.dy * L * 0.15, f.dx, f.dy, L, wid, color, t);
+    drawArrow(sx - fdx * L * 0.15, sy - fdy * L * 0.15, fdx, fdy, L, wid, color, t);
   }
   // labels
   ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
   for (const L of labels) {
     const imp = L.o === G.player || L.o === selected;
-    let fs = Math.min(30, Math.sqrt(L.n) * cam.z * 0.3);
+    let fs = Math.min(30, Math.sqrt(L.vn) * cam.z * 0.3);
     if (imp) fs = Math.max(fs, 13); if (fs < 9) continue;
-    const sx = sxOf(L.x), sy = oy + L.y * cam.z;
+    const sx = sxOf(L.vx), sy = oy + L.vy * cam.z;
     if (sx < -100 || sx > SW + 100 || sy < -30 || sy > SH + 30) continue;
     const txt = C[L.o].name, withFlag = (imp || fs > 13) && SPRITE.complete;
     ctx.font = `800 ${fs | 0}px system-ui,-apple-system,sans-serif`;
