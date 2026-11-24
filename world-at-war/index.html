@@ -692,6 +692,18 @@ function endTransitions() {
   while (k < trans.length && trans[k + 1] <= now) { const i = trans[k], j = i * 4; cellTex[j] = cellTex[j + 1] = owner[i]; markDirty(i); k += 2; }
   if (k) trans.splice(0, k);
 }
+let mapStyle = "flags"; try { mapStyle = localStorage.getItem("waw_mapstyle") || "flags"; } catch (e) {}
+let HOME = null;
+function homeBoxes() {
+  if (HOME) return; HOME = new Array(M).fill(null);
+  const seen = new Uint8Array(W * H), st = [];
+  for (let i = 0; i < W * H; i++) { const o = BASE[i]; if (!o || seen[i]) continue;
+    let n = 0, x0 = i % W, mnx = 1e9, mxx = -1e9, mny = 1e9, mxy = -1e9; st.push(i); seen[i] = 1;
+    while (st.length) { const c = st.pop(); let x = c % W; const y = (c / W) | 0; if (x - x0 > W / 2) x -= W; else if (x0 - x > W / 2) x += W; n++;
+      if (x < mnx) mnx = x; if (x > mxx) mxx = x; if (y < mny) mny = y; if (y > mxy) mxy = y;
+      for (let k = 0; k < 4; k++) { const z = nb(c, k); if (z >= 0 && !seen[z] && BASE[z] === o) { seen[z] = 1; st.push(z); } } }
+    if (!HOME[o] || n > HOME[o][4]) HOME[o] = [(((mnx + mxx + 1) / 2) % W + W) % W, (mny + mxy + 1) / 2, mxx - mnx + 1, mxy - mny + 1, n]; }
+}
 const GLR = (function initGL() {
   let gl = null;
   try { gl = cv.getContext("webgl", { antialias: false, alpha: false, premultipliedAlpha: false, preserveDrawingBuffer: false }); } catch (e) {}
@@ -701,7 +713,7 @@ const GLR = (function initGL() {
   const VS = `attribute vec2 p; varying vec2 vPos; uniform vec2 uScreen; void main(){ vPos = (p * 0.5 + 0.5) * uScreen; vPos.y = uScreen.y - vPos.y; gl_Position = vec4(p, 0.0, 1.0); }`;
   const FS = `#extension GL_OES_standard_derivatives : enable
 precision highp float;
-uniform sampler2D uOwner, uPal, uWar;
+uniform sampler2D uOwner, uPal, uWar, uFlags; uniform float uFlagMode;
 uniform vec2 uGrid, uScreen; uniform vec3 uCam; uniform float uTime, uDpr, uPlayer, uNow, uT;
 varying vec2 vPos;
 // cell texture: R = owner, G = previous owner, B/A = capture time (1/60 s) -> captured land slides in smoothly
@@ -711,7 +723,19 @@ vec4 cellAt(vec2 c){ c.x = mod(c.x, uGrid.x); if (c.y < 0.0 || c.y >= uGrid.y) r
   float age = mod(uNow - (floor(s.b * 255.0 + 0.5) * 256.0 + floor(s.a * 255.0 + 0.5)), 65536.0); if (age > 32768.0) age -= 65536.0; age /= 60.0;
   float k = clamp(age / uT, 0.0, 1.0); k = k * k * (3.0 - 2.0 * k);
   return vec4(id, pv, k, age < 0.0 ? 0.0 : clamp(1.0 - age / 1.6, 0.0, 1.0)); }
-vec4 pal(float id, float row){ return texture2D(uPal, vec2((id + 0.5) / 256.0, (row + 0.5) / 2.0)); }
+vec4 pal(float id, float row){ return texture2D(uPal, vec2((id + 0.5) / 256.0, (row + 0.5) / 4.0)); }
+float u16(float hi, float lo){ return floor(hi * 255.0 + 0.5) * 256.0 + floor(lo * 255.0 + 0.5); }
+// each country's flag is stretched over its homeland and keeps going over any land it conquers
+vec4 flagCol(float id, vec2 g){
+  vec4 b0 = pal(id, 2.0), b1 = pal(id, 3.0);
+  vec2 ctr = vec2(u16(b0.r, b0.g), u16(b0.b, b0.a)) / 16.0, sz = vec2(u16(b1.r, b1.g), u16(b1.b, b1.a)) / 16.0;
+  float sc = max(max(sz.x / 4.0, sz.y / 3.0) * 1.03, 1.5);
+  float dx = g.x - ctr.x; dx -= uGrid.x * floor(dx / uGrid.x + 0.5);
+  vec2 uv = fract(vec2(dx, g.y - ctr.y) / vec2(sc * 4.0, sc * 3.0) + 0.5);
+  uv = clamp(uv, 0.006, 0.994);
+  float i = id - 1.0, cx = mod(i, 14.0), cy = floor(i / 14.0);
+  return texture2D(uFlags, (vec2(cx, cy) + uv) / vec2(14.0, 15.0));
+}
 float warOf(float a, float b){ return texture2D(uWar, vec2((a + 0.5) / 256.0, (b + 0.5) / 256.0)).r; }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -752,10 +776,11 @@ void main(){
     vec4 c = pal(best, 0.0); vec4 fl = pal(best, 1.0);
     col = c.rgb;
     float n = noise(g * 0.35) * 0.6 + noise(g * 1.3) * 0.4;
-    col *= 0.9 + 0.16 * n;
+    if (uFlagMode > 0.5) { vec4 f = flagCol(best, g); col = mix(col, f.rgb, f.a) * 0.93; col *= 0.95 + 0.08 * n; }
+    else col *= 0.9 + 0.16 * n;
     col *= 1.0 - 0.18 * smoothstep(0.35, 0.0, margin) * step(0.5, 1.0 - step(second, -0.5));
     if (fl.g > 0.5) col = mix(col, vec3(1.0), 0.28 + 0.06 * sin(uTime * 3.0));
-    if (fl.b > 0.5) { float st = step(0.5, fract((vPos.x + vPos.y) / (10.0 * uDpr))); col = mix(col, vec3(0.75, 0.1, 0.1), st * 0.16); }
+    if (fl.b > 0.5 && uFlagMode < 0.5) { float st = step(0.5, fract((vPos.x + vPos.y) / (10.0 * uDpr))); col = mix(col, vec3(0.75, 0.1, 0.1), st * 0.16); }
   }
   // borders
   if (second > -0.5) {
@@ -794,10 +819,17 @@ void main(){
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, fmt, w, h, 0, fmt, gl.UNSIGNED_BYTE, data); return t; };
-  const palData = new Uint8Array(256 * 2 * 4), warData = new Uint8Array(256 * 256);
-  const tOwner = mk(0, W, H, gl.RGBA, cellTex), tPal = mk(1, 256, 2, gl.RGBA, palData), tWar = mk(2, 256, 256, gl.LUMINANCE, warData);
+  const palData = new Uint8Array(256 * 4 * 4), warData = new Uint8Array(256 * 256);
+  const tOwner = mk(0, W, H, gl.RGBA, cellTex), tPal = mk(1, 256, 4, gl.RGBA, palData), tWar = mk(2, 256, 256, gl.LUMINANCE, warData);
   const U = n => gl.getUniformLocation(pr, n);
-  gl.uniform1i(U("uOwner"), 0); gl.uniform1i(U("uPal"), 1); gl.uniform1i(U("uWar"), 2); gl.uniform2f(U("uGrid"), W, H);
+  gl.uniform1i(U("uOwner"), 0); gl.uniform1i(U("uPal"), 1); gl.uniform1i(U("uWar"), 2); gl.uniform1i(U("uFlags"), 3);
+  const tFlags = gl.createTexture(); let flagsReady = false;
+  const upFlags = () => { gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, tFlags);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, SPRITE); flagsReady = true; } catch (e) {} };
+  if (SPRITE.complete && SPRITE.naturalWidth) upFlags(); else SPRITE.addEventListener("load", upFlags);
+  const uFlagMode = U("uFlagMode"); gl.uniform2f(U("uGrid"), W, H);
   const uScreen = U("uScreen"), uCam = U("uCam"), uTime = U("uTime"), uDpr = U("uDpr"), uPlayer = U("uPlayer"), uNow = U("uNow"), uT = U("uT");
   return {
     draw(t) {
@@ -806,15 +838,17 @@ void main(){
       if (allDirty) { for (let i = 0, j = 0; i < W * H; i++, j += 4) { cellTex[j] = cellTex[j + 1] = owner[i]; cellTex[j + 2] = cellTex[j + 3] = 0; } trans.length = 0;
         gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, cellTex); allDirty = false; dirty = null; }
       else if (dirty) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tOwner); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, dirty[0], W, dirty[1] - dirty[0] + 1, gl.RGBA, gl.UNSIGNED_BYTE, cellTex.subarray(dirty[0] * W * 4, (dirty[1] + 1) * W * 4)); dirty = null; }
-      if (palDirty) { palData.fill(0);
+      if (palDirty) { palData.fill(0); homeBoxes();
         for (let id = 1; id <= N; id++) { const [r, g, b] = C[id].rgb, o = id * 4, f = 1024 + id * 4; palData[o] = r; palData[o + 1] = g; palData[o + 2] = b; palData[o + 3] = 255;
-          palData[f] = id === G.player ? 255 : 0; palData[f + 1] = id === selected ? 255 : 0; palData[f + 2] = id !== G.player && atWar(id, G.player) ? 255 : 0; palData[f + 3] = 255; }
-        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tPal); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 2, gl.RGBA, gl.UNSIGNED_BYTE, palData); palDirty = false; }
+          palData[f] = id === G.player ? 255 : 0; palData[f + 1] = id === selected ? 255 : 0; palData[f + 2] = id !== G.player && atWar(id, G.player) ? 255 : 0; palData[f + 3] = 255;
+          const hb = HOME[id], q = 2048 + id * 4, q2 = 3072 + id * 4, put = (o, v) => { v = Math.max(0, Math.min(65535, Math.round(v * 16))); palData[o] = v >> 8; palData[o + 1] = v & 255; };
+          if (hb) { put(q, hb[0]); put(q + 2, hb[1]); put(q2, hb[2]); put(q2 + 2, hb[3]); } }
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tPal); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 4, gl.RGBA, gl.UNSIGNED_BYTE, palData); palDirty = false; }
       if (warDirty) { warData.fill(0); for (let a = 1; a <= N; a++) for (let b = 1; b <= N; b++) if (war[a * M + b]) warData[b * 256 + a] = 255;
         gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tWar); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 256, 256, gl.LUMINANCE, gl.UNSIGNED_BYTE, warData); warDirty = false; }
       gl.uniform2f(uScreen, cv.width, cv.height); gl.uniform3f(uCam, cam.x, cam.y, cam.z * DPR);
       gl.uniform1f(uTime, (t / 1000) % 1000); gl.uniform1f(uDpr, DPR); gl.uniform1f(uPlayer, G.player);
-      gl.uniform1f(uNow, now16()); gl.uniform1f(uT, transDur());
+      gl.uniform1f(uNow, now16()); gl.uniform1f(uT, transDur()); gl.uniform1f(uFlagMode, flagsReady && mapStyle === "flags" ? 1 : 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     }
   };
@@ -870,6 +904,9 @@ function computeLabels() {
       const key = X * M + Y; let a = acc.get(key); const x = c % W, y = (c / W) | 0;
       if (!a) { a = { a: X, b: Y, x0: x, sx: 0, sy: 0, n: 0 }; acc.set(key, a); }
       let ux = x; if (ux - a.x0 > W / 2) ux -= W; else if (a.x0 - ux > W / 2) ux += W; a.sx += ux; a.sy += y; a.n++; break; } }
+  frontPts.length = 0;
+  for (const c of borderArr) { const X = owner[c]; if (!warCount[X]) continue;
+    for (let k = 0; k < 4; k++) { const z = nb(c, k); if (z < 0) continue; const Y = owner[z]; if (Y && Y !== X && war[X * M + Y]) { frontPts.push(c, X, k); break; } } }
   const prevF = {}; for (const f of fronts) prevF[Math.min(f.att, f.def) * M + Math.max(f.att, f.def)] = f;
   fronts = [];
   const pos = {}; for (const L of labels) pos[L.o] = L;
@@ -979,6 +1016,31 @@ function drawNukes(sxOf, oy, now) {
     ctx.fillStyle = col(0.7); ctx.beginPath(); ctx.ellipse(x, cyy + ch * 0.7, cw * 0.55, ch * 0.35, 0, 0, 7); ctx.fill();
   }
 }
+// lines of little flags along every front, one row per side (like soldiers facing each other)
+const frontPts = [];
+const KDX = [-1, 1, 0, 0], KDY = [0, 0, -1, 1];
+function drawFrontFlags(sxOf, oy, t) {
+  if (!frontPts.length || !SPRITE.complete) return;
+  const fh = Math.max(9, Math.min(17, cam.z * 1.5)), fw = fh * 4 / 3;
+  let B = (fw * 1.35) / cam.z; B = Math.pow(2, Math.ceil(Math.log2(Math.max(0.5, B))));
+  const pick = new Map();
+  for (let j = 0; j < frontPts.length; j += 3) {
+    const c = frontPts[j], X = frontPts[j + 1], k = frontPts[j + 2]; if (owner[c] !== X) continue;
+    const x = cx(c), y = cy(c), sx = sxOf(x), sy = oy + y * cam.z; if (sx < -fw || sx > SW + fw || sy < -fh * 2 || sy > SH + fh * 2) continue;
+    const key = (Math.floor(x / B) * 4096 + Math.floor(y / B)) * 256 + X;
+    if (!pick.has(key)) pick.set(key, j);
+  }
+  let n = 0;
+  for (const j of pick.values()) {
+    if (++n > 450) break;
+    const c = frontPts[j], X = frontPts[j + 1], k = frontPts[j + 2], i = CODEIDX[C[X].code];
+    const sx = sxOf(cx(c)) - KDX[k] * fh * 0.62, sy = oy + cy(c) * cam.z - KDY[k] * fh * 0.62 + Math.sin(t / 170 + c * 0.37) * 0.8;
+    const x0 = sx - fw / 2, y0 = sy - fh / 2;
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(x0 + 1, y0 + 2, fw, fh);
+    ctx.fillStyle = X === G.player ? "#ffd65a" : "#fff"; ctx.fillRect(x0 - 1.5, y0 - 1.5, fw + 3, fh + 3);
+    ctx.drawImage(SPRITE, (i % FCOLS) * FW + 2, Math.floor(i / FCOLS) * FH + 2, FW - 4, FH - 4, x0, y0, fw, fh);
+  }
+}
 // gunfire, tracers and smoke along every active front line
 const ffx = []; let lastDraw = 0;
 function frontFx(now) {
@@ -1038,8 +1100,9 @@ function draw(t) {
     if (cam.z > 2.5) { ctx.strokeStyle = `rgba(255,200,120,${al * 0.6})`; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.arc(sx, sy, R * 1.25, 0, 7); ctx.stroke(); } }
   ctx.globalCompositeOperation = "source-over";
   drawNukes(sxOf, oy, now);
-  // attack arrows
-  for (const f of fronts) {
+  drawFrontFlags(sxOf, oy, t);
+  // (attack arrows replaced by flag lines)
+  if (false) for (const f of fronts) {
     if (!atWar(f.att, f.def)) continue;
     const imp = f.att === G.player || f.def === G.player || f.att === selected || f.def === selected;
     const sizeCells = Math.min(60, 8 + Math.sqrt(f.vn) * 2.2), len = sizeCells * cam.z;
@@ -1328,6 +1391,7 @@ function pauseMenu() {
     { label: ic("play") + " Resume", cls: "big", fn: () => { G.speed = prev || 1; updHud(); } },
     { label: ic("save") + " Save Game", fn: () => { const ok = saveGame(); G.speed = prev; updHud(); logMsg(ok ? ic("save") + " Game saved" : "Save failed", ok ? "peace" : "war"); } },
     { label: ic("globe") + " AI wars: " + aiNames[G.ai], keep: true, fn: (b) => { G.ai = (G.ai + 1) % 4; b.innerHTML = ic("globe") + " AI wars: " + aiNames[G.ai]; } },
+    { label: ic("land") + " Map style: " + (mapStyle === "flags" ? "Flags" : "Colors"), keep: true, fn: (b) => { mapStyle = mapStyle === "flags" ? "colors" : "flags"; try { localStorage.setItem("waw_mapstyle", mapStyle); } catch (e) {} b.innerHTML = ic("land") + " Map style: " + (mapStyle === "flags" ? "Flags" : "Colors"); } },
     { label: ic("music") + " Music: " + (AUD.on.music ? "On" : "Off"), keep: true, fn: (b) => { audioInit(); setMusic(!AUD.on.music); b.innerHTML = ic("music") + " Music: " + (AUD.on.music ? "On" : "Off"); } },
     { label: ic("sound") + " Sound effects: " + (AUD.on.sfx ? "On" : "Off"), keep: true, fn: (b) => { audioInit(); setSfx(!AUD.on.sfx); b.innerHTML = ic("sound") + " Sound effects: " + (AUD.on.sfx ? "On" : "Off"); } },
     { label: ic("home") + " Save & Main Menu", fn: () => { saveGame(); G.speed = prev; showMenu(); } },
