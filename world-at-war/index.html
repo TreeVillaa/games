@@ -76,7 +76,8 @@ button.hb{color:var(--gold)}
 .stats .hb{flex:1;justify-content:center;min-height:34px;font-size:13px}
 .log{position:absolute;left:8px;right:8px;top:calc(98px + env(safe-area-inset-top));display:flex;flex-direction:column;gap:4px;pointer-events:none;align-items:center}
 .log div{background:rgba(0,0,0,.72);border-left:3px solid var(--gold);padding:5px 10px;border-radius:8px;font-size:13px;max-width:100%;animation:fadein .3s}
-.log div.war{border-color:var(--red)}.log div.nato{border-color:#6d9eff;background:rgba(11,61,145,.85);font-weight:700}.log div.peace{border-color:var(--green)}
+.log div.war{border-color:var(--red)}.log div.nato{border-color:#6d9eff;background:rgba(11,61,145,.85);font-weight:700}.log div.brics{border-color:#ffb02e;background:rgba(120,60,0,.88);font-weight:700}.log div.ww{border-color:#ff5a4d;background:rgba(140,10,10,.92);font-weight:800}
+.nato.brics{background:#8a2a10;border-color:#ffb02e;color:#ffe2a0}.log div.peace{border-color:var(--green)}
 @keyframes fadein{from{opacity:0;transform:translateY(-6px)}}
 .bottom{position:absolute;left:0;right:0;bottom:0;padding:6px 6px calc(6px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:6px;pointer-events:none}
 .bottom>*{pointer-events:auto}
@@ -371,13 +372,17 @@ const IC = {
   pad: '<rect x="2" y="6" width="20" height="12" rx="6"/><path d="M6 12h4M8 10v4"/><circle cx="15.5" cy="13" r="1" fill="currentColor"/><circle cx="18" cy="10.5" r="1" fill="currentColor"/>',
   shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',
   nato: '<circle cx="12" cy="12" r="10" stroke-width="1.6"/><path d="M12 1v22M1 12h22" stroke-width="1.3"/><path d="M12 12l0-8 3 8z M12 12l8 0-8 3z M12 12l0 8-3-8z M12 12l-8 0 8-3z" fill="currentColor" stroke="none"/>',
+  brics: '<circle cx="12" cy="12" r="10" stroke-width="1.6"/><path d="M12 4.5l2 5.2 5.5.3-4.3 3.4 1.5 5.3L12 15.6l-4.7 3.1 1.5-5.3L4.5 10l5.5-.3z" fill="currentColor" stroke="none"/>',
   no: '<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>',
   send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
 };
 const ic = n => `<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
-const NATO = new Set("US CA GB FR DE IT ES PT NL BE LU DK NO IS PL CZ SK HU RO BG GR TR HR SI AL ME MK EE LV LT FI SE".split(" "));
-const natoTag = `<span class="nato">${ic("nato")}NATO</span>`;
-const POWER = {US:3.2,CN:2.8,RU:2.6,IN:2.1,GB:1.8,FR:1.8,DE:1.6,JP:1.6,KR:1.6,TR:1.5,IL:1.7,IR:1.4,PK:1.4,BR:1.3,IT:1.4,EG:1.3,SA:1.3,UA:1.4,AU:1.4,PL:1.4,ID:1.2,KP:1.4,TW:1.3,ES:1.3,CA:1.3,VN:1.3,TH:1.2,MX:1.15,AE:1.25,GR:1.2,SE:1.2,NL:1.2,DZ:1.15,NG:1.1,AR:1.1,ZA:1.15,CO:1.1,NO:1.2,FI:1.2,CH:1.2,BY:1.1,KZ:1.05,ET:1.05,MA:1.05,SG:1.4,CL:1.1,PH:1.05,MY:1.05,BD:1.0,IQ:1.0,AZ:1.05,RO:1.1,CZ:1.1,PT:1.1,HU:1.05,DK:1.1,BE:1.1,AT:1.05,QA:1.1,KW:1.05,MM:1.0,PE:1.0,VE:1.0,CU:1.0};
+const BLOCS = [
+  { key: "nato", name: "NATO", icon: "nato", color: "#6d9eff", codes: new Set("US CA GB FR DE IT ES PT NL BE LU DK NO IS PL CZ SK HU RO BG GR TR HR SI AL ME MK EE LV LT FI SE".split(" ")) },
+  { key: "brics", name: "BRICS", icon: "brics", color: "#ffb02e", codes: new Set("BR RU IN CN ZA EG ET IR AE ID".split(" ")) },
+];
+const staticBloc = code => BLOCS.findIndex(b => b.codes.has(code));
+const POWER = {US:4,CN:3.2,RU:2.3,IN:2.1,GB:1.8,FR:1.8,DE:1.6,JP:1.6,KR:1.6,TR:1.5,IL:1.7,IR:1.4,PK:1.4,BR:1.3,IT:1.4,EG:1.3,SA:1.3,UA:1.4,AU:1.4,PL:1.4,ID:1.2,KP:1.4,TW:1.3,ES:1.3,CA:1.3,VN:1.3,TH:1.2,MX:1.15,AE:1.25,GR:1.2,SE:1.2,NL:1.2,DZ:1.15,NG:1.1,AR:1.1,ZA:1.15,CO:1.1,NO:1.2,FI:1.2,CH:1.2,BY:1.1,KZ:1.05,ET:1.05,MA:1.05,SG:1.4,CL:1.1,PH:1.05,MY:1.05,BD:1.0,IQ:1.0,AZ:1.05,RO:1.1,CZ:1.1,PT:1.1,HU:1.05,DK:1.1,BE:1.1,AT:1.05,QA:1.1,KW:1.05,MM:1.0,PE:1.0,VE:1.0,CU:1.0};
 const N = MAPDATA.countries.length;
 const M = N + 1;
 const C = [null];
@@ -431,12 +436,12 @@ const lists = []; const posIn = new Int32Array(W * H);
 const borderArr = []; const borderPos = new Int32Array(W * H).fill(-1);
 let selected = 0, pickFor = 0;
 
-function capOf(id) { return C[id].power * (12 + cells[id] * 0.25); }
+function capOf(id) { return C[id].power * (25 + 2.5 * Math.pow(cells[id], 0.73)); }
 function newGame(player) {
   owner.set(BASE);
   G = { slot: Date.now().toString(36) + Math.floor(rnd() * 1e4), player, day: 0, speed: 1, ai: 2,
     troops: new Array(M).fill(0), money: new Array(M).fill(0), alive: new Array(M).fill(false), boost: new Array(M).fill(0),
-    offCd: 0, peaceCd: {}, warStart: {}, natoOut: {} };
+    offCd: 0, peaceCd: {}, warStart: {}, out: { nato: {}, brics: {} }, warned: {} };
   rebuild();
   for (let id = 1; id <= N; id++) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
 }
@@ -462,35 +467,52 @@ function transfer(i, to) {
   labelsDirty = true;
 }
 const atWar = (a, b) => war[a * M + b] === 1;
-function isNato(id) { return id > 0 && NATO.has(C[id].code) && !(G.natoOut && G.natoOut[id]); }
-function natoMembers() { const r = []; for (let id = 1; id <= N; id++) if (G.alive[id] && isNato(id)) r.push(id); return r; }
-// A country starts a war. If the target is in NATO, the whole alliance joins against the attacker.
+// ---------- alliances ----------
+function blocOf(id) { if (id <= 0) return -1; for (let k = 0; k < BLOCS.length; k++) if (BLOCS[k].codes.has(C[id].code) && !(G.out[BLOCS[k].key] || {})[id]) return k; return -1; }
+const inBloc = (id, k) => blocOf(id) === k;
+const isNato = id => blocOf(id) === 0;
+function members(k) { const r = []; for (let id = 1; id <= N; id++) if (G.alive[id] && blocOf(id) === k) r.push(id); return r; }
+function blocAtWar(k, x) { let n = 0; for (const m of members(k)) if (atWar(m, x)) n++; return n > 1; }
+// everyone fighting on a's side against b (a's whole alliance if the alliance is in this war)
+function side(a, b) { const k = blocOf(a); return k >= 0 && blocAtWar(k, b) ? members(k) : [a]; }
+const blocTag = k => `<span class="nato ${BLOCS[k].key}">${ic(BLOCS[k].icon)}${BLOCS[k].name}</span>`;
+const blocBig = k => `<div class="bigf" style="color:${BLOCS[k].color}">${ic(BLOCS[k].icon)}</div>`;
+// A country starts a war. Alliances defend their members; NATO vs BRICS means world war.
 function startWar(a, b) {
   if (!a || !b || a === b || !G.alive[a] || !G.alive[b] || atWar(a, b)) return false;
   setWar(a, b, true, true);
   logMsg(`${ic("swords")} ${C[a].flag} ${C[a].name} attacked ${C[b].flag} ${C[b].name}${b === G.player ? "!" : ""}`, "war");
-  if (isNato(b)) {
-    if (isNato(a)) { G.natoOut[a] = 1; logMsg(`${ic("nato")} ${C[a].flag} ${C[a].name} was expelled from NATO`, "war"); }
-    let joined = 0;
-    for (const m of natoMembers()) if (m !== a && m !== b && setWar(m, a, true, true)) joined++;
-    if (joined) { logMsg(`${ic("nato")} NATO ARTICLE 5! ${joined + 1} allies unite against ${C[a].flag} ${C[a].name}`, "nato");
-      if (a === G.player) setTimeout(() => natoAlert(a, b, joined + 1), 50); }
+  let ka = blocOf(a); const kb = blocOf(b);
+  if (kb >= 0 && ka === kb) { G.out[BLOCS[ka].key][a] = 1; logMsg(`${ic(BLOCS[ka].icon)} ${C[a].flag} ${C[a].name} was expelled from ${BLOCS[ka].name}`, "war"); ka = -1; }
+  let joined = 0;
+  if (kb >= 0) {
+    for (const m of members(kb)) if (m !== a && m !== b && setWar(m, a, true, true)) joined++;
+    if (joined) logMsg(`${ic(BLOCS[kb].icon)} ${BLOCS[kb].name} UNITES! ${joined + 1} allies declare war on ${C[a].flag} ${C[a].name}`, BLOCS[kb].key);
   }
+  if (ka >= 0 && kb >= 0 && ka !== kb) {
+    const A = members(ka), B = members(kb);
+    for (const x of A) for (const y of B) setWar(x, y, true, true);
+    logMsg(`${ic("globe")} WORLD WAR III! All of ${BLOCS[ka].name} and ${BLOCS[kb].name} are at war`, "ww");
+    if (blocOf(G.player) >= 0) setTimeout(() => worldWarAlert(ka, kb, A.length, B.length), 50);
+  } else if (joined && a === G.player) setTimeout(() => blocAlert(kb, a, b, joined + 1), 50);
   repaintAll(); return true;
 }
-function natoWar(x) { let n = 0; for (const m of natoMembers()) if (atWar(m, x)) n++; return n > 1; }
-// End a war; wars against NATO end for the whole alliance at once.
+// End a war; alliance wars end for the whole alliance at once.
 function endWar(a, b) {
   if (!atWar(a, b)) return false;
-  if (isNato(a) && natoWar(b)) { for (const m of natoMembers()) setWar(m, b, false, true); }
-  else if (isNato(b) && natoWar(a)) { for (const m of natoMembers()) setWar(m, a, false, true); }
-  else setWar(a, b, false, true);
+  const A = side(a, b), B = side(b, a);
+  for (const x of A) for (const y of B) setWar(x, y, false, true);
   repaintAll(); return true;
 }
-function natoAlert(a, b, n) {
+function blocAlert(k, a, b, n) {
   G.speed = 0; updHud();
-  modal(`<div class="bigf" style="color:#6d9eff">${ic("nato")}</div><h3>NATO has united!</h3><p>You attacked ${C[b].flag} ${C[b].name}, a NATO member. All <b>${n}</b> NATO countries have declared war on ${C[a].flag} ${C[a].name}.</p>`,
+  modal(`${blocBig(k)}<h3>${BLOCS[k].name} has united!</h3><p>You attacked ${C[b].flag} ${C[b].name}, a ${BLOCS[k].name} member. All <b>${n}</b> ${BLOCS[k].name} countries have declared war on ${C[a].flag} ${C[a].name}.</p>`,
     [{ label: ic("swords") + " Bring it on", cls: "big red", fn: () => { G.speed = 1; updHud(); } }]);
+}
+function worldWarAlert(ka, kb, na, nb) {
+  G.speed = 0; updHud();
+  modal(`<div class="bigf" style="color:#ff5a4d">${ic("globe")}</div><h3>World War III</h3><p><b style="color:${BLOCS[ka].color}">${BLOCS[ka].name}</b> (${na} countries) and <b style="color:${BLOCS[kb].color}">${BLOCS[kb].name}</b> (${nb} countries) are now at war with each other. Your side: <b>${blocOf(G.player) >= 0 ? BLOCS[blocOf(G.player)].name : "none"}</b>.</p>`,
+    [{ label: ic("swords") + " To war", cls: "big red", fn: () => { G.speed = 1; updHud(); } }]);
 }
 function setWar(a, b, on, noPaint) {
   if (a === b || !a || !b || atWar(a, b) === on) return false;
@@ -509,12 +531,11 @@ function tick() {
   G.day++;
   const S = new Float64Array(M);
   for (let id = 1; id <= N; id++) if (G.alive[id]) S[id] = strength(id);
-  // NATO fights as one: members at war with a common enemy share one pooled army (+ alliance bonus)
-  const isN = new Uint8Array(M), isT = new Uint8Array(M); let nT = 0, nC = 0, any = false;
-  for (let id = 1; id <= N; id++) if (G.alive[id] && isNato(id)) { isN[id] = 1; nT += G.troops[id] * (G.boost[id] > 0 ? 2 : 1); nC += cells[id]; }
-  for (let id = 1; id <= N; id++) if (G.alive[id] && !isN[id] && warCount[id] > 1) { let k = 0; for (let m = 1; m <= N; m++) if (isN[m] && war[m * M + id]) k++; if (k > 1) { isT[id] = 1; any = true; } }
-  const natoS = any ? 2 * (nT + 1) / Math.sqrt(nC + 4) : 0;
-  const eff = (x, y) => isN[x] && isT[y] ? Math.max(S[x], natoS) : S[x];
+  // Alliances fight as one: members at war with a common enemy share one pooled army (+ alliance bonus)
+  const mem = new Int8Array(M).fill(-1), pool = [], isT = BLOCS.map(() => new Uint8Array(M));
+  BLOCS.forEach((B, k) => { let t = 0, c = 0; for (let id = 1; id <= N; id++) if (G.alive[id] && blocOf(id) === k) { mem[id] = k; t += G.troops[id] * (G.boost[id] > 0 ? 2 : 1); c += cells[id]; } pool[k] = 2 * (t + 1) / Math.sqrt(c + 4); });
+  for (let id = 1; id <= N; id++) if (G.alive[id] && warCount[id] > 1) { const cnt = BLOCS.map(() => 0); for (let m = 1; m <= N; m++) if (mem[m] >= 0 && war[m * M + id]) cnt[mem[m]]++; cnt.forEach((n, k) => { if (n > 1) isT[k][id] = 1; }); }
+  const eff = (x, y) => mem[x] >= 0 && isT[mem[x]][y] ? Math.max(S[x], pool[mem[x]]) : S[x];
   // land combat along borders
   captures.length = 0;
   const len = borderArr.length;
@@ -588,8 +609,10 @@ function aiThink() {
       if (id === G.player || !G.alive[id] || warCount[id] > 1) continue;
       if (rnd() < rate * C[id].power) {
         adj = adj || neighborsOf();
-        // NATO members never attack each other, and most countries are scared to attack NATO
-        const opts = [...adj[id]].filter(o => !atWar(id, o) && strength(o) < strength(id) * 0.85 && !(isNato(id) && isNato(o)) && (!isNato(o) || rnd() < 0.08));
+        // allies never attack each other; most countries are scared to attack an alliance; NATO-BRICS wars are rare
+        const ki = blocOf(id);
+        const opts = [...adj[id]].filter(o => { if (atWar(id, o) || strength(o) >= strength(id) * 0.85) return false; const ko = blocOf(o);
+          if (ko < 0) return true; if (ko === ki) return false; return rnd() < (ki >= 0 ? 0.03 : 0.08); });
         if (opts.length) startWar(id, opts[(rnd() * opts.length) | 0]);
       }
     }
@@ -598,11 +621,9 @@ function aiThink() {
   for (const key in G.warStart) {
     const [a, b] = key.split("-").map(Number); if (a === G.player || b === G.player) continue;
     if (!atWar(a, b)) continue;
-    const natoSide = (isNato(a) && natoWar(b)) || (isNato(b) && natoWar(a));
-    if (natoSide) continue; // NATO never stops until the attacker is taken down (only you can beg for peace)
-    if (G.day - G.warStart[key] > (natoSide ? 240 : 120) && rnd() < (natoSide ? 0.06 : 0.12)) {
-      endWar(a, b);
-      logMsg(natoSide ? `${ic("peace")} NATO made peace with ${C[isNato(a) ? b : a].flag} ${C[isNato(a) ? b : a].name}` : `${ic("peace")} ${C[a].flag} ${C[a].name} and ${C[b].flag} ${C[b].name} made peace`, "peace"); }
+    if (side(a, b).length > 1 || side(b, a).length > 1) continue; // alliances never stop until the enemy is taken down (only you can beg for peace)
+    if (G.day - G.warStart[key] > 120 && rnd() < 0.12) {
+      endWar(a, b); logMsg(`${ic("peace")} ${C[a].flag} ${C[a].name} and ${C[b].flag} ${C[b].name} made peace`, "peace"); }
   }
 }
 
@@ -717,8 +738,8 @@ function renderPanel(soft) {
   if (!selected) { pn.classList.remove("on"); panelSig = ""; return; }
   const s = selected, c = C[s], p = G.player, mine = s === p;
   const wars = warsOf(s);
-  const sig = s + "|" + wars.join(",") + "|" + G.alive[s] + "|" + isNato(s);
-  const statsHtml = `<span>${ic("land")} ${pctLand(s)} of world</span><span>${ic("troops")} ${fmtT(G.troops[s])}</span><span>${ic("money")} ${fmtM(G.money[s])}</span><span>${tierOf(c.power)}</span>${isNato(s) ? natoTag : ""}`;
+  const sig = s + "|" + wars.join(",") + "|" + G.alive[s] + "|" + blocOf(s);
+  const statsHtml = `<span>${ic("land")} ${pctLand(s)} of world</span><span>${ic("troops")} ${fmtT(G.troops[s])}</span><span>${ic("money")} ${fmtM(G.money[s])}</span><span>${tierOf(c.power)}</span>${blocOf(s) >= 0 ? blocTag(blocOf(s)) : ""}`;
   if (soft && sig === panelSig) { pn.querySelector(".pstats").innerHTML = statsHtml; return; }
   panelSig = sig;
   let btns = "";
@@ -730,7 +751,7 @@ function renderPanel(soft) {
   }
   pn.innerHTML = `<div class="ptop"><div class="f">${c.flag}</div><div><b>${c.name}${mine ? " (You)" : ""}</b><span>${atWar(p, s) ? ic("swords") + " AT WAR WITH YOU" : mine ? "Your nation" : "At peace with you"}</span></div><button class="close" data-a="close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="pstats">${statsHtml}</div>
-  ${wars.length ? `<div class="pwars">${ic("swords")} At war with: ${wars.map(w => C[w].flag + " " + C[w].name).join(", ")}</div>` : ""}
+  ${wars.length ? `<div class="pwars">${ic("swords")} At war with: ${warList(wars)}</div>` : ""}
   <div class="pbtns">${btns}</div>`;
   pn.classList.add("on");
 }
@@ -746,11 +767,17 @@ function panelAction(a) {
 }
 function declareWar(a, b) {
   if (!G.alive[a] || !G.alive[b] || a === b) return;
-  if (isNato(b) && !isNato(a) && a === G.player && !G.natoWarned) {
-    G.natoWarned = 1;
-    modal(`<div class="bigf" style="color:#6d9eff">${ic("nato")}</div><h3>${C[b].name} is in NATO</h3><p>If you attack a NATO member, <b>all ${natoMembers().length} NATO countries</b> will unite and declare war on you.</p>`,
-      [{ label: ic("swords") + " Attack anyway", cls: "red", fn: () => declareWar(a, b) }, { label: "Cancel", cancel: true }]);
-    return;
+  const ka = blocOf(a), kb = blocOf(b);
+  if (a === G.player && kb >= 0 && !atWar(a, b)) {
+    const wkey = ka >= 0 && ka !== kb ? "ww" : BLOCS[kb].key + (ka === kb ? "-own" : "");
+    if (!G.warned[wkey]) {
+      let msg = ka === kb ? `${C[b].name} is your ${BLOCS[kb].name} ally. Attacking it gets you <b>expelled</b>, and all of ${BLOCS[kb].name} will declare war on you.`
+        : `If you attack a ${BLOCS[kb].name} member, <b>all ${members(kb).length} ${BLOCS[kb].name} countries</b> will unite and declare war on you.`;
+      if (ka >= 0 && ka !== kb) msg += `<br><br>You are in <b style="color:${BLOCS[ka].color}">${BLOCS[ka].name}</b>, so this starts <b style="color:#ff5a4d">WORLD WAR III</b>: every ${BLOCS[ka].name} and ${BLOCS[kb].name} country goes to war.`;
+      modal(`${blocBig(kb)}<h3>${C[b].name} is in ${BLOCS[kb].name}</h3><p>${msg}</p>`,
+        [{ label: ic("swords") + " Attack anyway", cls: "red", fn: () => { G.warned[wkey] = 1; declareWar(a, b); } }, { label: "Cancel", cancel: true }]);
+      return;
+    }
   }
   startWar(a, b);
   renderPanel();
@@ -758,15 +785,22 @@ function declareWar(a, b) {
 function askPeace(s) {
   const p = G.player, cd = G.peaceCd[s] || 0;
   if (G.day < cd) { logMsg(`${C[s].flag} ${C[s].name} won't talk yet. Try again in ${cd - G.day} days.`); return; }
-  const nw = isNato(s) && natoWar(p);
-  const es = nw ? natoMembers().filter(m => atWar(m, p)).reduce((t, m) => t + strength(m), 0) : strength(s);
-  const r = es / (es + strength(p));
-  if (rnd() < (nw ? 0.1 : 0.25) + 0.7 * (1 - r)) { endWar(p, s); logMsg(nw ? `${ic("peace")} NATO accepted peace` : `${ic("peace")} ${C[s].flag} ${C[s].name} accepted peace`, "peace"); }
-  else { G.peaceCd[s] = G.day + 30; logMsg(nw ? `${ic("no")} NATO refused peace` : `${ic("no")} ${C[s].flag} ${C[s].name} refused peace`, "war"); }
+  const them = side(s, p), us = side(p, s), nw = them.length > 1;
+  const who = nw ? BLOCS[blocOf(s)].name : `${C[s].flag} ${C[s].name}`;
+  const sum = L => L.filter(x => G.alive[x]).reduce((t, x) => t + strength(x), 0);
+  const es = sum(them), r = es / (es + sum(us));
+  if (rnd() < (nw ? 0.1 : 0.25) + 0.7 * (1 - r)) { endWar(p, s); logMsg(`${ic("peace")} ${who} accepted peace`, "peace"); }
+  else { G.peaceCd[s] = G.day + 30; logMsg(`${ic("no")} ${who} refused peace`, "war"); }
   renderPanel();
 }
 function doRecruit() { if (recruit(G.player)) logMsg(`${ic("recruit")} Recruited ${fmtT(capOf(G.player) * 0.15)} troops`); updHud(); }
 function doOffensive() { const p = G.player; if (G.offCd > 0 || !warCount[p]) return; G.boost[p] = 20; G.offCd = 60; G.troops[p] *= 0.95; logMsg(ic("bolt") + " Offensive launched! Double strength for 20 days", "war"); updHud(); }
+function warList(wars) {
+  const parts = [], rest = new Set(wars);
+  BLOCS.forEach((B, k) => { const m = members(k); if (m.length > 2 && m.every(x => rest.has(x))) { m.forEach(x => rest.delete(x)); parts.push(`<b style="color:${B.color}">All of ${B.name} (${m.length})</b>`); } });
+  const r = [...rest]; parts.push(...r.slice(0, 6).map(w => C[w].flag + " " + C[w].name)); if (r.length > 6) parts.push(`+${r.length - 6} more`);
+  return parts.join(", ");
+}
 function selectCountry(id) { selected = id; repaintAll(); renderPanel(); }
 function logMsg(t, cls) {
   const d = document.createElement("div"); d.innerHTML = t; if (cls) d.className = cls;
@@ -829,7 +863,7 @@ function saveGame() {
   const wars = Object.keys(G.warStart).map(k => [...k.split("-").map(Number), G.warStart[k]]);
   const data = { v: 1, slot: G.slot, player: G.player, day: G.day, speed: G.speed, ai: G.ai, offCd: G.offCd, peaceCd: G.peaceCd,
     troops: G.troops.map(v => Math.round(v * 10) / 10), money: G.money.map(v => Math.round(v * 10) / 10), alive: G.alive.map(v => v ? 1 : 0), boost: G.boost,
-    wars, natoOut: G.natoOut, natoWarned: G.natoWarned || 0, grid: encodeGrid(owner), cam: { x: cam.x, y: cam.y, z: cam.z } };
+    wars, out: G.out, warned: G.warned, grid: encodeGrid(owner), cam: { x: cam.x, y: cam.y, z: cam.z } };
   const saves = readSaves(); const meta = { slot: G.slot, code: C[G.player].code, name: C[G.player].name, day: G.day, savedAt: Date.now(), land: pctLand(G.player), data };
   const i = saves.findIndex(s => s.slot === G.slot);
   if (i >= 0) saves[i] = meta; else { if (saves.length >= MAXSLOTS) return false; saves.push(meta); }
@@ -838,7 +872,7 @@ function saveGame() {
 function loadGame(meta) {
   const d = meta.data;
   owner.set(BASE); decodeGrid(d.grid, owner);
-  G = { slot: d.slot, player: d.player, day: d.day, speed: d.speed || 1, ai: d.ai ?? 2, troops: d.troops, money: d.money, alive: d.alive.map(Boolean), boost: d.boost, offCd: d.offCd || 0, peaceCd: d.peaceCd || {}, warStart: {}, natoOut: d.natoOut || {}, natoWarned: d.natoWarned || 0 };
+  G = { slot: d.slot, player: d.player, day: d.day, speed: d.speed || 1, ai: d.ai ?? 2, troops: d.troops, money: d.money, alive: d.alive.map(Boolean), boost: d.boost, offCd: d.offCd || 0, peaceCd: d.peaceCd || {}, warStart: {}, out: d.out || { nato: d.natoOut || {}, brics: {} }, warned: d.warned || {} };
   rebuild();
   for (const [a, b, st] of d.wars) { war[a * M + b] = war[b * M + a] = 1; warCount[a]++; warCount[b]++; G.warStart[a + "-" + b] = st; }
   enterGame(); if (d.cam) { cam.x = d.cam.x; cam.y = d.cam.y; cam.z = d.cam.z; clampCam(); }
@@ -893,7 +927,7 @@ function buildGrid(q) {
     const c = C[id]; if (q && !c.name.toLowerCase().includes(q)) continue;
     if (pickMode !== "new" && !G.alive[id]) continue;
     const t = document.createElement("button"); t.className = "tile nav";
-    t.innerHTML = `<div class="f">${c.flag}</div><div class="n"></div><div class="p">${tierOf(c.power)}</div>${NATO.has(c.code) ? natoTag : ""}`;
+    t.innerHTML = `<div class="f">${c.flag}</div><div class="n"></div><div class="p">${tierOf(c.power)}</div>${staticBloc(c.code) >= 0 ? blocTag(staticBloc(c.code)) : ""}`;
     t.querySelector(".n").textContent = c.name;
     t.onclick = () => choose(id); g.appendChild(t);
   }
@@ -901,8 +935,8 @@ function buildGrid(q) {
 function choose(id) {
   const c = C[id];
   const cellsNow = pickMode === "new" ? baseCells[id] : cells[id];
-  const troops = pickMode === "new" ? c.power * (12 + baseCells[id] * 0.25) : G.troops[id];
-  modal(`<div class="bigf">${c.flag}</div><h3>${c.name}</h3><p>${tierOf(c.power)} ${NATO.has(c.code) ? natoTag : ""}</p>
+  const troops = pickMode === "new" ? c.power * (25 + 2.5 * Math.pow(baseCells[id], 0.73)) : G.troops[id];
+  modal(`<div class="bigf">${c.flag}</div><h3>${c.name}</h3><p>${tierOf(c.power)} ${staticBloc(c.code) >= 0 ? blocTag(staticBloc(c.code)) : ""}</p>
     <div class="mstat"><div><b>${pctOf(cellsNow)}</b>of world land</div><div><b>${fmtT(troops)}</b>troops</div></div>`,
     [{ label: pickMode === "new" ? ic("send") + " Deploy" : ic("play") + " Play as " + c.name, cls: "big", fn: () => {
       if (pickMode === "new") { newGame(id); enterGame(); saveGame(); logMsg(`${ic("star")} You lead ${c.flag} ${c.name}. Tap any country to declare war!`); }
@@ -1022,7 +1056,7 @@ function frame(t) {
 
 /* ---------- loading screen ---------- */
 (function embers() { const e = $("embers"); for (let i = 0; i < 26; i++) { const s = document.createElement("i"); s.style.left = (rnd() * 100) + "vw"; s.style.setProperty("--dx", ((rnd() - 0.5) * 120) + "px"); s.style.animationDuration = (5 + rnd() * 7) + "s"; s.style.animationDelay = (-rnd() * 10) + "s"; e.appendChild(s); } })();
-const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
+const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: if NATO and BRICS clash, it's World War III", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
 const LOADMS = 7000; const t0 = performance.now();
 (function loadStep() {
   const p = Math.min(1, (performance.now() - t0) / LOADMS);
