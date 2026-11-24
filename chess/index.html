@@ -512,6 +512,28 @@
   .pod.p3 { height: 88px; border-color: rgba(214,150,90,.85); } .pod.p3 b { color: #e0a36a; }
   .pod .pav { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,.15); border: 2px dashed rgba(255,255,255,.4); }
   #lbOvFoot .btn { margin-top: 12px; }
+  .climbbtn { background: linear-gradient(135deg, #b98cff, #5a35d0); color: #fff; box-shadow: 0 6px 0 #33208a; gap: 12px; min-height: 76px; }
+  .climbbtn .pawnlogo { width: 44px; height: 50px; flex: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); }
+  .climbbtn .cbt { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+  .climbbtn .cbt b { font-size: 1.3rem; } .climbbtn .cbt small { font-size: .85rem; font-weight: 700; opacity: .85; }
+  .lbttl .pawnlogo { width: 38px; height: 44px; }
+  #meBtn { gap: 8px; } #meBtn .uav { width: 40px; height: 40px; box-shadow: 0 0 0 2px #fff; }
+  .ladme { display: flex; gap: 12px; align-items: center; background: rgba(255,255,255,.1); border-radius: 18px; padding: 10px 12px; margin-bottom: 10px; text-align: left; }
+  .ladme .lmtxt { flex: 1; min-width: 0; } .ladme .mini { margin-top: 6px; padding: 0 12px; min-height: 34px; }
+  .lmodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 10px; }
+  .lmode { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px; border-radius: 16px; border: 2px solid rgba(255,255,255,.18); background: rgba(255,255,255,.1); color: #fff; font: inherit; cursor: pointer; }
+  .lmode b { font-size: 1rem; } .lmode small { font-size: .7rem; opacity: .8; } .lmode span { font-size: 1.35rem; font-weight: 900; }
+  .lmode.sel { border-color: #ffd84a; background: rgba(255,216,74,.2); box-shadow: inset 0 0 0 2px #ffd84a; }
+  .jumpme { font-size: 1rem; width: 60px; }
+  .lbtag.gm { background: #e53935; color: #fff; } .lbtag.yt { background: #ff4f6d; color: #fff; }
+  .matchcard { padding-top: 22px !important; }
+  .matchcard .mlbl { font-weight: 900; font-size: 1.15rem; margin-bottom: 10px; }
+  .mvs { display: flex; align-items: center; justify-content: center; gap: 10px; }
+  .mside { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 40%; } .mside b { font-size: .95rem; word-break: break-word; } .mside span:last-child { font-weight: 900; color: #ffd84a; }
+  .mside .uav.big { width: 88px; height: 88px; box-shadow: 0 0 0 3px #fff; }
+  .vs { font-size: 1.6rem; font-weight: 900; color: #ffd84a; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
+  .shuffle { animation: shuf .22s linear infinite; } @keyframes shuf { 50% { transform: scale(.94); } }
+  .mstakes { margin: 12px 0 4px; font-weight: 700; line-height: 1.5; }
   .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
   .empty.sm { padding: 8px; font-size: .85rem; }
   small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
@@ -814,7 +836,7 @@
   <div class="menu">
     <button class="btn" id="contBtn" data-act="continue">▶ Continue game</button>
     <button class="btn play" data-act="playBots" id="startBtn"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><rect x="11" y="1.5" width="2" height="4" rx="1"/><circle cx="12" cy="2" r="1.8"/><rect x="3.5" y="5.5" width="17" height="13" rx="4"/><rect x="1" y="10" width="2.2" height="5" rx="1"/><rect x="20.8" y="10" width="2.2" height="5" rx="1"/><circle cx="8.6" cy="11" r="2" class="cut"/><circle cx="15.4" cy="11" r="2" class="cut"/><rect x="8" y="14.6" width="8" height="1.8" rx=".9" class="cut"/><rect x="7" y="19.5" width="10" height="3" rx="1.2"/></svg>Play Bots</button>
-    <button class="btn play lbbtn" data-act="leaderboard"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v5.5a6 6 0 0 1-12 0z"/><path d="M6 5H2.5v1.5A4 4 0 0 0 6.5 10.5M18 5h3.5v1.5a4 4 0 0 1-4 4" fill="none" stroke="currentColor" stroke-width="2"/><rect x="10.8" y="14" width="2.4" height="4"/><rect x="7" y="18" width="10" height="3" rx="1"/></svg><span>Leaderboard</span></button>
+    <button class="btn play climbbtn" data-act="climb"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF2)" stroke="url(#plS2)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg><span class="cbt"><b>Climb the Leaderboard</b><small>Play thousands of bots</small></span></button>
     <button class="btn alt play" data-act="playLive"><svg class="bicon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="7" r="3.6"/><path d="M1 21c0-4.4 3.1-7.5 7-7.5s7 3.1 7 7.5z"/><circle cx="16.8" cy="8" r="3"/><path d="M15.6 13.7c4.3-.5 7.4 2.5 7.4 6.8v.5h-6.2c0-2.8-.4-5.1-1.2-7.3z"/></svg><span>Play Live<small>Same Device</small></span></button>
     <div class="menu row trio" style="margin-top:0;gap:8px">
       <button class="btn alt play half" data-act="puzzles" style="background:linear-gradient(135deg,#7ee08f,#2fa86a);box-shadow:0 5px 0 #1d6b42">🧩<span>Puzzles</span></button>
@@ -823,7 +845,7 @@
     </div>
   </div>
   <p class="hint">Tap a piece then a square, or drag it.<br>🎮 Controller: stick / D-pad to move, A to start, pick &amp; move, B cancel, X hint, Y undo, LB/RB rewind, Start for menu.</p>
-<button class="pill profbtn" data-act="social" aria-label="Friends"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF1)" stroke="url(#plS1)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg><span>Friends</span><i class="nbadge" id="reqBadge" hidden>0</i></button>
+<button class="pill profbtn" data-act="myPlayer" aria-label="My player" id="meBtn"><span class="uav look" id="meAv"></span><span>My Player</span></button>
 <div class="wallet tl" title="Your pawns"><span class="pawnic">♟&#xFE0E;</span><b>0</b></div>
   <button class="pill coachbtn" data-act="coach" id="coachBtn" aria-label="Choose coach"></button>
   <button class="pill icon setgear" data-act="settings" aria-label="Settings"><svg class="rookgear" viewBox="0 0 64 64" aria-hidden="true"><g class="gear"><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(0 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(45 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(90 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(135 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(180 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(225 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(270 32 29)"/><rect x="27.5" y="3" width="9" height="9" rx="2" transform="rotate(315 32 29)"/><circle cx="32" cy="29" r="19.5" fill="none" stroke="currentColor" stroke-width="7"/></g><g class="rook"><path d="M23.5 18h3.6v3.4h3.1V18h3.6v3.4h3.1V18h3.6v9.5h-17z"/><rect x="22.5" y="28.5" width="19" height="3" rx="1.2"/><path d="M26 32.5h12l2 13.5H24z"/><rect x="21" y="47" width="22" height="3.4" rx="1.5"/><rect x="17.5" y="51.4" width="29" height="3.6" rx="1.5"/><rect x="13.5" y="56" width="37" height="4.5" rx="1.8"/></g></svg></button>
@@ -906,6 +928,12 @@
     <button class="btn play" data-act="rvBegin">▶ Start Review</button>
     <button class="btn alt" data-act="rvClose">Back</button></div>
 </div>
+
+<div class="overlay hidden" id="ladOv">
+  <button class="pill backpill" data-act="toStart"><span>←</span><span>Back</span></button>
+  <div class="sheet"><h2 class="ttl lbttl"><svg class="pawnlogo" viewBox="0 0 64 72" aria-hidden="true"><defs><linearGradient id="plS3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a6df5"/><stop offset="1" stop-color="#b23cf3"/></linearGradient><linearGradient id="plF3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#93c0f8"/><stop offset="1" stop-color="#dcb2f8"/></linearGradient></defs><path d="M32 4.5c7 0 12 5.2 12 11.5 0 3.8-1.8 7-4.5 9.2l9 5.8-2 5H17.5l-2-5 9-5.8C21.8 23 20 19.8 20 16c0-6.3 5-11.5 12-11.5Z M26 36h12c0 9 3.5 13.5 9 18 4.5 3.7 6 7 6 12.5-6 2.5-36 2.5-42 0 0-5.5 1.5-8.8 6-12.5 5.5-4.5 9-9 9-18Z" fill="url(#plF3)" stroke="url(#plS3)" stroke-width="3.6" stroke-linejoin="round"/><path d="M30 8c-5 1-7.5 5-7.5 8.5 0 3 1.6 5.6 4 7.2l-8 5.3 1 3h14.5c1.5-4 3-6 5-7.5-6-2.5-9-9-9-16.5Z M27.5 38.5c-.3 8-3.6 12.4-8.7 16.6-3.4 2.8-5 5.2-5.3 8.7 6 1 13 .8 17-1.5 6-3.6 7.2-13 6.5-20-1.5-2.8-6-3.8-9.5-3.8Z" fill="#fff" opacity=".9"/></svg>Climb the Leaderboard</h2><div id="ladBody"></div></div>
+</div>
+<div class="overlay hidden" id="matchOv"><div class="askcard matchcard"><div id="matchBody"></div></div></div>
 
 <div class="overlay hidden" id="lbOv">
   <button class="pill backpill" data-act="toStart"><span>←</span><span>Back</span></button>
@@ -6068,6 +6096,7 @@ function engineFactory() {
 
   // Face for a bot: an illustrated portrait, or the old drawn style (Stockfish keeps its fish).
   function faceSVG(i) {
+    if (LEVELS[i].ladderFace) return LEVELS[i].ladderFace;
     if (PEOPLE[LEVELS[i].name]) return portraitSVG(i, PEOPLE[LEVELS[i].name]);
     const [skin, hair, style, shirt, extra = ""] = LEVELS[i].face;
     const bgH = (i * 47 + 200) % 360, bg = `hsl(${bgH} 70% 62%)`;
@@ -6184,7 +6213,7 @@ function engineFactory() {
     if (!mode) return;
     store.set("chess-game", {
       mode, level, timeIdx, humanColor, userFlip, inc, clocks,
-      moves: history.map(h => [h.move.from, h.move.to, h.move.promo || ""]),
+      moves: history.map(h => [h.move.from, h.move.to, h.move.promo || ""]), ladder: ladderGame,
       clockInit: history.length ? history[0].clocks : clocks, over: !!result,
     });
   }
@@ -6363,6 +6392,9 @@ function engineFactory() {
   }
 
   function newGame(opts, replay) {
+    if (ladderGame && !ladderGame.done && !result && mode === "cpu" && history.length >= 2) ladderFinish(true);   // leaving a rated game = loss
+    ladderGame = opts.ladder || (replay && replay.ladder) || null;
+    if (ladderGame) setLadderSlot(ladderGame);
     puz = null; lrn = null; flashSq = null; gameRec = null; gameStartAt = Date.now();
     online = null;
     stopAI(); cancelSearch("help"); judgeGen++; rewarded = false; lastReward = 0;
@@ -6455,6 +6487,7 @@ function engineFactory() {
   }
 
   function undo() {
+    if (ladderGame && !result) { toast("No take-backs in rated leaderboard games!"); return; }
     if (mode === "online") return;
     if (!history.length) return;
     if (mode === "cpu" && history.length === 1 && humanColor === "b") return;
@@ -6514,6 +6547,7 @@ function engineFactory() {
   }
 
   function hint() {
+    if (ladderGame && !result) { toast("No hints in rated leaderboard games!"); return; }
     if (mode === "online") { toast("No hints in online games!"); return; }
     if (mode === "puzzle") return puzzleHint();
     if (mode === "learn") return learnHint();
@@ -6731,18 +6765,18 @@ function engineFactory() {
     else st = "Your move";
     if (mode && mode !== "learn" && live && !result && !thinking && E.inCheck(state)) st += " — Check!";
     $("status").textContent = st;
-    $("undoBtn").disabled = mode === "online" || mode === "puzzle" || mode === "learn" || !history.length || (mode === "cpu" && history.length === 1 && humanColor === "b");
+    $("undoBtn").disabled = mode === "online" || (!!ladderGame && !result) || mode === "puzzle" || mode === "learn" || !history.length || (mode === "cpu" && history.length === 1 && humanColor === "b");
     $("backBtn").disabled = !history.length || viewIdx === 0;
     $("fwdBtn").disabled = live;
     const cpu = mode === "cpu", rewinding = cpu && !live;
     const noNav = cpu || mode === "puzzle" || mode === "learn";
     $("backBtn").classList.toggle("hidden", noNav); $("fwdBtn").classList.toggle("hidden", noNav);
-    $("rewindBtn").classList.toggle("hidden", !cpu); $("rewindBtn").disabled = !history.length;
+    $("rewindBtn").classList.toggle("hidden", !cpu || (!!ladderGame && !result)); $("rewindBtn").disabled = !history.length;
     $("mainBar").classList.toggle("hidden", rewinding || !!rv); $("rewindBar").classList.toggle("hidden", !rewinding || !!rv);
     $("moves").classList.toggle("hidden", !!rv); $("reviewPanel").classList.toggle("hidden", !rv);
     if (rv) paintReviewPanel();
     $("rwStartBtn").disabled = $("rwBackBtn").disabled = viewIdx === 0;
-    $("hintBtn").disabled = !canAct() || mode === "online";
+    $("hintBtn").disabled = !canAct() || mode === "online" || (!!ladderGame && !result);
     const playing = ["cpu", "two", "online"].includes(mode) && !result && !rv;
     $("barDraw").classList.toggle("hidden", !playing); $("barResign").classList.toggle("hidden", !playing);
     $("hintBtn").classList.toggle("hidden", mode === "online"); $("undoBtn").classList.toggle("hidden", mode === "online");
@@ -6858,6 +6892,7 @@ function engineFactory() {
   // Step back through the game, then either jump back to now or carry on
   // playing from the earlier position (the later moves are thrown away).
   function playFromHere() {
+    if (ladderGame && !result) { toast("You can't change moves in a rated game."); return; }
     if (viewIdx === null || mode !== "cpu") return;
     const k = viewIdx;
     stopAI(); cancelSearch("help");
@@ -7173,7 +7208,7 @@ function engineFactory() {
   $("botSearch").addEventListener("input", e => { botQ = e.target.value; paintSetupScreens(); });
   function paintSetupScreens() {
     const cat = LEVELS[setup.level].cat, q = botQ.trim().toLowerCase();
-    const show = (L, i) => (q ? L.name.toLowerCase().includes(q) || BOT_CATS.find(c => c.id === L.cat).label.toLowerCase().includes(q) : L.cat === cat);
+    const show = (L, i) => L.cat === "ladder" ? false : (q ? L.name.toLowerCase().includes(q) || BOT_CATS.find(c => c.id === L.cat).label.toLowerCase().includes(q) : L.cat === cat);
     $("botCats").innerHTML = BOT_CATS.map(c => chip("bcat:" + c.id, c.label, !q && c.id === cat)).join("");
     $("levelChips").innerHTML = (q && !LEVELS.some(show) ? `<div class="empty" style="width:100%">No bots found for "${esc(botQ)}"</div>` : "") + LEVELS.map((L, i) => !show(L, i) ? "" : chip("lv:" + i, `${avatarHTML(i)}<small class="bn">${L.name.length > 15 ? L.name.split(" ").slice(-1)[0] : L.name}</small><small class="be" style="color:${tierOf(L.elo).color}">${L.elo}</small>`, setup.level === i)).join("");
     const b = LEVELS[setup.level], t = tierOf(b.elo), wins = profile.wins[b.name] || 0;
@@ -7325,6 +7360,208 @@ function engineFactory() {
       if (n.length <= 16 && !isBadName(n)) return n;
     }
     return "ChessFriend" + Math.floor(Math.random() * 1000);
+  }
+
+  // ================= Climb the Leaderboard =================
+  // Works on this device, no server needed. Separate ratings for Bullet, Blitz and Rapid.
+  // The leaderboard = ~100 real top players (approximate ratings) + chess YouTubers + ~1,200 made-up bots + you.
+  // "Play" pairs you with a bot near your rating; 14% of the time you get a famous player instead.
+  const LMODES = { bullet: { label: "Bullet", sub: "1 min", time: 1 }, blitz: { label: "Blitz", sub: "3 | 2", time: 5 }, rapid: { label: "Rapid", sub: "10 min", time: 7 } };
+  const LMODE_KEYS = ["bullet", "blitz", "rapid"];
+  // [name, approx. rating, extra bullet points]
+  const TOP_REAL = [
+    ["Magnus Carlsen", 2840, 230], ["Hikaru Nakamura", 2805, 340], ["Fabiano Caruana", 2790, 40], ["Arjun Erigaisi", 2775, 120], ["Praggnanandhaa R", 2770, 80],
+    ["Gukesh D", 2760, 0], ["Nodirbek Abdusattorov", 2765, 110], ["Alireza Firouzja", 2760, 320], ["Wei Yi", 2755, 40], ["Anish Giri", 2755, 60],
+    ["Ian Nepomniachtchi", 2750, 180], ["Vincent Keymer", 2745, 40], ["Wesley So", 2745, 90], ["Viswanathan Anand", 2740, 30], ["Hans Niemann", 2735, 150],
+    ["Le Quang Liem", 2735, 120], ["Jan-Krzysztof Duda", 2735, 160], ["Shakhriyar Mamedyarov", 2735, 120], ["Levon Aronian", 2730, 90], ["Maxime Vachier-Lagrave", 2730, 200],
+    ["Richard Rapport", 2725, 60], ["Leinier Dominguez", 2725, 60], ["Ding Liren", 2720, 20], ["Yu Yangyi", 2720, 40], ["Teimour Radjabov", 2720, 30],
+    ["Aravindh Chithambaram", 2720, 40], ["Parham Maghsoodloo", 2715, 220], ["Javokhir Sindarov", 2715, 140], ["Vidit Gujrathi", 2710, 60], ["Andrey Esipenko", 2705, 140],
+    ["Daniil Dubov", 2705, 210], ["Dmitry Andreikin", 2700, 160], ["Nihal Sarin", 2700, 230], ["Pentala Harikrishna", 2700, 40], ["Alexander Grischuk", 2700, 170],
+    ["Sergey Karjakin", 2700, 90], ["Vladimir Fedoseev", 2700, 120], ["Wang Hao", 2695, 20], ["Bogdan-Daniel Deac", 2695, 80], ["Sam Shankland", 2690, 30],
+    ["Peter Svidler", 2690, 120], ["Ray Robson", 2690, 60], ["Samuel Sevian", 2690, 150], ["Jeffery Xiong", 2690, 180], ["Raunak Sadhwani", 2690, 160],
+    ["Alexey Sarana", 2690, 240], ["Vladislav Artemiev", 2685, 230], ["Amin Tabatabaei", 2685, 160], ["Murali Karthikeyan", 2685, 90], ["Nikita Vitiugov", 2685, 60],
+    ["Jorden van Foreest", 2680, 80], ["Nils Grandelius", 2680, 90], ["Matthias Bluebaum", 2680, 60], ["Gabriel Sargissian", 2680, 20], ["Kirill Alekseenko", 2680, 80],
+    ["Rauf Mamedov", 2680, 60], ["Haik Martirosyan", 2680, 180], ["Peter Leko", 2680, 0], ["Radoslaw Wojtaszek", 2680, 80], ["Etienne Bacrot", 2675, 60],
+    ["Veselin Topalov", 2675, 40], ["Anton Korobov", 2675, 140], ["Ivan Saric", 2675, 40], ["Bassem Amin", 2675, 20], ["Bu Xiangzhi", 2675, 40],
+    ["Nodirbek Yakubboev", 2675, 120], ["Kirill Shevchenko", 2670, 100], ["Sanan Sjugirov", 2665, 120], ["Daniil Yuffa", 2660, 60], ["Volodar Murzin", 2660, 200],
+    ["Shamsiddin Vokhidov", 2660, 160], ["Ediz Gurel", 2655, 320], ["Rasmus Svane", 2655, 60], ["Frederik Svane", 2655, 80], ["Awonder Liang", 2655, 120],
+    ["Hou Yifan", 2650, 20], ["Michael Adams", 2650, 30], ["Boris Gelfand", 2650, 0], ["Vasyl Ivanchuk", 2650, 60], ["Alexei Shirov", 2650, 80],
+    ["Arkadij Naiditsch", 2650, 120], ["Benjamin Bok", 2650, 100], ["Lu Shanglei", 2650, 60], ["Xu Xiangyu", 2645, 60], ["Jose Martinez", 2640, 380],
+    ["Alan Pichot", 2640, 140], ["Abhimanyu Mishra", 2630, 140], ["Andrew Tang", 2620, 430], ["Christopher Yoo", 2610, 160], ["Ju Wenjun", 2575, 20],
+    ["Koneru Humpy", 2560, 0], ["Aleksandra Goryachkina", 2555, 40], ["Lei Tingjie", 2545, 60], ["Kateryna Lagno", 2540, 120], ["Tan Zhongyi", 2530, 40],
+    ["Divya Deshmukh", 2510, 80], ["Anna Muzychuk", 2510, 40], ["Mariya Muzychuk", 2500, 40], ["Bibisara Assaubayeva", 2490, 160], ["Rameshbabu Vaishali", 2480, 60],
+  ];
+  const ladder = Object.assign({ name: null, look: null, r: { bullet: 400, blitz: 400, rapid: 400 }, peak: { bullet: 400, blitz: 400, rapid: 400 }, g: { bullet: [0, 0, 0], blitz: [0, 0, 0], rapid: [0, 0, 0] }, ovr: { bullet: {}, blitz: {}, rapid: {} }, mode: "blitz" }, store.get("chess-ladder", {}));
+  const saveLadder = () => store.set("chess-ladder", ladder);
+  const hashStr = t => { let h = 2166136261; for (const c of String(t)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
+  const mulberry = a => () => { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const gauss = rng => { let u = 0, v = 0; while (!u) u = rng(); while (!v) v = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
+  const FIRST = ["Liam", "Noah", "Emma", "Olivia", "Ava", "Mia", "Lucas", "Ethan", "Sofia", "Isabella", "Mateo", "Leo", "Aria", "Zoe", "Arjun", "Priya", "Kenji", "Yuki", "Hana", "Omar", "Layla", "Amir", "Sara", "Nina", "Ivan", "Dmitri", "Anya", "Mikhail", "Jonas", "Lena", "Felix", "Hugo", "Chloe", "Lucia", "Diego", "Carlos", "Marta", "Pablo", "Tomas", "Ines", "Kofi", "Amara", "Zara", "Malik", "Ji-ho", "Min", "Wei", "Lin", "Ravi", "Anika", "Samir", "Tariq", "Ella", "Grace", "Jack", "Owen", "Caleb", "Ruby", "Max", "Elif", "Emre", "Can", "Mateus", "Rafael", "Bruno", "Nora", "Freya", "Erik", "Sven", "Ilsa"];
+  const LAST = ["Smith", "Garcia", "Kim", "Nguyen", "Patel", "Silva", "Novak", "Kowalski", "Rossi", "Muller", "Dubois", "Ivanov", "Sato", "Tanaka", "Chen", "Wang", "Khan", "Ali", "Lopez", "Martin", "Berg", "Larsen", "Costa", "Santos", "Okafor", "Mensah", "Haddad", "Cohen", "Weber", "Fischer", "Popov", "Yilmaz", "Demir", "Reyes", "Cruz", "Moreau", "Bianchi", "Jansen", "Nowak", "Horvat"];
+  const TAGW = ["pawn", "knight", "rook", "bishop", "queen", "king", "castle", "gambit", "fork", "pin", "check", "mate", "blitz", "bullet", "tempo", "endgame", "opening", "sac", "zugzwang", "fianchetto", "storm", "tactic"];
+  function makeBotName(rng) {
+    const pick = a => a[Math.floor(rng() * a.length)], n = Math.floor(rng() * 100);
+    switch (Math.floor(rng() * 6)) {
+      case 0: return pick(FIRST) + pick(LAST);
+      case 1: return pick(FIRST) + "_" + pick(LAST).slice(0, 4) + n;
+      case 2: return pick(NICK_A) + pick(NICK_B) + (n < 60 ? n : "");
+      case 3: return pick(TAGW) + pick(["master", "lord", "lover", "king", "wizard", "ninja", "hero", "fan"]) + n;
+      case 4: return pick(FIRST).toLowerCase() + "." + pick(TAGW) + (n < 50 ? n : "");
+      default: return pick(FIRST) + pick(["Plays", "Chess", "Moves", "Pawns", "Wins"]) + (1990 + Math.floor(rng() * 20));
+    }
+  }
+  function genLook(seed) {
+    const rng = mulberry(seed), pk = k => { const o = LOOK_OPTS[k][Math.floor(rng() * LOOK_OPTS[k].length)]; return Array.isArray(o) ? o[0] : o; }, fem = rng() < .45 ? "1" : "0";
+    const femHair = ["long", "bob", "bun", "longcurly", "curly", "afro"], hair = ["short", "side", "messy", "quiff", "curly", "buzz", "slick", "spiky", "afro", "locs", "receding"];
+    return { s: pk("s"), fem, f: pk("f"), sm: String(Math.floor(rng() * 3)), e: pk("e"), hs: (fem === "1" ? femHair : hair)[Math.floor(rng() * (fem === "1" ? femHair : hair).length)], h: LOOK_OPTS.h[Math.floor(rng() * 10)],
+      b: fem === "0" && rng() < .35 ? ["stubble", "short", "full", "mus"][Math.floor(rng() * 4)] : "none", g: rng() < .22 ? ["thin", "round", "thick", "shades"][Math.floor(rng() * 4)] : "none",
+      x: rng() < .2 ? ["cap", "beanie", "phones", "band"][Math.floor(rng() * 4)] : "none", xc: pk("xc"), c: pk("c"), cc: pk("cc"), bw: pk("bw") };
+  }
+  let LPOOL = null;
+  function ladderPool() {
+    if (LPOOL) return LPOOL;
+    const rng = mulberry(20251124), used = new Set(TOP_REAL.map(x => x[0].toLowerCase())), gen = [];
+    LEVELS.forEach(L => used.add(L.name.toLowerCase()));
+    while (gen.length < 1200) {
+      const name = makeBotName(rng).slice(0, 16), k = name.toLowerCase();
+      if (used.has(k) || name.length < 3 || isBadName(name)) continue;
+      used.add(k);
+      const base = Math.max(100, Math.min(2650, Math.round(1050 + 470 * gauss(rng))));
+      gen.push({ id: "g" + gen.length, name, kind: "gen", base, d: [gauss(rng) * 70, gauss(rng) * 45, gauss(rng) * 55 + 25], seed: Math.floor(rng() * 1e9) });
+    }
+    const real = TOP_REAL.map(([name, base, boost], k) => ({ id: "r" + k, name, kind: "real", base, boost }));
+    const yt = LEVELS.filter(L => L.cat === "youtubers").map(L => ({ id: "y:" + L.name, name: L.name, kind: "yt", base: L.elo }));
+    return (LPOOL = { gen, real, yt, all: [...real, ...yt, ...gen] });
+  }
+  function ratingOf(p, m) {
+    const o = ladder.ovr[m] && ladder.ovr[m][p.id]; if (o != null) return o;
+    const mi = LMODE_KEYS.indexOf(m), j = (hashStr(p.name + m) % 61) - 30;
+    if (p.kind === "gen") return Math.max(100, Math.min(2700, Math.round(p.base + p.d[mi])));
+    if (p.kind === "real") return p.base + (m === "bullet" ? p.boost : m === "blitz" ? 15 + (p.boost >> 2) : -10) + j;
+    return Math.max(100, p.base + (j >> 1));
+  }
+  function monogramSVG(name) {
+    const h = hashStr(name) % 360, ini = name.split(/[\s_.-]+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join("");
+    return `<svg viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" fill="hsl(${h} 55% 38%)"/><circle cx="50" cy="40" r="44" fill="hsl(${(h + 30) % 360} 65% 52%)" opacity=".55"/><text x="50" y="63" text-anchor="middle" font-family="system-ui,sans-serif" font-size="38" font-weight="900" fill="#fff">${esc(ini)}</text></svg>`;
+  }
+  function faceInner(p) {
+    if (p.kind === "me") return ladder.look ? lookSVG(ladder.look, 77) : monogramSVG(ladder.name || "You");
+    if (p.kind === "gen") return lookSVG(genLook(p.seed), p.seed % 100000);
+    if (PEOPLE[p.name]) return portraitSVG(6000 + (hashStr(p.name) % 50000), PEOPLE[p.name]);
+    return monogramSVG(p.name);
+  }
+  const ladAv = (p, cls = "") => `<span class="uav look ${cls}">${faceInner(p)}</span>`;
+  function ladderBoard(m) {
+    const pool = ladderPool();
+    const rows = pool.all.map(p => ({ p, r: ratingOf(p, m) }));
+    if (ladder.name) rows.push({ p: { id: "me", name: ladder.name, kind: "me" }, r: ladder.r[m] });
+    rows.sort((a, b) => b.r - a.r || (a.p.kind === "me" ? -1 : 0));
+    return rows;
+  }
+  function paintMeBtn() { const a = $("meAv"); if (a) a.innerHTML = faceInner({ kind: "me" }); }
+  const LADDER_I = LEVELS.length;
+  LEVELS.push({ ...BOT("Opponent", 400, "ladder", "", [SK[1], "#333333", "short", "#555555"]) });
+  let ladderGame = null, ladderCur = null, ladPage = 1, ladQ = "", ladEditing = false;
+  function setLadderSlot(o) {
+    const L = LEVELS[LADDER_I];
+    Object.assign(L, strengthFor(Math.min(2999, o.elo)), { name: o.name, elo: o.elo, cat: o.kind === "yt" ? "youtubers" : o.kind === "real" ? "top" : "bots", ladderFace: faceInner(o) });
+  }
+  function opponentFor(m) {
+    const pool = ladderPool(), my = ladder.r[m];
+    if (Math.random() < .14) return pickOne([...pool.real, ...pool.yt]);
+    for (let w = 50; ; w *= 2) { const c = pool.gen.filter(p => Math.abs(ratingOf(p, m) - my) <= w); if (c.length >= 4 || w > 3000) return c.length ? pickOne(c) : pickOne(pool.gen); }
+  }
+  // ---- screens ----
+  function openLadder() { ladEditing = !ladder.name; show("ladOv"); renderLadder(); }
+  function renderLadder() {
+    const el = $("ladBody");
+    if (ladEditing) {
+      if (!lookEdit) lookEdit = { ...(ladder.look || randLook()) };
+      el.innerHTML = `<div class="sect"><div class="lbl">${ladder.name ? "Edit your player" : "Make your player"}</div>
+        <input class="sinput" id="ladName" maxlength="16" placeholder="Your name" value="${esc(ladder.name || "")}" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <div class="su-err" id="ladErr"></div>
+        <button class="btn alt" data-dact="ladNick" style="min-height:46px;font-size:1rem">🎲 Nickname generator</button></div>
+        <div class="sect"><div class="lbl">Your character</div><div id="bldBox">${builderHTML()}</div></div>
+        <div class="su-err big" id="ladErr2"></div>
+        <button class="btn play" data-dact="ladSave">${ladder.name ? "Save" : "Start climbing"}</button>${ladder.name ? `<button class="btn alt" data-dact="ladCancel">Cancel</button>` : ""}`;
+      $("ladName").addEventListener("input", ladCheckName);
+      return;
+    }
+    const m = ladder.mode, board = ladderBoard(m), myRank = board.findIndex(x => x.p.kind === "me") + 1;
+    let h = `<div class="ladme">${ladAv({ kind: "me" }, "big")}<div class="lmtxt"><div class="soc-name">${esc(ladder.name)}</div>
+      <div class="soc-sub">#${myRank.toLocaleString()} of ${board.length.toLocaleString()} in ${LMODES[m].label}</div>
+      <button class="mini" data-dact="ladEditOpen">✏︎ Edit player</button></div></div>
+      <div class="lmodes">${LMODE_KEYS.map(k => `<button class="lmode${k === m ? " sel" : ""}" data-dact="ladMode" data-arg="${k}"><b>${LMODES[k].label}</b><small>${LMODES[k].sub}</small><span>${ladder.r[k]}</span></button>`).join("")}</div>
+      <button class="btn play" data-dact="ladPlay">Play ${LMODES[m].label} · ${LMODES[m].sub}</button>
+      <div class="lbtop" style="margin-top:12px"><input class="sinput" id="ladSearch" placeholder="Search the leaderboard…" value="${esc(ladQ)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="reqplus jumpme" data-dact="ladJump" aria-label="Jump to me">Me</button></div>
+      <div class="slist" id="ladList"></div>`;
+    el.innerHTML = h;
+    $("ladSearch").addEventListener("input", e => { ladQ = e.target.value; ladPage = 1; paintLadList(); });
+    paintLadList();
+  }
+  function paintLadList(scrollMe) {
+    const el = $("ladList"); if (!el) return;
+    const m = ladder.mode, board = ladderBoard(m), q = ladQ.trim().toLowerCase();
+    let list = board.map((x, i) => ({ ...x, rank: i + 1 }));
+    if (q) list = list.filter(x => x.p.name.toLowerCase().includes(q));
+    const shown = list.slice(0, ladPage * 50);
+    let h = "";
+    for (const x of shown) {
+      const tag = x.p.kind === "real" ? '<span class="lbtag gm">GM</span>' : x.p.kind === "yt" ? '<span class="lbtag yt">YouTuber</span>' : x.p.kind === "me" ? '<span class="lbtag best">You</span>' : "";
+      h += `<button class="urow${x.p.kind === "me" ? " me" : ""}" ${x.p.kind === "me" ? "" : `data-dact="ladVs" data-arg="${esc(x.p.id)}"`}><span class="rk${x.rank <= 3 ? " m" + x.rank : ""}">${x.rank}</span>${ladAv(x.p, "sm")}<span class="un">${esc(x.p.name)}</span>${tag}<span class="ue" style="color:${tierOf(x.r).color}">${x.r}</span></button>`;
+    }
+    if (!shown.length) h = `<div class="empty">No players found.</div>`;
+    if (list.length > shown.length) h += `<button class="btn alt" data-dact="ladMore" style="min-height:46px">Show more (${(list.length - shown.length).toLocaleString()} left)</button>`;
+    el.innerHTML = h;
+    if (scrollMe) { const me = el.querySelector(".urow.me"); if (me) me.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  }
+  function ladCheckName() {
+    const v = $("ladName").value.trim(), err = $("ladErr");
+    err.className = "su-err";
+    if (!v) { err.textContent = ""; return false; }
+    if (!/^[A-Za-z0-9_]{3,16}$/.test(v)) { err.textContent = "Use 3–16 letters, numbers or _ (no spaces)."; return false; }
+    if (isBadName(v)) { err.textContent = "You can't use this name. Make a friendly one!"; return false; }
+    if (ladderPool().all.some(p => p.name.toLowerCase() === v.toLowerCase())) { err.textContent = "That name is already taken. Try another one!"; return false; }
+    err.textContent = "That name is free!"; err.className = "su-err good"; return true;
+  }
+  // ---- match ----
+  function startMatch(p) {
+    const m = ladder.mode, elo = ratingOf(p, m);
+    ladderCur = { m, id: p.id, name: p.name, elo, kind: p.kind, seed: p.seed };
+    const my = ladder.r[m], win = eloDelta(my, elo, 1), lose = eloDelta(my, elo, 0);
+    $("matchBody").innerHTML = `<div class="mlbl">Finding an opponent…</div><div class="mvs"><div class="mside">${ladAv({ kind: "me" }, "big")}<b>${esc(ladder.name)}</b><span>${my}</span></div><div class="vs">VS</div><div class="mside" id="mOpp"><span class="uav look big shuffle"></span><b>…</b><span></span></div></div><div id="mInfo"></div>`;
+    show("matchOv");
+    const opp = $("mOpp"), pool = ladderPool().gen; let n = 0;
+    const tick = setInterval(() => { const r = pickOne(pool); opp.querySelector(".uav").innerHTML = faceInner(r); if (++n > 7) { clearInterval(tick); reveal(); } }, 110);
+    function reveal() {
+      if (!ladderCur) return;
+      const fam = p.kind === "real" || p.kind === "yt";
+      $("matchBody").querySelector(".mlbl").textContent = fam ? "A famous player wants to play you!" : "Opponent found!";
+      opp.innerHTML = `${ladAv(p, "big")}<b>${esc(p.name)}</b><span>${elo}</span>`;
+      $("mInfo").innerHTML = `<p class="mstakes">${LMODES[m].label} · ${LMODES[m].sub}<br>Win <b class="pos">+${win}</b> · Lose <b class="neg">${lose}</b></p>
+        <div class="menu"><button class="btn" data-dact="matchGo">Play</button><button class="btn alt" data-dact="matchCancel">Cancel</button></div>`;
+      focusIdx = 0; paintFocus();
+    }
+  }
+  function goMatch() {
+    if (!ladderCur) return;
+    const o = ladderCur; ladderCur = null;
+    setLadderSlot(o);
+    newGame({ mode: "cpu", level: LADDER_I, time: LMODES[o.m].time, color: "random", ladder: { ...o, done: false } });
+  }
+  function ladderFinish(forceLoss) {
+    if (!ladderGame || ladderGame.done) return;
+    if (!forceLoss && !result) return;
+    ladderGame.done = true;
+    const m = ladderGame.m, my = ladder.r[m], opp = ladderGame.elo;
+    const win = humanColor === "w" ? "1-0" : "0-1", loss = humanColor === "w" ? "0-1" : "1-0";
+    const sc = forceLoss ? 0 : result.code === win ? 1 : result.code === loss ? 0 : .5;
+    const d = eloDelta(my, opp, sc);
+    ladder.r[m] = my + d; ladder.peak[m] = Math.max(ladder.peak[m] || 0, ladder.r[m]);
+    ladder.g[m][sc === 1 ? 0 : sc === 0 ? 1 : 2]++;
+    ladder.ovr[m][ladderGame.id] = Math.max(100, opp - d);
+    saveLadder();
+    ladderGame.delta = d; ladderGame.after = ladder.r[m];
   }
 
   const net = { token: store.get("chess-token", null), me: store.get("chess-me", null) };
@@ -7575,6 +7812,21 @@ function engineFactory() {
       if (a === "cancelLook") { lookEdit = null; return openUser(net.me.key); }
       if (a === "plusFriend") { const j = await api("friendReq", { to: arg }); toast(j.rel === "friends" ? "You're now friends! 🤝" : "Friend request sent! ➕"); if (openOverlay() === "lbOv") return loadLb(); return loadTab(); }
       if (a === "lbJoin") return openSocial();
+      if (a === "ladNick") { const inp = $("ladName"); inp.value = makeNick(); return ladCheckName(); }
+      if (a === "ladSave") {
+        const v = $("ladName").value.trim();
+        if (!ladCheckName()) { const t = v ? $("ladErr").textContent : "Type a name first, or tap Nickname generator."; $("ladErr2").textContent = t; toast(t); return; }
+        ladder.name = v; ladder.look = { ...lookEdit }; lookEdit = null; ladEditing = false; saveLadder(); paintMeBtn(); toast(`Welcome, ${v}!`); return renderLadder();
+      }
+      if (a === "ladCancel") { ladEditing = false; lookEdit = null; return renderLadder(); }
+      if (a === "ladEditOpen") { ladEditing = true; lookEdit = null; return renderLadder(); }
+      if (a === "ladMode") { ladder.mode = arg; saveLadder(); ladPage = 1; return renderLadder(); }
+      if (a === "ladPlay") return startMatch(opponentFor(ladder.mode));
+      if (a === "ladMore") { ladPage++; return paintLadList(); }
+      if (a === "ladJump") { ladQ = ""; const s2 = $("ladSearch"); if (s2) s2.value = ""; const b = ladderBoard(ladder.mode), r = b.findIndex(x => x.p.kind === "me") + 1; ladPage = Math.max(1, Math.ceil(r / 50)); return paintLadList(true); }
+      if (a === "ladVs") { const p = ladderPool().all.find(x => x.id === arg); if (p) startMatch(p); return; }
+      if (a === "matchGo") return goMatch();
+      if (a === "matchCancel") { ladderCur = null; show("ladOv"); return renderLadder(); }
       if (a === "openReq") { soc.tab = "req"; return renderSocialMain(); }
       if (a === "coachToggle") { prefs.coachOn = prefs.coachOn === false; store.set("chess-prefs", prefs); paintCoach(); return; }
       if (a === "coachPick") { prefs.coach = arg; prefs.coachOn = true; store.set("chess-prefs", prefs); paintCoach(); const C = coachObj(); toast(`${coachName(C)} is now your coach!`); return; }
@@ -8017,6 +8269,7 @@ function engineFactory() {
   }
   function recordGame(elo) {
     if (gameRec || !result || !["cpu", "online", "two"].includes(mode) || result.code === "*") return;
+    if (!elo && ladderGame) { ladderFinish(); if (ladderGame.delta != null) elo = { d: ladderGame.delta, after: ladderGame.after, tc: ladderGame.m }; }
     const win = humanColor === "w" ? "1-0" : "0-1", lose = humanColor === "w" ? "0-1" : "1-0";
     const res = mode === "two" ? "d2" : result.code === win ? "w" : result.code === lose ? "l" : "d";
     const st = statsData();
@@ -8024,6 +8277,7 @@ function engineFactory() {
       dur: Math.min(3 * 3600e3, Date.now() - gameStartAt), moves: history.length, cls: myRatings(), acc: mode === "two" ? null : accuracyOf(humanColor),
       bot: mode === "cpu" ? LEVELS[level].name : null, botElo: mode === "cpu" ? LEVELS[level].elo : null, opp: mode === "online" && online ? online.opp.name : null,
       elo: elo || null };
+    if (elo && elo.tc) gameRec.tc = elo.tc;
     st.games.push(gameRec); if (st.games.length > 1000) st.games.shift();
     if (elo) st.eloHist.push({ t: Date.now(), after: elo.after, d: elo.d });
     store.set("chess-stats", st);
@@ -8048,7 +8302,7 @@ function engineFactory() {
         <div class="strow" style="margin-top:0"><small class="pos">${w} won</small><small>${d} drawn</small><small class="neg">${l} lost</small></div>`;
     };
     const modeRow = (m, label, note) => {
-      const gs = mine.filter(g => g.mode === m);
+      const gs = mine.filter(g => (m === "ladder" ? !!g.tc : m === "cpu" ? g.mode === "cpu" && !g.tc : g.mode === m));
       return `<div class="strow"><span>${label}</span><small>${note}</small></div>
         <div class="strow" style="margin-top:2px"><small class="pos">${cnt(gs, "w")} won</small><small>${cnt(gs, "d")} drawn</small><small class="neg">${cnt(gs, "l")} lost</small></div>`;
     };
@@ -8078,14 +8332,13 @@ function engineFactory() {
         <div class="stcard"><b>${profile.pawns}</b><small>Pawns</small></div>
       </div>
       <div class="stsect"><div class="lbl">By colour</div>${colourRow("w")}${colourRow("b")}</div>
-      <div class="stsect"><div class="lbl">Bots vs online</div>${modeRow("cpu", "🤖 Vs bots", "No Elo change")}${modeRow("online", "🌐 Online", "Changes your Elo")}</div>
+      <div class="stsect"><div class="lbl">Practice vs rated</div>${modeRow("cpu", "🤖 Practice bots", "No Elo change")}${modeRow("ladder", "Leaderboard games", "Changes your Elo")}</div>
       <div class="stsect"><div class="lbl">Your move ratings</div><div class="stcls">${CLS_ORDER.map(k => `<span><i class="mb" style="--bc:${CLS[k].color}">${CLS[k].sym}</i>${CLS[k].label.replace(/[!]+$/, "").replace(" move", "")}<em>${tot[k] || 0}</em></span>`).join("")}</div></div>
-      <div class="stsect"><div class="lbl">Online rating</div>
-        <div class="strow"><span>Current</span><span>${cur == null ? "–" : cur}</span></div>
-        <div class="strow"><span>Highest</span><span>${peak || "–"}</span></div>
-        <div class="strow"><span>Elo gained</span><span class="pos">+${gained}</span></div>
-        <div class="strow"><span>Elo lost</span><span class="neg">−${lost}</span></div>
-        ${chart || `<p class="netnote" style="margin:6px 0 0">Play online games to see your rating graph. (Bots don't change your rating.)</p>`}</div>
+      <div class="stsect"><div class="lbl">Leaderboard ratings</div>
+        ${LMODE_KEYS.map(k => { const gs = G.filter(g => g.tc === k && g.elo), gn = gs.reduce((a, g) => a + Math.max(0, g.elo.d), 0), ls = gs.reduce((a, g) => a + Math.max(0, -g.elo.d), 0), [w, l, d] = ladder.g[k];
+          return `<div class="strow"><span>${LMODES[k].label} <small>${LMODES[k].sub}</small></span><span>${ladder.r[k]} <small>peak ${ladder.peak[k]}</small></span></div>
+          <div class="strow" style="margin-top:2px"><small class="pos">${w} won</small><small>${d} drawn</small><small class="neg">${l} lost</small><small><span class="pos">+${gn}</span> / <span class="neg">−${ls}</span></small></div>`; }).join("")}
+        ${ladder.name ? "" : `<p class="netnote" style="margin:6px 0 0">Tap Climb the Leaderboard on the start screen to start earning a rating.</p>`}</div>
       <div class="stsect"><div class="lbl">Bots, puzzles & lessons</div>
         <div class="strow"><span>Bots beaten</span><span>${botsBeat.length}</span></div>
         <div class="strow"><span>Toughest bot beaten</span><span>${toughest ? `${esc(toughest.bot)} (${toughest.botElo})` : "–"}</span></div>
@@ -8266,7 +8519,7 @@ function engineFactory() {
     $("coachBtn").classList.toggle("isoff", !C);
   }
 
-  paintCoachBtn();
+  paintCoachBtn(); paintMeBtn();
   function coachText(h) {
     const best = h.best ? sanOf(h.state, h.best) : "", who = sideName(h.state.turn), you = who === "You";
     const after = E.makeMove(h.state, h.move);
@@ -8368,7 +8621,7 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["ladOv", "matchOv", "lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -8463,7 +8716,8 @@ function engineFactory() {
     if (!result) return;
     $("overTitle").textContent = result.title;
     $("overText").textContent = result.text;
-    if (mode === "cpu" && result.code === (humanColor === "w" ? "0-1" : "1-0")) $("overText").textContent += " No Elo lost: bot games don't change your rating. It's added to your losses in Stats.";
+    if (ladderGame) { ladderFinish(); if (ladderGame.delta != null) $("overText").textContent += ` ${LMODES[ladderGame.m].label} rating: ${ladderGame.after - ladderGame.delta} → ${ladderGame.after} (${ladderGame.delta >= 0 ? "+" : ""}${ladderGame.delta}).`; }
+    else if (mode === "cpu" && result.code === (humanColor === "w" ? "0-1" : "1-0")) $("overText").textContent += " No Elo lost: bot games don't change your rating. It's added to your losses in Stats.";
     paintReward();
     paintStats();
     show("overOv");
@@ -8589,7 +8843,7 @@ function engineFactory() {
       case "startBots": setup.mode = "cpu"; store.set("chess-setup", setup); newGame({ mode: "cpu", level: setup.level, color: setup.color, time: setup.time }); break;
       case "startLive": setup.mode = "two"; store.set("chess-setup", setup); newGame({ mode: "two", level: setup.level, color: "w", time: setup.liveTime }); break;
       case "resume": hideAll(); refresh(); break;
-      case "rematch": if (mode === "online") { onlineRematch(); break; } newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
+      case "rematch": if (mode === "online") { onlineRematch(); break; } if (ladderGame) { hideAll(); show("ladOv"); renderLadder(); startMatch(opponentFor(ladderGame.m)); break; } newGame({ mode, level, time: timeIdx, color: mode === "cpu" ? (humanColor === "w" ? "b" : "w") : "w" }); break;
       case "newgame": if (mode === "online" && online && !result) { if (!confirm("Leave this online game? You will resign.")) break; onlineResign(); } showSetup(); break;
       case "settings": settingsReturn = openOverlay() || "pauseOv"; paintOptions(); show("settingsOv"); break;
       case "styleBoards": case "stylePieces": case "styleSounds": case "styleShapes": styleTab = { styleBoards: "boards", stylePieces: "pieces", styleSounds: "sounds", styleShapes: "shapes" }[a]; paintStyle(); show("styleOv"); break;
@@ -8610,6 +8864,8 @@ function engineFactory() {
       case "askYes": case "askNo": { const cb = askCb; askCb = null; hideAll(); if (cb) (a === "askYes" ? cb.yes : cb.no)?.(); refresh(); break; }
       case "social": openSocial(); break;
       case "leaderboard": openLb(); break;
+      case "climb": openLadder(); break;
+      case "myPlayer": ladEditing = true; lookEdit = null; show("ladOv"); renderLadder(); break;
       case "chatBack": chat.with = null; if (chat.back === "userOv" && soc.user) openUser(soc.user.key); else { soc.tab = "msg"; openSocial(); } break;
       case "draw": offerDraw(); break;
     }
@@ -8689,6 +8945,8 @@ function engineFactory() {
         else if (ov === "statsOv" && btn === "B") act("toStart");
         else if (ov === "coachOv") act("coachDone");
         else if (ov === "lbOv" && btn === "B") act("toStart");
+        else if (ov === "ladOv" && btn === "B") { if (ladEditing && ladder.name) { ladEditing = false; lookEdit = null; renderLadder(); } else act("toStart"); }
+        else if (ov === "matchOv" && btn === "B") dact("matchCancel");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
