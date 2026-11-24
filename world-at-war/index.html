@@ -353,6 +353,7 @@ L-36 384 V294 L-22 290 V282 H-16 V150 H-8 L-8 134 L-36 120 L-36 108 L-6 112 V28 
   <div class="hud">
     <button class="hb" id="hMenu" aria-label="Menu" data-ic="menu"></button>
     <button class="hb me" id="hMe"><span class="fl" id="hFlag"></span><span class="nm" id="hName"></span><span class="str" id="hStr"></span></button>
+    <button class="hb" id="hThreat" aria-label="Threats" style="display:none;color:#ff6b5e"></button>
     <button class="hb" id="hRank" aria-label="Leaderboard"></button>
     <button class="hb" id="hSave" aria-label="Save" data-ic="save"></button>
     <button class="hb" id="hSpeed">1x</button>
@@ -437,6 +438,8 @@ const IC = {
   sound: '<path d="M11 5L6 9H2v6h4l5 4z" fill="currentColor"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
   trophy: '<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"/>',
   b2: '<path d="M12 6.5l10.5 7.2-2.6.9-1.6-1-1.9 1.5-2.2-1.4-2.2 1.4-1.9-1.5-1.6 1-2.6-.9z" fill="currentColor" stroke="none"/>',
+  skull: '<path d="M12 3a8 8 0 0 0-8 8c0 3 1.6 5 3.5 6v3h9v-3c1.9-1 3.5-3 3.5-6a8 8 0 0 0-8-8z"/><circle cx="9" cy="11" r="1.6" fill="currentColor"/><circle cx="15" cy="11" r="1.6" fill="currentColor"/><path d="M10 20v-2M14 20v-2"/>',
+  anchor: '<circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 12H2a10 10 0 0 0 20 0h-3M8 10h8"/>',
   no: '<circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/>',
   send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>',
 };
@@ -511,7 +514,7 @@ function newGame(player) {
   rebuild();
   for (let id = 1; id <= N; id++) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
   { const us = CODEIDX.US + 1; G.money[us] = Math.max(G.money[CODEIDX.RU + 1], G.money[CODEIDX.CN + 1]) + 10; }
-  initArsenal();
+  initArsenal(); initThreats();
 }
 function rebuild() {
   allDirty = palDirty = warDirty = true; if (typeof fx !== "undefined") fx.length = 0; if (typeof units !== "undefined") units.length = 0;
@@ -719,6 +722,7 @@ function tick() {
     }
   }
   moveUnits();
+  threatTick();
   // economy
   for (let id = 1; id <= N; id++) {
     if (G.fallout[id] > 0) G.fallout[id]--; if (G.airhit[id] > 0) G.airhit[id]--;
@@ -778,7 +782,7 @@ const BUILD = {
   factory: { name: "Factory", icon: "jet", desc: "+1 jet squadron, stronger jets, +4% money", cost: (id, l) => recruitCost(id) * (2.5 + l) },
   base: { name: "Military base", icon: "troops", desc: "+5% army size", cost: (id, l) => recruitCost(id) * (2 + l * 0.8) },
 };
-const incomeMult = id => econ(id) * (1 + 0.08 * B(id).city + 0.04 * B(id).factory);
+const incomeMult = id => econ(id) * (1 + 0.08 * B(id).city + 0.04 * B(id).factory) * (G.threats && id === G.player && isMX(id) ? Math.max(0.75, 1 - 0.03 * activeThreats().filter(t => !t.sea).length) : 1);
 function build(id, kind) {
   G.build = G.build || {}; const b = G.build[id] = G.build[id] || { city: 0, factory: 0, base: 0 };
   if (b[kind] >= 10) return false; const cost = BUILD[kind].cost(id, b[kind]); if (G.money[id] < cost) return false;
@@ -1294,6 +1298,7 @@ function drawUnits(sxOf, oy, t) {
     if (x < -60 || x > SW + 60 || y < -60 || y > SH + 60) continue;
     const s = Math.max(u.type === "ship" ? 11 : 9, Math.min(26, cam.z * (u.type === "ship" ? 3 : 2))), rgb = C[u.a].rgb;
     if (u.type === "b2") { drawJet(x, y, u.ang, s * 1.7, rgb, "b2"); continue; }
+    if (u.type === "op") { drawOp(u, x, y, s); continue; }
     const halo = ctx.createRadialGradient(x, y, 0, x, y, s * 2.6); halo.addColorStop(0, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},.55)`); halo.addColorStop(1, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},0)`);
     ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(x, y, s * 2.6, 0, 7); ctx.fill();
     if (u.type === "ship") {
@@ -1438,6 +1443,7 @@ function draw(t) {
   frontFx(performance.now());
   drawFrontFx(sxOf, oy, performance.now());
   drawBuildings(sxOf, oy);
+  drawThreats(sxOf, oy, t);
   drawSites(sxOf, oy);
   drawUnits(sxOf, oy, t);
   drawDrops(sxOf, oy, performance.now());
@@ -1511,6 +1517,7 @@ const pctLand = id => pctOf(cells[id]);
 let hudT = 0;
 function updHud() {
   const p = G.player;
+  if (threatHome() && G.threats) { $("hThreat").style.display = ""; $("hThreat").innerHTML = ic("skull") + activeThreats().length; } else $("hThreat").style.display = "none";
   $("hFlag").innerHTML = C[p].flag; $("hStr").innerHTML = ic("bolt") + strengthScore(p);
   if (G.alive[p]) { const rk = ranking("power").indexOf(p) + 1; $("hRank").innerHTML = ic("trophy") + " #" + rk; } else $("hRank").innerHTML = ic("trophy"); $("hName").textContent = C[p].name.length > 11 ? (SHORT[C[p].code] || C[p].name) : C[p].name;
   $("hDate").textContent = fmtD(G.day); $("hMoney").textContent = fmtM(G.money[p]);
@@ -1608,7 +1615,8 @@ function logMsg(t, cls) {
   const L = $("log"); L.prepend(d); while (L.children.length > 3) L.lastChild.remove();
   setTimeout(() => d.remove(), 5000);
 }
-function tapCell(i) {
+function tapCell(i, sx, sy) {
+  if (sx != null && !pickFor) { const t = threatAt(sx, sy); if (t) { opMenu(t, t.n, t.k === "terror" ? "A terrorist ship heading for the US coast." : t.sea ? "A cartel smuggling boat." : "Cartel territory inside Mexico."); return; } }
   const o = i >= 0 ? owner[i] : 0;
   if (pickFor) {
     if (o && o !== pickFor) { declareWar(pickFor, o); endPick(); selectCountry(o); }
@@ -1625,6 +1633,7 @@ $("hSpeed").onclick = () => { G.speed = (G.speed + 1) % 4; updHud(); };
 $("hSave").onclick = () => { if (saveGame()) logMsg(ic("save") + " Game saved", "peace"); };
 $("hMenu").onclick = pauseMenu;
 $("hRank").onclick = () => showLeaderboard("power");
+$("hThreat").onclick = threatsList;
 const LBT = { power: ["Strength", id => strengthScore(id) + G.troops[id] * 1e-6, v => Math.floor(v)],
   land: ["Land", id => cells[id], v => pctOf(v)], army: ["Army", id => G.troops[id], fmtT], money: ["Money", id => G.money[id], fmtM] };
 function ranking(tab) { const f = LBT[tab][1]; const ids = []; for (let id = 1; id <= N; id++) ids.push(id);
@@ -1659,7 +1668,7 @@ cv.addEventListener("pointermove", e => {
   clampCam();
 });
 const endPtr = e => { if (!ptrs.has(e.pointerId)) return; ptrs.delete(e.pointerId); pinch = null;
-  if (ptrs.size === 0 && gest && gest.tap && performance.now() - gest.t < 500) tapCell(toCell(e.clientX, e.clientY)); if (ptrs.size === 0) gest = null; };
+  if (ptrs.size === 0 && gest && gest.tap && performance.now() - gest.t < 500) tapCell(toCell(e.clientX, e.clientY), e.clientX, e.clientY); if (ptrs.size === 0) gest = null; };
 cv.addEventListener("pointerup", endPtr); cv.addEventListener("pointercancel", endPtr);
 cv.addEventListener("wheel", e => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
 function zoomAt(sx, sy, f) { const wx = cam.x + (sx - SW / 2) / cam.z, wy = cam.y + (sy - SH / 2) / cam.z; cam.z *= f; clampCam(); cam.x = wx - (sx - SW / 2) / cam.z; cam.y = wy - (sy - SH / 2) / cam.z; clampCam(); }
@@ -1680,7 +1689,7 @@ function saveGame() {
   const wars = Object.keys(G.warStart).map(k => [...k.split("-").map(Number), G.warStart[k]]);
   const data = { v: 1, slot: G.slot, player: G.player, day: G.day, speed: G.speed, ai: G.ai, offCd: G.offCd, peaceCd: G.peaceCd,
     troops: G.troops.map(v => Math.round(v * 10) / 10), money: G.money.map(v => Math.round(v * 10) / 10), alive: G.alive.map(v => v ? 1 : 0), boost: G.boost,
-    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, eow: G.eow, marks: G.marks, sites: G.sites, b2: G.b2, build: G.build, bpos: G.bpos, pacts: G.pacts, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
+    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, eow: G.eow, marks: G.marks, sites: G.sites, b2: G.b2, build: G.build, bpos: G.bpos, pacts: G.pacts, threats: G.threats, nextThreatEvt: G.nextThreatEvt, nextSpawn: G.nextSpawn, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
   const saves = readSaves(); const meta = { slot: G.slot, code: C[G.player].code, name: C[G.player].name, day: G.day, savedAt: Date.now(), land: pctLand(G.player), data };
   const i = saves.findIndex(s => s.slot === G.slot);
   if (i >= 0) saves[i] = meta; else { if (saves.length >= MAXSLOTS) return false; saves.push(meta); }
@@ -1703,10 +1712,11 @@ function loadGame(meta) {
   const newIds = []; for (let id = 1; id <= N; id++) if (d.troops[id] === 0 && d.alive[id] && !d.money[id]) newIds.push(id);
   G = { slot: d.slot, player: d.player, day: d.day, speed: d.speed || 1, ai: d.ai ?? 2, troops: d.troops, money: d.money, alive: d.alive.map(Boolean), boost: d.boost, offCd: d.offCd || 0, peaceCd: d.peaceCd || {}, warStart: {}, out: d.out || { nato: d.natoOut || {}, brics: {} }, warned: d.warned || {},
     fallout: d.fallout || new Array(M).fill(0), airhit: d.airhit || new Array(M).fill(0), scars: d.scars || [], airCd: d.airCd || 0, nukeCd: d.nukeCd || 0,
-    navy: d.navy, airS: d.airS, nukes: d.nukes, eow: d.eow, marks: d.marks || [], sites: d.sites, b2: d.b2, build: d.build || {}, bpos: d.bpos || [], pacts: d.pacts || {}, allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
+    navy: d.navy, airS: d.airS, nukes: d.nukes, eow: d.eow, marks: d.marks || [], sites: d.sites, b2: d.b2, build: d.build || {}, bpos: d.bpos || [], pacts: d.pacts || {}, threats: d.threats, nextThreatEvt: d.nextThreatEvt, nextSpawn: d.nextSpawn, allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
   initArsenal();
   rebuild();
   if (!G.sites) genSites();
+  if (!G.threats) { initThreats(); G.nextThreatEvt = G.day + 25; G.nextSpawn = G.day + 60; }
   for (const id of newIds) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
   for (const [a, b, st] of d.wars) { war[a * M + b] = war[b * M + a] = 1; warCount[a]++; warCount[b]++; G.warStart[a + "-" + b] = st; }
   enterGame(); if (d.cam && (d.gw || 900) === W) { cam.x = d.cam.x; cam.y = d.cam.y; cam.z = d.cam.z; clampCam(); }
@@ -1774,7 +1784,7 @@ function choose(id) {
     <div class="mstat"><div><b>${pctOf(cellsNow)}</b>of world land</div><div><b>${fmtT(troops)}</b>troops</div></div>`,
     [{ label: pickMode === "new" ? ic("send") + " Deploy" : ic("play") + " Play as " + c.name, cls: "big", fn: () => {
       if (pickMode === "new") { newGame(id); enterGame(); saveGame(); logMsg(`${ic("star")} You lead ${c.flag} ${c.name}. Tap any country to declare war!`); }
-      else { G.player = id; G.speed = 1; show("game"); repaintAll(); focusOn(id, true); saveGame(); logMsg(`${ic("star")} You now lead ${c.flag} ${c.name}`); }
+      else { G.player = id; G.speed = 1; initThreats(); G.nextThreatEvt = G.day + 25; G.nextSpawn = G.day + 60; show("game"); repaintAll(); focusOn(id, true); saveGame(); logMsg(`${ic("star")} You now lead ${c.flag} ${c.name}`); }
     } }, { label: "Back", cancel: true }]);
 }
 function enterGame() { selected = 0; pickFor = 0; $("banner").classList.remove("on"); repaintAll(); labelsDirty = true; show("game"); resize(); focusOn(G.player, true); renderPanel(); updHud(); }
@@ -1855,7 +1865,7 @@ function pollPad(dt) {
     cam.x += ax * dt * 260 / cam.z * 1.4; cam.y += ay * dt * 260 / cam.z * 1.4;
     if (now[5] || now[7]) zoomAt(SW / 2, SH / 2, Math.exp(dt * 1.6)); if (now[4] || now[6]) zoomAt(SW / 2, SH / 2, Math.exp(-dt * 1.6));
     clampCam();
-    if (edge(0)) tapCell(toCell(SW / 2, SH / 2));
+    if (edge(0)) tapCell(toCell(SW / 2, SH / 2), SW / 2, SH / 2);
     if (edge(1)) { if (pickFor) endPick(); else selectCountry(0); }
     if (edge(2)) doRecruit();
     if (edge(3) && selected && selected !== G.player && !pickFor) actionsMenu(selected);
@@ -2132,6 +2142,164 @@ function drawSites(sxOf, oy) {
   }
 }
 
+// ---------- cartels (playing Mexico) and terrorist ships (playing the USA) ----------
+const CARTEL_NAMES = ["Los Halcones", "Cartel del Golfo Negro", "Los Serpientes", "Cartel de la Sierra", "Los Calaveras", "Cartel del Pacifico Rojo", "Los Lobos Negros", "Cartel de Hierro", "Los Escorpiones", "Cartel de la Noche", "Los Fantasmas", "Cartel del Desierto"];
+const TERROR_NAMES = ["Black Tide cell", "Red Wave cell", "Iron Crescent cell", "Night Viper cell", "Ghost Fleet cell", "Storm Jackal cell"];
+const isMX = id => !!C[id] && C[id].code === "MX";
+const threatHome = () => G && G.alive[G.player] && (isMX(G.player) || isUSA(G.player));
+// success chances: army strongest on land, marines (with the navy) strongest at sea
+const OPS = {
+  army: { name: "Send the army", icon: "troops", land: 0.5, sea: 0.45, spd: 6 },
+  marines: { name: "Send marines + navy", icon: "anchor", land: 0.35, sea: 0.85, spd: 5 },
+  usa: { name: "Call the USA for help", icon: "shield", land: 0.9, sea: 0.9, spd: 14 },
+};
+const opChance = (mode, t) => mode === "army" && t.sea && isUSA(G.player) ? 0.6 : OPS[mode][t.sea ? "sea" : "land"];
+const opCost = mode => recruitCost(G.player) * (mode === "marines" ? 0.12 : mode === "army" ? 0.08 : 0);
+const waterNear = (c, maxR) => { const x0 = c % W, y0 = (c / W) | 0;
+  for (let r = 1; r <= maxR; r++) for (let k = 0; k < 16; k++) { const a = k / 16 * 6.283, x = ((Math.round(x0 + Math.cos(a) * r)) % W + W) % W, y = Math.round(y0 + Math.sin(a) * r);
+    if (y >= 0 && y < H && !BASE[y * W + x] && r >= maxR * 0.6) return y * W + x; } return -1; };
+function newCartel(sea) {
+  const mx = G.player, L = lists[mx]; if (!L || !L.length) return null;
+  const used = new Set(G.threats.filter(t => t.k === "cartel").map(t => t.n));
+  const name = CARTEL_NAMES.find(n => !used.has(n)) || "Cartel " + (G.threats.length + 1);
+  if (sea) { for (let k = 0; k < 60; k++) { const c = L[(rnd() * L.length) | 0]; if (!coastal(c)) continue; const w = waterNear(c, 8); if (w >= 0) return { k: "cartel", n: name, x: cx(w), y: cy(w), r: 1.2, sea: 1, alive: 1, ang: rnd() * 6.28 }; } return null; }
+  let best = -1, bd = -1;
+  for (let k = 0; k < 300; k++) { const c = L[(rnd() * L.length) | 0]; let ok = true; for (let q = 0; q < 4; q++) { const z = nb(c, q); if (z < 0 || owner[z] !== mx) ok = false; } if (!ok) continue;
+    let md = 1e9; for (const t of G.threats) if (t.alive && !t.sea) md = Math.min(md, Math.hypot(wrapDx(t.x - cx(c)), t.y - cy(c))); if (md > bd) { bd = md; best = c; } }
+  return best < 0 ? null : { k: "cartel", n: name, x: cx(best), y: cy(best), r: 2.4 + rnd() * 1.4, sea: 0, alive: 1 };
+}
+function newTerrorShip() {
+  const us = G.player, L = lists[us]; if (!L) return null;
+  for (let k = 0; k < 80; k++) { const c = L[(rnd() * L.length) | 0]; if (!coastal(c)) continue; const w = waterNear(c, 80); if (w < 0) continue;
+    const used = new Set(G.threats.map(t => t.n)); return { k: "terror", n: TERROR_NAMES.find(n => !used.has(n)) || "Terror cell", x: cx(w), y: cy(w), r: 1.2, sea: 1, alive: 1, tx: cx(c), ty: cy(c), ang: 0 }; }
+  return null;
+}
+function initThreats() {
+  G.threats = []; G.nextThreatEvt = 25; G.nextSpawn = 120;
+  if (isMX(G.player)) { for (let i = 0; i < 8; i++) { const t = newCartel(false); if (t) G.threats.push(t); } for (let i = 0; i < 3; i++) { const t = newCartel(true); if (t) G.threats.push(t); } }
+  else if (isUSA(G.player)) { G.nextSpawn = 30; }
+}
+const activeThreats = () => (G.threats || []).filter(t => t.alive);
+function threatTick() {
+  if (!G.threats || !threatHome()) return;
+  // boats drift around; terrorist ships head for the US coast
+  for (const t of G.threats) { if (!t.alive || !t.sea) continue;
+    let nx, ny;
+    if (t.k === "terror") { const dx = wrapDx(t.tx - t.x), dy = t.ty - t.y, d = Math.hypot(dx, dy); t.ang = Math.atan2(dy, dx);
+      if (d < 2.5) { terrorAttack(t); continue; } nx = t.x + dx / d * 0.4; ny = t.y + dy / d * 0.4; }
+    else { t.ang += (rnd() - 0.5) * 0.6; nx = t.x + Math.cos(t.ang) * 0.3; ny = t.y + Math.sin(t.ang) * 0.3; }
+    const c = Math.floor(ny) * W + ((Math.floor(nx) % W) + W) % W;
+    if (ny > 0 && ny < H - 1 && (!BASE[c] || t.k === "terror")) { t.px = t.x; t.py = t.y; t.x = nx; t.y = ny; } else t.ang += Math.PI * 0.7; }
+  // new threats keep appearing
+  if (G.day >= G.nextSpawn) {
+    G.nextSpawn = G.day + 90 + Math.floor(rnd() * 80);
+    let t = null;
+    if (isMX(G.player)) { const land = activeThreats().filter(q => !q.sea).length, sea = activeThreats().filter(q => q.sea).length;
+      t = sea < 3 && rnd() < 0.5 ? newCartel(true) : land < 10 ? newCartel(false) : null; }
+    else if (activeThreats().length < 3) t = newTerrorShip();
+    if (t) { G.threats.push(t); threatAlert(t, true); return; }
+  }
+  // a cartel strikes
+  if (isMX(G.player) && G.day >= G.nextThreatEvt) {
+    G.nextThreatEvt = G.day + 45 + Math.floor(rnd() * 45);
+    const land = activeThreats().filter(q => !q.sea); if (land.length) threatAlert(land[(rnd() * land.length) | 0], false);
+  }
+}
+function terrorAttack(t) {
+  t.alive = 0; const p = G.player; G.money[p] *= 0.92; G.troops[p] *= 0.97;
+  const c = Math.floor(t.ty) * W + ((Math.floor(t.tx) % W) + W) % W; boom(c, true); addMark(t.tx, t.ty, 1.2, "c"); sfx("bigboom");
+  logMsg(`${ic("skull")} The ${t.n} attacked a coastal city! Money and troops lost`, "war");
+}
+function threatAlert(t, spawned) {
+  if ($("modal").classList.contains("on")) { logMsg(`${ic("skull")} ${t.sea ? (t.k === "terror" ? "Terrorist ship" : "Cartel boat") + " spotted: " + t.n : t.n + " is causing trouble"}`, "war"); return; }
+  sfx("alarm");
+  const title = t.k === "terror" ? "Terrorist ship spotted!" : t.sea ? "Cartel boat spotted!" : spawned ? "A new cartel has risen!" : `${t.n} has taken down a city!`;
+  const msg = t.k === "terror" ? `The ${t.n} is sailing toward a US coastal city. Stop it before it gets there.` : t.sea ? `${t.n} is smuggling in the waters off Mexico.` : spawned ? `${t.n} has taken over territory in Mexico.` : `${t.n} has taken over a city. What do you do?`;
+  opMenu(t, title, msg);
+}
+function opMenu(t, title, msg) {
+  const p = G.player, prev = G.speed; G.speed = 0; updHud();
+  const btns = [];
+  const add = mode => { const ch = Math.round(opChance(mode, t) * 100), cost = opCost(mode);
+    const blocked = mode === "marines" && !(G.navy[p] > 0) ? "no fleets" : G.money[p] < cost ? "not enough money" : "";
+    btns.push({ label: `${ic(OPS[mode].icon)} ${OPS[mode].name} <small style="opacity:.85;font-weight:600;text-transform:none">· ${ch}% chance${cost ? " · " + fmtM(cost) : ""}${blocked ? " · " + blocked : ""}</small>`, cls: mode === "usa" ? "green" : "", disabled: !!blocked,
+      fn: () => { G.speed = prev || 1; updHud(); launchOp(t, mode); } }); };
+  add(t.sea ? "marines" : "army"); add(t.sea ? "army" : "marines");
+  const us = CODEIDX.US + 1;
+  if (isMX(p) && G.alive[us] && !atWar(p, us)) add("usa");
+  btns.push({ label: ic("no") + " Ignore it", cls: "red", fn: () => { G.speed = prev || 1; updHud(); ignoreThreat(t); } });
+  modal(`<div class="bigf" style="color:#ff5a4d">${ic("skull")}</div><h3>${title}</h3><p>${msg}<br><small style="color:#aab">${t.sea ? "At sea, marines with the navy are strongest." : "On land, the army is strongest."}</small></p>`, btns);
+}
+function ignoreThreat(t) {
+  const p = G.player; G.money[p] *= 0.95; G.troops[p] *= 0.98; if (!t.sea) t.r = Math.min(7, t.r + 0.7);
+  logMsg(`${ic("skull")} You ignored ${t.n}. ${t.sea ? "It slipped away" : "It grew stronger"} — money and troops lost`, "war");
+}
+function launchOp(t, mode) {
+  const p = G.player, us = CODEIDX.US + 1, from = mode === "usa" ? us : p;
+  G.money[p] -= opCost(mode);
+  const tc = Math.floor(t.y) * W + ((Math.floor(t.x) % W) + W) % W;
+  let pts = null;
+  if (mode === "marines") { const s = pickCell(from, t.x, t.y, true, 600); if (s >= 0) pts = seaPath(s, tc); if (pts) G.navy[p]--; }
+  if (!pts) { const s = pickCell(from, t.x, t.y, false, 600); if (s < 0) return; pts = [[cx(s), cy(s)], [cx(s) + wrapDx(t.x - cx(s)), t.y]]; }
+  if (mode === "army" && !t.sea) G.troops[p] *= 0.99;
+  addUnit("op", from, p, pts, OPS[mode].spd * (mode === "army" && t.sea ? 2.5 : 1), { mode, threat: t, kind: mode === "army" && t.sea ? "air" : mode === "army" ? "army" : mode === "usa" ? "air" : "ship" });
+  logMsg(`${ic(OPS[mode].icon)} ${mode === "usa" ? "The USA is sending forces against" : mode === "marines" ? "Marines and the navy are heading for" : t.sea ? "The army sent jets after" : "The army is moving against"} ${t.n}`, "peace");
+  sfx(mode === "marines" ? "horn" : "jet", 0.5);
+}
+function resolveOp(u) {
+  const t = u.threat, p = G.player; if (u.mode === "marines") G.navy[p] = Math.min(maxNavy(p), G.navy[p] + 1); // the fleet comes home
+  if (!t || !t.alive) return;
+  const c = Math.floor(t.y) * W + ((Math.floor(t.x) % W) + W) % W;
+  if (rnd() < opChance(u.mode, t)) {
+    t.alive = 0; boom(c, true); for (let k = 0; k < 4; k++) boom(c + Math.round((rnd() - 0.5) * 4) + Math.round((rnd() - 0.5) * 4) * W, false);
+    G.money[p] += recruitCost(p) * 0.6; sfx("ak", 0.7); setTimeout(() => sfx("bigboom", 0.6), 300);
+    logMsg(`${ic("swords")} Success! ${u.mode === "usa" ? "US forces" : u.mode === "marines" ? "Your marines" : "Your army"} took down ${t.n}`, "peace");
+  } else {
+    G.troops[p] *= 0.985; if (!t.sea) t.r = Math.min(7, t.r + 0.5); boom(c, false); sfx("ak", 0.5);
+    logMsg(`${ic("no")} The operation against ${t.n} failed${t.sea ? " — the boat escaped" : " — the cartel fought them off"}`, "war");
+  }
+}
+function threatsList() {
+  const list = activeThreats(); if (!list.length) { alertBox("All clear", isMX(G.player) ? "There are no cartels left in Mexico." : "No terrorist ships spotted."); return; }
+  const rows = list.map((t, i) => `<button class="lbrow nav thr" data-i="${G.threats.indexOf(t)}"><span class="fl2" style="color:#ff5a4d">${ic(t.sea ? "ship" : "skull")}</span><span class="nm2">${t.n}<br><small style="font-weight:600;color:#aab">${t.k === "terror" ? "Terrorist ship" : t.sea ? "Cartel boat" : "Cartel territory"}</small></span><span class="val">Find</span></button>`).join("");
+  modal(`<h3>${ic("skull")} ${isMX(G.player) ? "Cartels" : "Terrorist threats"}</h3><div class="lblist">${rows}</div>`, [{ label: "Close", cancel: true }]);
+  $("mbox").classList.add("wide");
+  $("mbox").querySelectorAll(".thr").forEach(b => b.onclick = () => { const t = G.threats[+b.dataset.i]; closeModal(); cam.x = t.x; cam.y = t.y; cam.z = Math.max(cam.z, 5); clampCam(); setTimeout(() => opMenu(t, t.n, "Choose how to deal with them."), 50); });
+}
+function threatAt(sx, sy) {
+  if (!threatHome() || !G.threats) return null;
+  const gx = cam.x + (sx - SW / 2) / cam.z, gy = cam.y + (sy - SH / 2) / cam.z;
+  for (const t of G.threats) if (t.alive && Math.hypot(wrapDx(t.x - gx), t.y - gy) * cam.z < Math.max(16, t.r * cam.z)) return t;
+  return null;
+}
+function drawSkull(x, y, s) {
+  ctx.fillStyle = "#f2efe6"; ctx.beginPath(); ctx.arc(x, y - s * 0.15, s * 0.55, 0, 7); ctx.fill(); ctx.fillRect(x - s * 0.3, y + s * 0.2, s * 0.6, s * 0.35);
+  ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc(x - s * 0.2, y - s * 0.15, s * 0.14, 0, 7); ctx.arc(x + s * 0.2, y - s * 0.15, s * 0.14, 0, 7); ctx.fill();
+}
+function drawThreats(sxOf, oy, t) {
+  if (!threatHome() || !G.threats) return;
+  for (const q of G.threats) { if (!q.alive) continue;
+    const x = sxOf(q.x), y = oy + q.y * cam.z; if (x < -60 || x > SW + 60 || y < -60 || y > SH + 60) continue;
+    const pulse = 0.6 + 0.4 * Math.sin(t / 250 + q.x);
+    if (!q.sea) { const R = Math.max(8, q.r * cam.z * 1.2);
+      const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, "rgba(120,0,0,.55)"); g.addColorStop(0.75, "rgba(90,0,0,.4)"); g.addColorStop(1, "rgba(60,0,0,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill();
+      ctx.setLineDash([4, 3]); ctx.strokeStyle = `rgba(255,70,50,${0.5 + 0.4 * pulse})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, R * 0.8, 0, 7); ctx.stroke(); ctx.setLineDash([]);
+      drawSkull(x, y, Math.max(8, Math.min(14, cam.z * 1.4)));
+    } else { const s = Math.max(9, Math.min(18, cam.z * 2));
+      ctx.strokeStyle = `rgba(255,60,40,${0.35 + 0.5 * pulse})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, s * 1.6 + pulse * 3, 0, 7); ctx.stroke();
+      drawShip(x, y, q.ang || 0, s * 0.8, [60, 10, 10]); drawSkull(x, y - s * 1.3, s * 0.7); }
+    if (cam.z >= 2.5) { ctx.font = "800 11px system-ui,sans-serif"; ctx.textAlign = "center"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,.8)"; const ty = y + Math.max(14, q.r * cam.z) + 4; ctx.strokeText(q.n, x, ty); ctx.fillStyle = "#ff8a80"; ctx.fillText(q.n, x, ty); }
+  }
+}
+function drawOp(u, x, y, s) {
+  const rgb = C[u.a].rgb;
+  if (u.kind === "ship") { drawShip(x, y, u.ang, s, rgb); ctx.fillStyle = "#3d5a2a"; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x - Math.cos(u.ang) * s * 0.3 + (k - 1) * s * 0.25, y - Math.sin(u.ang) * s * 0.3, s * 0.12, 0, 7); ctx.fill(); } }
+  else if (u.kind === "air") drawFormation(x, y, u.ang, s * 0.9, rgb, jetKind(u.a), 3);
+  else { for (let k = 0; k < 4; k++) { const ox = (k % 2 - 0.5) * s * 0.9, oy2 = (Math.floor(k / 2) - 0.5) * s * 0.9;
+      ctx.fillStyle = "#3d5a2a"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x + ox, y + oy2, s * 0.32, Math.PI, 0); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#c9b48a"; ctx.fillRect(x + ox - s * 0.15, y + oy2, s * 0.3, s * 0.25); } }
+}
+
 function launchNuke(a, b, tier) {
   if (!(G.nukes[a] > 0) || !hasSite(a)) return false;
   const [ax, ay] = centerOf(a), [bx, by] = centerOf(b);
@@ -2181,6 +2349,7 @@ function addMark(x, y, r, k) { G.marks.push({ x, y, r, k, day: G.day }); if (G.m
 function arrive(u) {
   const t = u.target, a = u.a, b = owner[t];
   if (u.type === "nuke" || u.type === "mini") return detonate(u);
+  if (u.type === "op") return resolveOp(u);
   if (u.type === "eow") return splitEOW(u);
   if (!b || !G.alive[a] || !atWar(a, b)) { if (u.load) G.troops[a] += u.load; if (a === G.player) logMsg(`${ic(u.type === "ship" ? "ship" : "jet")} Mission cancelled — the target is no longer an enemy`); return; }
   if (u.type === "ship") {
