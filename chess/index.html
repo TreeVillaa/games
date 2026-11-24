@@ -534,6 +534,29 @@
   .vs { font-size: 1.6rem; font-weight: 900; color: #ffd84a; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
   .shuffle { animation: shuf .22s linear infinite; } @keyframes shuf { 50% { transform: scale(.94); } }
   .mstakes { margin: 12px 0 4px; font-weight: 700; line-height: 1.5; }
+  .rcards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 10px; }
+  .rcard { display: flex; flex-direction: column; align-items: center; padding: 10px 4px; border-radius: 16px; color: #fff; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+  .rcard b { font-size: 1rem; } .rcard small { font-size: .66rem; opacity: .85; } .rcard span { font-size: 1.7rem; font-weight: 900; line-height: 1.1; }
+  .rcard.bullet { background: linear-gradient(160deg, #ff9f43, #d9480f); } .rcard.blitz { background: linear-gradient(160deg, #ffd84a, #e08a00); color: #3a2400; } .rcard.rapid { background: linear-gradient(160deg, #5be38a, #1f9d55); }
+  .hrow { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 6px; margin-top: 6px; border: 0; border-radius: 14px; background: rgba(255,255,255,.08); color: #fff; font: inherit; text-align: left; cursor: pointer; }
+  .hrow:disabled { opacity: .6; cursor: default; }
+  .hres { flex: none; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; font-weight: 900; }
+  .hres.win { background: #2fa86a; } .hres.loss { background: #d9433a; } .hres.draw { background: #7d8596; }
+  .hmain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; } .hmain b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: .92rem; }
+  .hsub { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: .74rem; }
+  .hmode { padding: 1px 7px; border-radius: 999px; font-weight: 900; } .hmode.bullet { background: #e8590c; } .hmode.blitz { background: #e0a000; color: #3a2400; } .hmode.rapid { background: #2fa86a; } .hmode.prac { background: rgba(255,255,255,.2); }
+  .helo { font-weight: 800; opacity: .9; }
+  .hdate { flex: none; text-align: right; font-size: .75rem; font-weight: 800; opacity: .85; }
+  .hvhead { text-align: center; margin-bottom: 8px; line-height: 1.35; } .hvhead small { opacity: .85; }
+  .hvboard { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: min(92vw, 420px); height: min(92vw, 420px); aspect-ratio: 1; margin: 0 auto; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+  .hsq { position: relative; display: grid; place-items: center; min-height: 0; overflow: hidden; } .hsq.l { background: var(--light, #eed7b0); } .hsq.d { background: var(--dark, #a7744a); }
+  .hsq.last { box-shadow: inset 0 0 0 100px rgba(255,216,74,.42); } .hsq .pc { width: 88%; height: 88%; font-size: calc(min(92vw, 420px) / 8 * .8); }
+  .hvbar { display: flex; gap: 6px; margin: 10px auto 6px; width: min(92vw, 420px); } .hvbar .pill { flex: 1; min-width: 0; padding: 6px 2px; }
+  .hvmoves { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 3px; align-items: center; width: min(92vw, 420px); margin: 0 auto; padding: 4px 0 8px; }
+  .hmn { opacity: .6; font-weight: 800; font-size: .85rem; margin-left: 4px; }
+  .hmv { flex: none; border: 0; background: transparent; color: #fff; font: inherit; font-weight: 800; padding: 4px 6px; border-radius: 8px; cursor: pointer; }
+  .hmv.cur { background: #fff; color: #1b1b2a; }
+  .youav { margin-right: 7px; }
   .reqhead { text-align: left; font-weight: 900; margin: 12px 2px 4px; font-size: .95rem; }
   .empty.sm { padding: 8px; font-size: .85rem; }
   small.ago { font-weight: 800; opacity: .75; } small.ago.new { color: #7ee08f; opacity: 1; }
@@ -927,6 +950,16 @@
   <div class="sheet" style="margin-top:0"><h2 class="ttl">📊 Game Review</h2><div id="reviewBody"></div>
     <button class="btn play" data-act="rvBegin">▶ Start Review</button>
     <button class="btn alt" data-act="rvClose">Back</button></div>
+</div>
+
+<div class="overlay hidden" id="histOv">
+  <button class="pill backpill" data-dact="hvBack"><span>←</span><span>Back</span></button>
+  <div class="sheet"><div class="hvhead" id="hvHead"></div>
+    <div class="hvboard" id="hvBoard"></div>
+    <div class="hvbar"><button class="pill" data-dact="hvStart">⏮</button><button class="pill" data-dact="hvPrev">◀</button><button class="pill" data-dact="hvPlay" id="hvPlay">Play</button><button class="pill" data-dact="hvNext">▶</button><button class="pill" data-dact="hvEnd">⏭</button></div>
+    <div class="netnote" id="hvPos" style="margin:0 0 4px"></div>
+    <div class="hvmoves" id="hvMoves"></div>
+  </div>
 </div>
 
 <div class="overlay hidden" id="ladOv">
@@ -6658,7 +6691,7 @@ function engineFactory() {
     if (mode === "puzzle" && puz) return side === humanColor ? `🧩 Puzzle ${Math.min(puz.i + 1, 16)} of 16` : `Level ${puz.level} · ${puzzleTier(puz.level)}`;
     if (mode === "learn" && lrn) return side === humanColor ? `🎓 ${LESSONS[lrn.li].title}` : "";
     if (mode === "online" && online) return side === humanColor ? `🙂 You <span class="pelo">(${net.me ? net.me.elo : ""})</span>` : `<span class="uav sm" style="--av:${userBg(online.opp.name)};--ring:${tierOf(online.opp.elo).color};margin-right:7px">${online.opp.name[0].toUpperCase()}</span>${online.opp.name} <span class="pelo">(${online.opp.elo})</span>`;
-    if (mode === "cpu") return side === humanColor ? "🙂 You" : `${avatarHTML(level, "mini" + (thinking ? " thinking" : ""))}${LEVELS[level].name} <span class="pelo">(${LEVELS[level].elo})</span>`;
+    if (mode === "cpu") return side === humanColor ? (ladderGame ? `${ladAv({ kind: "me" }, "sm youav")}${esc(ladder.name)} <span class="pelo">(${LMODES[ladderGame.m].label} ${ladder.r[ladderGame.m]})</span>` : "🙂 You") : `${avatarHTML(level, "mini" + (thinking ? " thinking" : ""))}${LEVELS[level].name} <span class="pelo">(${LEVELS[level].elo})</span>`;
     return side === "w" ? "⚪ White" : "⚫ Black";
   }
   function paintPlayers() {
@@ -7364,7 +7397,8 @@ function engineFactory() {
 
   // ================= Climb the Leaderboard =================
   // Works on this device, no server needed. Separate ratings for Bullet, Blitz and Rapid.
-  // The leaderboard = ~100 real top players (approximate ratings) + chess YouTubers + ~1,200 made-up bots + you.
+  // The leaderboard = ~100 real top players (approximate ratings) + chess YouTubers + ~6,200 made-up bots + you.
+  // The bots also play each other while you're away, so they climb and fall too.
   // "Play" pairs you with a bot near your rating; 14% of the time you get a famous player instead.
   const LMODES = { bullet: { label: "Bullet", sub: "1 min", time: 1 }, blitz: { label: "Blitz", sub: "3 | 2", time: 5 }, rapid: { label: "Rapid", sub: "10 min", time: 7 } };
   const LMODE_KEYS = ["bullet", "blitz", "rapid"];
@@ -7422,7 +7456,7 @@ function engineFactory() {
     if (LPOOL) return LPOOL;
     const rng = mulberry(20251124), used = new Set(TOP_REAL.map(x => x[0].toLowerCase())), gen = [];
     LEVELS.forEach(L => used.add(L.name.toLowerCase()));
-    while (gen.length < 1200) {
+    for (let tries = 0; gen.length < 6200 && tries < 200000; tries++) {
       const name = makeBotName(rng).slice(0, 16), k = name.toLowerCase();
       if (used.has(k) || name.length < 3 || isBadName(name)) continue;
       used.add(k);
@@ -7433,8 +7467,8 @@ function engineFactory() {
     const yt = LEVELS.filter(L => L.cat === "youtubers").map(L => ({ id: "y:" + L.name, name: L.name, kind: "yt", base: L.elo }));
     return (LPOOL = { gen, real, yt, all: [...real, ...yt, ...gen] });
   }
-  function ratingOf(p, m) {
-    const o = ladder.ovr[m] && ladder.ovr[m][p.id]; if (o != null) return o;
+  function ratingOf(p, m, skillOnly) {
+    const o = !skillOnly && ladder.ovr[m] && ladder.ovr[m][p.id]; if (o != null && o !== false) return o;
     const mi = LMODE_KEYS.indexOf(m), j = (hashStr(p.name + m) % 61) - 30;
     if (p.kind === "gen") return Math.max(100, Math.min(2700, Math.round(p.base + p.d[mi])));
     if (p.kind === "real") return p.base + (m === "bullet" ? p.boost : m === "blitz" ? 15 + (p.boost >> 2) : -10) + j;
@@ -7459,12 +7493,40 @@ function engineFactory() {
     return rows;
   }
   function paintMeBtn() { const a = $("meAv"); if (a) a.innerHTML = faceInner({ kind: "me" }); }
+  // Bots play each other: each game moves both ratings (K 20). Results follow each bot's true skill,
+  // so strong bots climb and weak ones fall over time.
+  function simulateLadder(games) {
+    const pool = ladderPool(); let played = 0;
+    for (const m of LMODE_KEYS) {
+      const ov = ladder.ovr[m] || (ladder.ovr[m] = {});
+      const rows = pool.all.map(p => ({ p, r: ratingOf(p, m), sk: ratingOf(p, m, true) })).sort((a, b) => a.r - b.r);
+      for (let k = 0; k < games; k++) {
+        const i = Math.floor(Math.random() * rows.length), j = Math.max(0, Math.min(rows.length - 1, i + Math.round((Math.random() - .5) * 40)));
+        if (i === j) continue;
+        const A = rows[i], B = rows[j];
+        const ex = 1 / (1 + Math.pow(10, (B.sk - A.sk) / 400)), roll = Math.random();
+        const sc = roll < .08 ? .5 : roll < .08 + ex * .92 ? 1 : 0;
+        const eA = 1 / (1 + Math.pow(10, (B.r - A.r) / 400)), d = Math.round(20 * (sc - eA));
+        A.r = Math.max(100, A.r + d); B.r = Math.max(100, B.r - d);
+        ov[A.p.id] = A.r; ov[B.p.id] = B.r; played++;
+      }
+    }
+    return Math.round(played / 3);
+  }
+  function catchUpLadder() {
+    const now = Date.now(), last = ladder.lastSim || now;
+    const n = Math.min(3000, Math.max(40, Math.floor((now - last) / 60000) * 25));   // ~25 games a minute while you're away
+    ladder.lastSim = now; const played = simulateLadder(n); saveLadder();
+    return played;
+  }
   const LADDER_I = LEVELS.length;
   LEVELS.push({ ...BOT("Opponent", 400, "ladder", "", [SK[1], "#333333", "short", "#555555"]) });
   let ladderGame = null, ladderCur = null, ladPage = 1, ladQ = "", ladEditing = false;
   function setLadderSlot(o) {
     const L = LEVELS[LADDER_I];
-    Object.assign(L, strengthFor(Math.min(2999, o.elo)), { name: o.name, elo: o.elo, cat: o.kind === "yt" ? "youtubers" : o.kind === "real" ? "top" : "bots", ladderFace: faceInner(o) });
+    // Top players play at full engine strength; chess YouTubers play hard too. Others play at their rating.
+    const st = o.kind === "real" ? strengthFor(3999) : o.kind === "yt" && !NOOBS.has(o.name) ? strengthFor(2999) : strengthFor(Math.min(2999, o.elo));
+    Object.assign(L, st, { name: o.name, elo: o.elo, cat: o.kind === "yt" ? "youtubers" : o.kind === "real" ? "top" : "bots", ladderFace: faceInner(o) });
   }
   function opponentFor(m) {
     const pool = ladderPool(), my = ladder.r[m];
@@ -7472,7 +7534,8 @@ function engineFactory() {
     for (let w = 50; ; w *= 2) { const c = pool.gen.filter(p => Math.abs(ratingOf(p, m) - my) <= w); if (c.length >= 4 || w > 3000) return c.length ? pickOne(c) : pickOne(pool.gen); }
   }
   // ---- screens ----
-  function openLadder() { ladEditing = !ladder.name; show("ladOv"); renderLadder(); }
+  let ladSimNote = "";
+  function openLadder() { ladEditing = !ladder.name; const n = catchUpLadder(); ladSimNote = n > 60 ? `While you were away, the bots played ${n.toLocaleString()} games each in Bullet, Blitz and Rapid.` : ""; show("ladOv"); renderLadder(); }
   function renderLadder() {
     const el = $("ladBody");
     if (ladEditing) {
@@ -7493,6 +7556,7 @@ function engineFactory() {
       <button class="mini" data-dact="ladEditOpen">✏︎ Edit player</button></div></div>
       <div class="lmodes">${LMODE_KEYS.map(k => `<button class="lmode${k === m ? " sel" : ""}" data-dact="ladMode" data-arg="${k}"><b>${LMODES[k].label}</b><small>${LMODES[k].sub}</small><span>${ladder.r[k]}</span></button>`).join("")}</div>
       <button class="btn play" data-dact="ladPlay">Play ${LMODES[m].label} · ${LMODES[m].sub}</button>
+      ${ladSimNote ? `<p class="netnote" style="margin:8px 0 0">${ladSimNote}</p>` : ""}
       <div class="lbtop" style="margin-top:12px"><input class="sinput" id="ladSearch" placeholder="Search the leaderboard…" value="${esc(ladQ)}" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="reqplus jumpme" data-dact="ladJump" aria-label="Jump to me">Me</button></div>
       <div class="slist" id="ladList"></div>`;
     el.innerHTML = h;
@@ -7560,6 +7624,7 @@ function engineFactory() {
     ladder.r[m] = my + d; ladder.peak[m] = Math.max(ladder.peak[m] || 0, ladder.r[m]);
     ladder.g[m][sc === 1 ? 0 : sc === 0 ? 1 : 2]++;
     ladder.ovr[m][ladderGame.id] = Math.max(100, opp - d);
+    simulateLadder(30); ladder.lastSim = Date.now();
     saveLadder();
     ladderGame.delta = d; ladderGame.after = ladder.r[m];
   }
@@ -7826,6 +7891,15 @@ function engineFactory() {
       if (a === "ladJump") { ladQ = ""; const s2 = $("ladSearch"); if (s2) s2.value = ""; const b = ladderBoard(ladder.mode), r = b.findIndex(x => x.p.kind === "me") + 1; ladPage = Math.max(1, Math.ceil(r / 50)); return paintLadList(true); }
       if (a === "ladVs") { const p = ladderPool().all.find(x => x.id === arg); if (p) startMatch(p); return; }
       if (a === "matchGo") return goMatch();
+      if (a === "histView") return openHistView(+arg);
+      if (a === "histMore") { statsHistN += 30; return openStats(); }
+      if (a === "hvBack") { clearInterval(hv.timer); hv.timer = 0; return openStats(); }
+      if (a === "hvGo") return hvGo(+arg);
+      if (a === "hvStart") return hvGo(0);
+      if (a === "hvEnd") return hvGo(hv.states.length - 1);
+      if (a === "hvPrev") return hvGo(hv.i - 1);
+      if (a === "hvNext") return hvGo(hv.i + 1);
+      if (a === "hvPlay") { if (hv.timer) { clearInterval(hv.timer); hv.timer = 0; } else { if (hv.i >= hv.states.length - 1) hv.i = 0; hv.timer = setInterval(() => hvGo(hv.i + 1), 800); } return paintHistView(); }
       if (a === "matchCancel") { ladderCur = null; show("ladOv"); return renderLadder(); }
       if (a === "openReq") { soc.tab = "req"; return renderSocialMain(); }
       if (a === "coachToggle") { prefs.coachOn = prefs.coachOn === false; store.set("chess-prefs", prefs); paintCoach(); return; }
@@ -8276,9 +8350,10 @@ function engineFactory() {
     gameRec = { id: Date.now() + Math.random(), t: Date.now(), mode, color: mode === "two" ? null : humanColor, res,
       dur: Math.min(3 * 3600e3, Date.now() - gameStartAt), moves: history.length, cls: myRatings(), acc: mode === "two" ? null : accuracyOf(humanColor),
       bot: mode === "cpu" ? LEVELS[level].name : null, botElo: mode === "cpu" ? LEVELS[level].elo : null, opp: mode === "online" && online ? online.opp.name : null,
-      elo: elo || null };
+      elo: elo || null, moves: history.map(h => [h.move.from, h.move.to, h.move.promo || ""]), code: result.code, reason: result.title };
     if (elo && elo.tc) gameRec.tc = elo.tc;
     st.games.push(gameRec); if (st.games.length > 1000) st.games.shift();
+    for (let k = 0; k < st.games.length - 200; k++) delete st.games[k].moves;   // keep moves for the last 200 games
     if (elo) st.eloHist.push({ t: Date.now(), after: elo.after, d: elo.d });
     store.set("chess-stats", st);
   }
@@ -8289,6 +8364,41 @@ function engineFactory() {
     store.set("chess-stats", st);
   }
   const fmtDur = ms => { const m = Math.round(ms / 60000); return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`; };
+  let statsHistN = 15;
+  function histRow(g, i) {
+    const res = g.res === "w" ? ["W", "win"] : g.res === "l" ? ["L", "loss"] : ["D", "draw"];
+    const when = new Date(g.t), date = when.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    const tc = g.tc ? `<span class="hmode ${g.tc}">${LMODES[g.tc].label}</span>` : `<span class="hmode prac">Practice</span>`;
+    const elo = g.elo && g.tc ? `<span class="helo ${g.elo.d >= 0 ? "pos" : "neg"}">${g.elo.after - g.elo.d} → ${g.elo.after} (${g.elo.d >= 0 ? "+" : ""}${g.elo.d})</span>` : `<span class="helo">no rating change</span>`;
+    return `<button class="hrow" data-dact="histView" data-arg="${i}"${g.moves ? "" : " disabled"}><span class="hres ${res[1]}">${res[0]}</span>
+      <span class="hmain"><b>vs ${esc(g.bot || g.opp || "Opponent")}${g.botElo ? ` <small>(${g.botElo})</small>` : ""}</b><span class="hsub">${tc}${elo}</span></span>
+      <span class="hdate">${date}<br><small>${Math.ceil((g.moves ? g.moves.length : g.moves || 0) / 2)} moves</small></span></button>`;
+  }
+  // ---- watch a past game again ----
+  const hv = { g: null, states: [], sans: [], i: 0, timer: 0 };
+  function openHistView(idx) {
+    const g = statsData().games[idx]; if (!g || !g.moves) { toast("This game is too old to replay."); return; }
+    let st = E.startState(); const states = [st], sans = [];
+    for (const [f, t, pr] of g.moves) { const mv = E.legalMoves(st).find(x => x.from === f && x.to === t && (x.promo || "") === (pr || "")); if (!mv) break; sans.push(E.toSAN(st, mv)); st = E.makeMove(st, mv); states.push(st); }
+    Object.assign(hv, { g, states, sans, i: states.length - 1 }); clearInterval(hv.timer); hv.timer = 0;
+    const res = g.res === "w" ? "You won" : g.res === "l" ? "You lost" : "Draw";
+    $("hvHead").innerHTML = `<b>${res}</b> vs ${esc(g.bot || "Opponent")}${g.botElo ? ` (${g.botElo})` : ""}<br><small>${g.tc ? LMODES[g.tc].label + " · " : "Practice · "}${g.reason ? esc(g.reason) + " · " : ""}${g.elo && g.tc ? `${LMODES[g.tc].label} rating ${g.elo.after - g.elo.d} → ${g.elo.after} (${g.elo.d >= 0 ? "+" : ""}${g.elo.d})` : "no rating change"}</small>`;
+    show("histOv"); paintHistView();
+  }
+  function paintHistView() {
+    const s2 = hv.states[hv.i], flip = hv.g.color === "b", last = hv.i ? hv.g.moves[hv.i - 1] : null;
+    let b = "";
+    for (let vi = 0; vi < 64; vi++) {
+      const sq = flip ? 63 - vi : vi, r = sq >> 3, c = sq & 7, p = s2.b[sq];
+      b += `<div class="hsq ${(r + c) % 2 ? "d" : "l"}${last && (last[0] === sq || last[1] === sq) ? " last" : ""}">${p ? pieceHTML(p) : ""}</div>`;
+    }
+    $("hvBoard").innerHTML = b;
+    $("hvMoves").innerHTML = hv.sans.map((m, k) => `${k % 2 ? "" : `<span class="hmn">${k / 2 + 1}.</span>`}<button class="hmv${k + 1 === hv.i ? " cur" : ""}" data-dact="hvGo" data-arg="${k + 1}">${esc(m)}</button>`).join("");
+    $("hvPos").textContent = `Move ${Math.ceil(hv.i / 2)} of ${Math.ceil(hv.sans.length / 2)}`;
+    $("hvPlay").textContent = hv.timer ? "Pause" : "Play";
+    const cur = $("hvMoves").querySelector(".cur"); if (cur) cur.scrollIntoView({ block: "nearest", inline: "center" });
+  }
+  function hvGo(i) { hv.i = Math.max(0, Math.min(hv.states.length - 1, i)); if (hv.i === hv.states.length - 1 && hv.timer) { clearInterval(hv.timer); hv.timer = 0; } paintHistView(); }
   function openStats() {
     const st = statsData(), G = st.games, mine = G.filter(g => g.mode !== "two");
     const cnt = (arr, r) => arr.filter(g => g.res === r).length;
@@ -8319,7 +8429,11 @@ function engineFactory() {
     }
     const botsBeat = mine.filter(g => g.mode === "cpu" && g.res === "w"), toughest = botsBeat.reduce((b, g) => (!b || g.botElo > b.botElo ? g : b), null);
     const pr = puzProg(), lessons = Object.keys(learnDone()).length;
+    const ghist = G.map((g, i) => ({ g, i })).filter(x => x.g.mode === "cpu").reverse();
     $("statsBody").innerHTML = `
+      <div class="lbl" style="text-align:left">Your ratings · each one moves on its own</div>
+      <div class="rcards">${LMODE_KEYS.map(k => `<div class="rcard ${k}"><b>${LMODES[k].label}</b><small>${LMODES[k].sub}</small><span>${ladder.r[k]}</span><small>peak ${ladder.peak[k]} · ${ladder.g[k][0]}W ${ladder.g[k][1]}L ${ladder.g[k][2]}D</small></div>`).join("")}</div>
+      <div class="stsect"><div class="lbl">Game history</div>${ghist.length ? ghist.slice(0, statsHistN).map(({ g, i }) => histRow(g, i)).join("") + (ghist.length > statsHistN ? `<button class="btn alt" data-dact="histMore" style="min-height:44px">Show more (${ghist.length - statsHistN} left)</button>` : "") : `<p class="netnote" style="margin:4px 0 0">No games yet. Play a bot or climb the leaderboard!</p>`}</div>
       <div class="stgrid">
         <div class="stcard"><b>${G.length}</b><small>Games</small></div>
         <div class="stcard"><b class="pos">${W}</b><small>Wins</small></div>
@@ -8621,7 +8735,7 @@ function engineFactory() {
   }
 
   // ================= Overlays + menus =================
-  const OVERLAYS = ["ladOv", "matchOv", "lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
+  const OVERLAYS = ["histOv", "ladOv", "matchOv", "lbOv", "coachOv", "askOv", "statsOv", "reviewOv", "setupOv", "botOv", "liveOv", "socialOv", "userOv", "chatOv", "styleOv", "puzzleOv", "puzDoneOv", "learnOv", "pauseOv", "settingsOv", "promoOv", "overOv"];
   let focusIdx = 0, settingsReturn = "setupOv";
   const openOverlay = () => OVERLAYS.find(id => !$(id).classList.contains("hidden"));
   const buttonsOf = id => [...$(id).querySelectorAll("button")].filter(b => b.style.display !== "none");
@@ -8947,6 +9061,7 @@ function engineFactory() {
         else if (ov === "lbOv" && btn === "B") act("toStart");
         else if (ov === "ladOv" && btn === "B") { if (ladEditing && ladder.name) { ladEditing = false; lookEdit = null; renderLadder(); } else act("toStart"); }
         else if (ov === "matchOv" && btn === "B") dact("matchCancel");
+        else if (ov === "histOv" && btn === "B") dact("hvBack");
         else if (ov === "botOv" || ov === "liveOv") { if (btn === "B") act("toStart"); else act(ov === "botOv" ? "startBots" : "startLive"); }
       }
       paintFocus();
