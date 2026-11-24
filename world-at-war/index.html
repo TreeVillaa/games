@@ -370,6 +370,7 @@ L-36 384 V294 L-22 290 V282 H-16 V150 H-8 L-8 134 L-36 120 L-36 108 L-6 112 V28 
     <div class="bar">
       <button class="btn" id="bRecruit">Recruit</button>
       <button class="btn" id="bOff">Offensive</button>
+      <button class="btn" id="bBuild" data-ic="home">Build</button>
       <button class="btn" id="bFind" data-ic="target">Me</button>
     </div>
     <div class="ctrlhint" data-ic="pad">Stick: move map · A: select · LB/RB: zoom · X: recruit · Y: actions (war, navy, jets, nuke) · L3: find me · B: close · Start: menu</div>
@@ -499,7 +500,7 @@ const lists = []; const posIn = new Int32Array(W * H);
 const borderArr = []; const borderPos = new Int32Array(W * H).fill(-1);
 let selected = 0, pickFor = 0;
 
-function capOf(id) { return C[id].power * (25 + 0.91 * Math.pow(cells[id], 0.73)); }
+function capOf(id) { const b = G && G.build && G.build[id]; return C[id].power * (25 + 0.91 * Math.pow(cells[id], 0.73)) * (b ? 1 + 0.05 * b.base + 0.02 * b.city : 1); }
 function newGame(player) {
   owner.set(BASE);
   G = { slot: Date.now().toString(36) + Math.floor(rnd() * 1e4), player, day: 0, speed: 1, ai: 2,
@@ -509,6 +510,7 @@ function newGame(player) {
     allies: [], allyCd: {}, peaceOffer: {}, nextWar: 300 + Math.floor(rnd() * 300) };
   rebuild();
   for (let id = 1; id <= N; id++) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
+  { const us = CODEIDX.US + 1; G.money[us] = Math.max(G.money[CODEIDX.RU + 1], G.money[CODEIDX.CN + 1]) + 10; }
   initArsenal();
 }
 function rebuild() {
@@ -564,6 +566,7 @@ function startWar(a, b) {
     logMsg(`${ic("globe")} WORLD WAR III! All of ${BLOCS[ka].name} and ${BLOCS[kb].name} are at war`, "ww");
     if (blocOf(G.player) >= 0) setTimeout(() => worldWarAlert(ka, kb, A.length, B.length), 50);
   } else if (joined && a === G.player) setTimeout(() => blocAlert(kb, a, b, joined + 1), 50);
+  if (G.pacts) pactDefend(a, b);
   // your alliances: allies defend you and each other, and help when you attack (if it's not suicide)
   if (G.allies && G.allies.length) {
     const team = [G.player, ...G.allies].filter(x => G.alive[x]);
@@ -723,7 +726,7 @@ function tick() {
     const cap = capOf(id);
     if (G.troops[id] < cap) G.troops[id] += (cap - G.troops[id]) * 0.006 + cap * 0.0006;
     if (warCount[id]) G.troops[id] *= 0.9996;
-    G.money[id] = Math.min(G.money[id] + cap * 0.002, cap * 0.6);
+    { const im = incomeMult(id); G.money[id] = Math.min(G.money[id] + cap * 0.002 * im, cap * 0.6 * im); }
     if (G.boost[id] > 0) G.boost[id]--;
     if (id !== G.player && warCount[id] && G.money[id] >= recruitCost(id) && G.troops[id] < cap * 2.5) recruit(id);
   }
@@ -732,6 +735,8 @@ function tick() {
   if (G.day % 45 === 0) for (let id = 1; id <= N; id++) if (G.airS[id] < maxAir(id)) G.airS[id]++;
   if (G.day % 120 === 0 && G.b2 < 3) G.b2++;
   if (G.day % 15 === 0) aiThink();
+  if (G.day >= 20 && G.day % 20 === 0 && G.ai) aiDiplomacy();
+  if (G.day % 30 === 0) aiBuild();
 }
 function coastal(c) { for (let k = 0; k < 4; k++) { const n = nb(c, k); if (n >= 0 && !owner[n]) return true; } return false; }
 const recruitCost = id => capOf(id) * 0.05;
@@ -742,6 +747,8 @@ function eliminate(Y, X) {
   for (const o of warsOf(Y)) setWar(Y, o, false, true); repaintAll();
   if (selected === Y) selectCountry(0);
   if (G.allies) G.allies = G.allies.filter(x => x !== Y);
+  if (G.sites) { let got = 0; for (const q of G.sites) if (q[1] === Y) { const o = owner[q[0]] || X; q[1] = o; q[2] = 1; if (o === G.player) got++; }
+    if (got && X === G.player) logMsg(`${ic("nuke")} You captured ${got} of ${C[Y].name}'s nuclear sites — they work again and are yours now`, "peace"); }
   logMsg(`${ic("fallen")} ${C[Y].flag} ${C[Y].name} was conquered by ${C[X].flag} ${C[X].name}`, "war");
   if (Y === G.player) setTimeout(playerFell, 300);
   if (X === G.player && aliveCount() === 1) setTimeout(worldWon, 300);
@@ -757,8 +764,94 @@ function neighborsOf() {
 // AI wars: the first one waits 5-10 minutes, then roughly one new war every ~14 minutes.
 // Wars last ~8 minutes (NATO vs BRICS ~12). Countries think before they attack.
 const WARGAP = [Infinity, 1200, 840, 300];
+// ---------- economy, buildings & AI diplomacy ----------
+// the USA has the strongest economy: it earns a bit more than Russia/China and starts $10B ahead
+let ECON = null;
+function econ(id) {
+  if (!ECON) { ECON = new Array(M).fill(1); const base = c => { const i = CODEIDX[c] + 1; return C[i].power * (25 + 0.91 * Math.pow(baseCells[i], 0.73)); };
+    ECON[CODEIDX.US + 1] = Math.max(base("RU"), base("CN")) * 1.08 / base("US"); }
+  return ECON[id];
+}
+const B = id => (G.build && G.build[id]) || { city: 0, factory: 0, base: 0 };
+const BUILD = {
+  city: { name: "City", icon: "home", desc: "+8% money per day", cost: (id, l) => recruitCost(id) * (2 + l * 0.8) },
+  factory: { name: "Factory", icon: "jet", desc: "+1 jet squadron, stronger jets, +4% money", cost: (id, l) => recruitCost(id) * (2.5 + l) },
+  base: { name: "Military base", icon: "troops", desc: "+5% army size", cost: (id, l) => recruitCost(id) * (2 + l * 0.8) },
+};
+const incomeMult = id => econ(id) * (1 + 0.08 * B(id).city + 0.04 * B(id).factory);
+function build(id, kind) {
+  G.build = G.build || {}; const b = G.build[id] = G.build[id] || { city: 0, factory: 0, base: 0 };
+  if (b[kind] >= 10) return false; const cost = BUILD[kind].cost(id, b[kind]); if (G.money[id] < cost) return false;
+  G.money[id] -= cost; b[kind]++;
+  const c = innerCell(id, ...centerOf(id).map((v, i) => v + (rnd() - 0.5) * (i ? 30 : 60)));
+  if (c >= 0) { G.bpos = G.bpos || []; G.bpos.push([c, kind === "city" ? 0 : kind === "factory" ? 1 : 2, id]); if (G.bpos.length > 600) G.bpos.shift(); }
+  return true;
+}
+function buildMenu() {
+  const p = G.player; if (!G.alive[p]) return;
+  const html = Object.keys(BUILD).map(k => { const d = BUILD[k], l = B(p)[k], cost = d.cost(p, l);
+    return `<button class="lbrow nav bld" data-k="${k}" ${l >= 10 || G.money[p] < cost ? "disabled" : ""}><span class="fl2">${ic(d.icon)}</span><span class="nm2">${d.name} <em style="color:#ffd65a">Lv ${l}</em><br><small style="font-weight:600;color:#aab">${d.desc}</small></span><span class="val">${l >= 10 ? "MAX" : fmtM(cost)}</span></button>`; }).join("");
+  modal(`<h3>${ic("home")} Build up ${C[p].name}</h3><p>Money: <b style="color:#ffd65a">${fmtM(G.money[p])}</b> · Strength ${strengthScore(p)}</p><div class="lblist">${html}</div>`, [{ label: "Close", cancel: true }]);
+  $("mbox").classList.add("wide");
+  $("mbox").querySelectorAll(".bld").forEach(el => el.onclick = () => { if (build(p, el.dataset.k)) { sfx("horn", 0.4); logMsg(`${ic(BUILD[el.dataset.k].icon)} You built a ${BUILD[el.dataset.k].name.toLowerCase()} (level ${B(p)[el.dataset.k]})`, "peace"); updHud(); } buildMenu(); });
+}
+function aiBuild() {
+  for (let id = 1; id <= N; id++) { if (id === G.player || !G.alive[id]) continue;
+    const reserve = recruitCost(id) * (warCount[id] ? 3 : 1.5); if (G.money[id] < reserve) continue;
+    const k = rnd() < 0.45 ? "city" : rnd() < 0.55 ? "factory" : "base";
+    if (G.money[id] - BUILD[k].cost(id, B(id)[k]) < reserve * 0.5) continue;
+    if (build(id, k) && strengthScore(id) > 40 && rnd() < 0.15) logMsg(`${ic(BUILD[k].icon)} ${C[id].flag} ${C[id].name} built a new ${BUILD[k].name.toLowerCase()}`); }
+}
+function drawBuildings(sxOf, oy) {
+  if (!G.bpos || cam.z < 2) return; const s = Math.max(5, Math.min(10, cam.z * 0.9));
+  for (const [c, k, id] of G.bpos) { if (owner[c] !== id) continue;
+    const x = sxOf(cx(c)), y = oy + cy(c) * cam.z; if (x < -10 || x > SW + 10 || y < -10 || y > SH + 10) continue;
+    ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(x - s * 0.8 + 1, y - s * 0.2 + 1, s * 1.6, s * 0.8);
+    if (k === 0) { ctx.fillStyle = "#dfe4ea"; ctx.fillRect(x - s * 0.8, y - s * 0.6, s * 0.45, s * 1.2); ctx.fillRect(x - s * 0.25, y - s, s * 0.5, s * 1.6); ctx.fillRect(x + s * 0.35, y - s * 0.35, s * 0.45, s * 0.95);
+      ctx.fillStyle = "#ffd65a"; for (let j = 0; j < 3; j++) ctx.fillRect(x - s * 0.15, y - s * 0.8 + j * s * 0.45, s * 0.12, s * 0.15); }
+    else if (k === 1) { ctx.fillStyle = "#8a8f96"; ctx.fillRect(x - s * 0.8, y - s * 0.3, s * 1.6, s * 0.9); ctx.fillRect(x + s * 0.35, y - s * 1.1, s * 0.3, s * 0.85);
+      ctx.fillStyle = "rgba(220,220,220,.6)"; ctx.beginPath(); ctx.arc(x + s * 0.6, y - s * 1.35, s * 0.3, 0, 7); ctx.fill(); }
+    else { ctx.fillStyle = "#5d6b3c"; ctx.beginPath(); ctx.moveTo(x - s * 0.8, y + s * 0.6); ctx.lineTo(x, y - s * 0.7); ctx.lineTo(x + s * 0.8, y + s * 0.6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = "#ffd65a"; ctx.fillRect(x - s * 0.1, y - s * 1.2, s * 0.08, s * 0.6); ctx.fillRect(x - s * 0.02, y - s * 1.2, s * 0.4, s * 0.25); } }
+}
+// ---------- AI alliances (pacts) so the world is busy from the start ----------
+const pactKey = (a, b) => a < b ? a + "-" + b : b + "-" + a;
+const hasPact = (a, b) => !!(G.pacts && G.pacts[pactKey(a, b)]);
+const pactsOf = id => { const r = []; if (!G.pacts) return r; for (const k in G.pacts) { const [a, b] = k.split("-").map(Number); if (a === id && G.alive[b]) r.push(b); else if (b === id && G.alive[a]) r.push(a); } return r; };
+function aiDiplomacy() {
+  G.pacts = G.pacts || {};
+  const adj = neighborsOf();
+  for (let tries = 0; tries < 6; tries++) {
+    const a = 1 + Math.floor(rnd() * N); if (a === G.player || !G.alive[a] || pactsOf(a).length >= 3) continue;
+    const near = [...adj[a]].filter(o => o !== G.player && G.alive[o] && !atWar(a, o) && !hasPact(a, o) && pactsOf(o).length < 3);
+    if (!near.length) continue;
+    const b = near[(rnd() * near.length) | 0], ka = blocOf(a), kb = blocOf(b);
+    let pr = 0.35; if (ka >= 0 && ka === kb) pr += 0.3; if (ka >= 0 && kb >= 0 && ka !== kb) pr -= 0.3;
+    for (let o = 1; o <= N; o++) if (atWar(a, o) && atWar(b, o)) { pr += 0.3; break; }
+    if (rnd() < pr) { G.pacts[pactKey(a, b)] = G.day; logMsg(`${ic("shield")} ${C[a].flag} ${C[a].name} and ${C[b].flag} ${C[b].name} formed an alliance`, "peace"); break; }
+  }
+  // sometimes a country asks YOU to be its ally
+  const p = G.player;
+  if (G.alive[p] && G.day > 40 && rnd() < 0.18 && !$("modal").classList.contains("on") && G.allies.length < 8) {
+    const cand = []; for (let o = 1; o <= N; o++) if (o !== p && G.alive[o] && !atWar(p, o) && !isAlly(o) && allyAcceptance(o).pr > 0.45) cand.push(o);
+    if (cand.length) { const o = cand[(rnd() * cand.length) | 0], prev = G.speed; G.speed = 0; updHud();
+      modal(`<div class="bigf">${C[o].flag}</div><h3>Alliance offer</h3><p>${C[o].name} wants to become your ally. Allies defend each other when attacked.</p>`,
+        [{ label: ic("shield") + " Accept", cls: "big green", fn: () => { G.allies.push(o); logMsg(`${ic("shield")} ${C[o].flag} ${C[o].name} is now your ally`, "peace"); G.speed = prev || 1; updHud(); renderPanel(); } },
+         { label: "Decline", cancel: true, fn: () => { G.speed = prev || 1; updHud(); } }]); }
+  }
+}
+// pact partners decide whether to defend a friend that was attacked
+function pactDefend(a, b) {
+  for (const m of pactsOf(b)) { if (m === a || atWar(m, a) || hasPact(m, a)) continue;
+    const pr = Math.min(0.85, Math.max(0.05, 0.6 * (strength(m) + strength(b)) / (strength(a) + 1e-9) - 0.1));
+    if (rnd() < pr) { setWar(m, a, true, true); if (m === G.player || a === G.player || b === G.player || strengthScore(m) > 30) logMsg(`${ic("shield")} ${C[m].flag} ${C[m].name} joined the war to defend its ally ${C[b].flag} ${C[b].name}`, "war"); } }
+}
+// army size written across each country at war (like 3.419.367)
+const fmtArmy = k => Math.round(k * 1000).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+
 function defenders(o, a) {
   const L = new Set([o]); const ko = blocOf(o);
+  for (const m of pactsOf(o)) if (!hasPact(m, a)) L.add(m);
   if (ko >= 0 && ko !== blocOf(a)) for (const m of members(ko)) L.add(m);
   if (G.allies && (o === G.player || isAlly(o))) { L.add(G.player); for (const m of G.allies) L.add(m); }
   L.delete(a); return [...L].filter(x => G.alive[x]);
@@ -772,7 +865,7 @@ function aiThink() {
       const a = 1 + Math.floor(rnd() * N); if (a === G.player || !G.alive[a] || warCount[a] || isAlly(a)) continue;
       const ka = blocOf(a);
       for (const o of adj[a]) {
-        if (atWar(a, o) || (ka >= 0 && blocOf(o) === ka)) continue;
+        if (atWar(a, o) || (ka >= 0 && blocOf(o) === ka) || hasPact(a, o)) continue;
         if (ka >= 0 && blocOf(o) >= 0 && G.ai < 3) continue; // NATO vs BRICS only in Chaos mode
         const def = defenders(o, a), ds = def.reduce((t, x) => t + strength(x), 0), sc = strength(a) / (ds + 1e-9);
         if (sc > bs) { bs = sc; best = [a, o]; }
@@ -1058,14 +1151,16 @@ function computeLabels() {
   const best = new Array(M).fill(null);
   for (let o = 1; o <= N; o++) { const L = lists[o]; if (!L) continue;
     for (let q = 0; q < L.length; q++) { const i = L[q]; if (seen[i]) continue;
-      let sx = 0, sy = 0, n = 0; const x0 = i % W; stack.push(i); seen[i] = 1;
-      while (stack.length) { const c = stack.pop(); let x = c % W; const y = (c / W) | 0; if (x - x0 > W / 2) x -= W; else if (x0 - x > W / 2) x += W; sx += x; sy += y; n++;
+      let sx = 0, sy = 0, n = 0, sxx = 0, syy = 0, sxy = 0; const x0 = i % W; stack.push(i); seen[i] = 1;
+      while (stack.length) { const c = stack.pop(); let x = c % W; const y = (c / W) | 0; if (x - x0 > W / 2) x -= W; else if (x0 - x > W / 2) x += W; sx += x; sy += y; n++; sxx += x * x; syy += y * y; sxy += x * y;
         for (let k = 0; k < 4; k++) { const z = nb(c, k); if (z >= 0 && !seen[z] && owner[z] === o) { seen[z] = 1; stack.push(z); } } }
-      if (!best[o] || n > best[o].n) best[o] = { o, n, x: sx / n + 0.5, y: sy / n + 0.5 };
+      if (!best[o] || n > best[o].n) { const mx = sx / n, my = sy / n, vxx = sxx / n - mx * mx, vyy = syy / n - my * my, vxy = sxy / n - mx * my;
+        let ang = 0.5 * Math.atan2(2 * vxy, vxx - vyy); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI;
+        best[o] = { o, n, x: mx + 0.5, y: my + 0.5, ang: Math.max(-1.1, Math.min(1.1, ang)) }; }
       if (n > L.length / 2) break; } }
   const prevL = {}; for (const L of labels) prevL[L.o] = L;
   labels = [];
-  for (let o = 1; o <= N; o++) if (best[o]) { const L = best[o], q = prevL[o]; L.vx = q ? q.vx : L.x; L.vy = q ? q.vy : L.y; L.vn = q ? q.vn : L.n; labels.push(L); }
+  for (let o = 1; o <= N; o++) if (best[o]) { const L = best[o], q = prevL[o]; L.vx = q ? q.vx : L.x; L.vy = q ? q.vy : L.y; L.vn = q ? q.vn : L.n; L.va = q ? q.va : L.ang; L.vt = q ? q.vt : G.troops[o]; labels.push(L); }
   // fronts: where two warring countries touch
   const acc = new Map();
   for (const c of borderArr) { const X = owner[c]; if (!warCount[X]) continue;
@@ -1337,11 +1432,12 @@ function draw(t) {
   const sxOf = x => { let s = ox + x * cam.z; if (s < -ww / 2) s += ww; else if (s > SW + ww / 2) s -= ww; return s; };
   if (shk > 0.5) cv.style.transform = `translate(${(rnd() - 0.5) * shk}px,${(rnd() - 0.5) * shk}px)`; else if (cv.style.transform) cv.style.transform = "";
   const dt = Math.min(0.1, (t - lastDraw) / 1000 || 0); lastDraw = t; const ease = 1 - Math.exp(-dt * 4);
-  for (const L of labels) { L.vx += wrapDx(L.x - L.vx) * ease; L.vy += (L.y - L.vy) * ease; L.vn += (L.n - L.vn) * ease; }
+  for (const L of labels) { L.va += (L.ang - L.va) * ease; L.vt += ((G.troops[L.o] || 0) - L.vt) * Math.min(1, ease * 2); L.vx += wrapDx(L.x - L.vx) * ease; L.vy += (L.y - L.vy) * ease; L.vn += (L.n - L.vn) * ease; }
   for (const f of fronts) { f.vx += wrapDx(f.x - f.vx) * ease; f.vy += (f.y - f.vy) * ease; f.vdx += (f.dx - f.vdx) * ease; f.vdy += (f.dy - f.vdy) * ease; f.vn += (f.n - f.vn) * ease; }
   drawScars(sxOf, oy, t);
   frontFx(performance.now());
   drawFrontFx(sxOf, oy, performance.now());
+  drawBuildings(sxOf, oy);
   drawSites(sxOf, oy);
   drawUnits(sxOf, oy, t);
   drawDrops(sxOf, oy, performance.now());
@@ -1386,6 +1482,13 @@ function draw(t) {
       tx = x0 + fw + fs * 0.3 + tw / 2; }
     ctx.lineWidth = Math.max(2, fs / 4); ctx.strokeStyle = "rgba(0,0,0,.75)"; ctx.strokeText(txt, tx, sy);
     ctx.fillStyle = L.o === G.player ? "#ffd65a" : "#fff"; ctx.fillText(txt, tx, sy);
+    // army number across countries at war
+    if (warCount[L.o] && G.alive[L.o]) {
+      const nfs = Math.max(11, Math.min(26, fs * 0.85)), num = fmtArmy(L.vt), off = fs * 0.55 + nfs * 0.75;
+      ctx.save(); ctx.translate(sx - Math.sin(L.va) * off, sy + Math.cos(L.va) * off); ctx.rotate(L.va);
+      ctx.font = `700 ${nfs | 0}px system-ui,-apple-system,sans-serif`; ctx.lineWidth = Math.max(2.5, nfs / 4); ctx.strokeStyle = "rgba(0,0,0,.7)"; ctx.strokeText(num, 0, 0);
+      ctx.fillStyle = "#fff"; ctx.fillText(num, 0, 0); ctx.restore();
+    }
   }
   const fl = 1 - (now - flash) / 1100; if (fl > 0) { ctx.fillStyle = `rgba(255,250,235,${fl * fl * 0.9})`; ctx.fillRect(0, 0, SW, SH); }
   if (padActive) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(SW / 2, SH / 2, 10, 0, 7); ctx.moveTo(SW / 2 - 16, SH / 2); ctx.lineTo(SW / 2 + 16, SH / 2); ctx.moveTo(SW / 2, SH / 2 - 16); ctx.lineTo(SW / 2, SH / 2 + 16); ctx.stroke(); }
@@ -1425,7 +1528,7 @@ function renderPanel(soft) {
   if (!selected) { pn.classList.remove("on"); panelSig = ""; return; }
   const s = selected, c = C[s], p = G.player, mine = s === p;
   const wars = warsOf(s);
-  const sig = s + "|" + wars.join(",") + "|" + G.alive[s] + "|" + blocOf(s) + "|" + isAlly(s) + "|" + G.navy[p] + G.airS[p] + G.nukes[p] + "|" + G.b2;
+  const sig = s + "|" + wars.join(",") + "|" + G.alive[s] + "|" + blocOf(s) + "|" + isAlly(s) + "|" + G.navy[p] + G.airS[p] + G.nukes[p] + "|" + G.b2 + "|" + pactsOf(s).join(",");
   const statsHtml = `<span>${ic("bolt")} Strength ${strengthScore(s)}</span><span>${ic("land")} ${pctLand(s)} of world</span><span>${ic("troops")} ${fmtT(G.troops[s])}</span><span>${ic("money")} ${fmtM(G.money[s])}</span><span>${tierOf(c.power)}</span>${blocOf(s) >= 0 ? blocTag(blocOf(s)) : ""}`;
   if (soft && sig === panelSig) { pn.querySelector(".pstats").innerHTML = statsHtml; return; }
   panelSig = sig;
@@ -1441,6 +1544,7 @@ function renderPanel(soft) {
   pn.innerHTML = `<div class="ptop"><div class="f">${c.flag}</div><div><b>${c.name}${mine ? " (You)" : ""}</b><span>${atWar(p, s) ? ic("swords") + " AT WAR WITH YOU" : mine ? "Your nation" + (G.allies.length ? " · " + G.allies.length + " allies" : "") : isAlly(s) ? ic("shield") + " YOUR ALLY" : "At peace with you"}</span></div><button class="close" data-a="close" aria-label="Close"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="pstats">${statsHtml}</div>
   ${wars.length ? `<div class="pwars">${ic("swords")} At war with: ${warList(wars)}</div>` : ""}
+  ${pactsOf(s).length ? `<div class="pwars" style="color:#8be59b">${ic("shield")} Allies: ${pactsOf(s).map(w => C[w].flag + " " + C[w].name).join(", ")}</div>` : ""}
   <div class="pbtns">${btns}</div>`;
   pn.classList.add("on");
 }
@@ -1514,7 +1618,7 @@ function tapCell(i) {
 }
 function endPick() { pickFor = 0; $("banner").classList.remove("on"); }
 $("bannerCancel").onclick = endPick;
-$("bRecruit").onclick = doRecruit; $("bOff").onclick = doOffensive;
+$("bRecruit").onclick = doRecruit; $("bBuild").onclick = buildMenu; $("bOff").onclick = doOffensive;
 $("bFind").onclick = () => focusOn(G.player, true);
 $("hMe").onclick = () => { focusOn(G.player, false); selectCountry(G.player); };
 $("hSpeed").onclick = () => { G.speed = (G.speed + 1) % 4; updHud(); };
@@ -1576,7 +1680,7 @@ function saveGame() {
   const wars = Object.keys(G.warStart).map(k => [...k.split("-").map(Number), G.warStart[k]]);
   const data = { v: 1, slot: G.slot, player: G.player, day: G.day, speed: G.speed, ai: G.ai, offCd: G.offCd, peaceCd: G.peaceCd,
     troops: G.troops.map(v => Math.round(v * 10) / 10), money: G.money.map(v => Math.round(v * 10) / 10), alive: G.alive.map(v => v ? 1 : 0), boost: G.boost,
-    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, eow: G.eow, marks: G.marks, sites: G.sites, b2: G.b2, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
+    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, eow: G.eow, marks: G.marks, sites: G.sites, b2: G.b2, build: G.build, bpos: G.bpos, pacts: G.pacts, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
   const saves = readSaves(); const meta = { slot: G.slot, code: C[G.player].code, name: C[G.player].name, day: G.day, savedAt: Date.now(), land: pctLand(G.player), data };
   const i = saves.findIndex(s => s.slot === G.slot);
   if (i >= 0) saves[i] = meta; else { if (saves.length >= MAXSLOTS) return false; saves.push(meta); }
@@ -1599,7 +1703,7 @@ function loadGame(meta) {
   const newIds = []; for (let id = 1; id <= N; id++) if (d.troops[id] === 0 && d.alive[id] && !d.money[id]) newIds.push(id);
   G = { slot: d.slot, player: d.player, day: d.day, speed: d.speed || 1, ai: d.ai ?? 2, troops: d.troops, money: d.money, alive: d.alive.map(Boolean), boost: d.boost, offCd: d.offCd || 0, peaceCd: d.peaceCd || {}, warStart: {}, out: d.out || { nato: d.natoOut || {}, brics: {} }, warned: d.warned || {},
     fallout: d.fallout || new Array(M).fill(0), airhit: d.airhit || new Array(M).fill(0), scars: d.scars || [], airCd: d.airCd || 0, nukeCd: d.nukeCd || 0,
-    navy: d.navy, airS: d.airS, nukes: d.nukes, eow: d.eow, marks: d.marks || [], sites: d.sites, b2: d.b2, allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
+    navy: d.navy, airS: d.airS, nukes: d.nukes, eow: d.eow, marks: d.marks || [], sites: d.sites, b2: d.b2, build: d.build || {}, bpos: d.bpos || [], pacts: d.pacts || {}, allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
   initArsenal();
   rebuild();
   if (!G.sites) genSites();
@@ -1877,11 +1981,11 @@ const NUKEMAX = { US: 5, RU: 5, CN: 5, GB: 4, FR: 4, IN: 4, PK: 3, IL: 3, KP: 3 
 const NUKESTOCK = { US: 20, RU: 12, CN: 10, GB: 4, FR: 4, IN: 3, PK: 2, IL: 2, KP: 2 };
 const NAVYMAX = { US: 12, RU: 7, CN: 8 }, AIRMAX = { US: 20, RU: 12, CN: 12 };
 const maxNavy = id => NAVYMAX[C[id].code] ?? (C[id].power >= 1.2 ? Math.min(6, Math.round(C[id].power * 1.5)) : 1);
-const maxAir = id => AIRMAX[C[id].code] ?? Math.min(10, Math.max(1, Math.round(C[id].power * 2.5)));
+const maxAir = id => (AIRMAX[C[id].code] ?? Math.min(10, Math.max(1, Math.round(C[id].power * 2.5)))) + ((G && G.build && G.build[id] && G.build[id].factory) || 0);
 const nukeStock0 = id => NUKESTOCK[C[id].code] ?? 1;
 const EOW_OK = id => nukeMax(id) >= 4; // USA, Russia, China, UK, France, India
 function initArsenal() {
-  G.navy = G.navy || []; G.airS = G.airS || []; G.nukes = G.nukes || []; G.eow = G.eow || []; G.marks = G.marks || []; if (G.b2 == null) G.b2 = 3; if (!G.sites && cells.some(v => v > 0)) genSites();
+  G.navy = G.navy || []; G.airS = G.airS || []; G.nukes = G.nukes || []; G.eow = G.eow || []; G.marks = G.marks || []; G.build = G.build || {}; G.bpos = G.bpos || []; G.pacts = G.pacts || {}; if (G.b2 == null) G.b2 = 3; if (!G.sites && cells.some(v => v > 0)) genSites();
   for (let id = 1; id <= N; id++) { if (G.navy[id] == null) G.navy[id] = maxNavy(id); if (G.airS[id] == null) G.airS[id] = maxAir(id); if (G.nukes[id] == null) G.nukes[id] = nukeStock0(id); if (G.eow[id] == null) G.eow[id] = EOW_OK(id) ? 1 : 0; }
 }
 const nukeMax = id => NUKEMAX[C[id].code] ?? (C[id].power >= 1.2 ? 1 : 0);
@@ -1948,7 +2052,7 @@ function launchAir(a, b, manual) {
   return true;
 }
 // ---------- defenders scramble their jets -> dogfight ----------
-const jetPow = id => isUSA(id) ? 4 : (C[id].code === "RU" || C[id].code === "CN") ? 1.4 : 1; // one F-22 beats ~4 jets
+const jetPow = id => (isUSA(id) ? 4 : (C[id].code === "RU" || C[id].code === "CN") ? 1.4 : 1) * (1 + 0.15 * B(id).factory); // one F-22 beats ~4 jets
 function scramble(b, u, from) {
   if (!(G.airS[b] > 0) || !G.alive[b]) return;
   const st = pickCell(b, cx(from), cy(from), false, 500); if (st < 0) return;
@@ -1996,15 +2100,16 @@ const hasSite = id => (G.sites || []).some(q => q[1] === id && q[2] && owner[q[0
 function launchB2(a, b) {
   if (!isUSA(a)) return false;
   if (!(G.b2 > 0)) { logMsg(`${ic("b2")} No B-2 bombers ready — one is ready every 120 days`); return false; }
-  const tg = sitesOf(b); if (!tg.length) { logMsg(`${ic("b2")} ${C[b].name} has no nuclear sites left`); return false; }
+  const all = sitesOf(b); if (!all.length) { logMsg(`${ic("b2")} ${C[b].name} has no nuclear sites left`); return false; }
   const [bx, by] = centerOf(b), s0 = pickCell(a, bx, by, false, 400); if (s0 < 0) return false;
+  const tg = all.map(q => [q, Math.hypot(wrapDx(cx(q[0]) - cx(s0)), cy(q[0]) - cy(s0))]).sort((p, q) => p[1] - q[1]).slice(0, 5).map(v => v[0]);
   const pts = [[cx(s0), cy(s0)]], siteAt = {}; let px = cx(s0), py = cy(s0); const left = tg.slice();
   while (left.length) { let bi = 0, bd = 1e18; left.forEach((q, i) => { const dx = wrapDx(cx(q[0]) - px), dy = cy(q[0]) - py, d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } });
     const q = left.splice(bi, 1)[0]; px = px + wrapDx(cx(q[0]) - px); py = cy(q[0]); siteAt[pts.length] = q; pts.push([px, py]); }
   const pv = pts[Math.max(0, pts.length - 2)], lx = px - pv[0], ly = py - pv[1], ll = Math.hypot(lx, ly) || 1;
   pts.push([px + lx / ll * 60, py + ly / ll * 60]);
   G.b2--; addUnit("b2", a, b, pts, 10, { siteAt, done: 0 });
-  logMsg(`${ic("b2")} B-2 Spirit launched — stealth bombing ${tg.length} nuclear sites in ${C[b].flag} ${C[b].name}`, "peace"); sfx("jet", 0.5);
+  logMsg(`${ic("b2")} B-2 Spirit launched — it will bomb ${tg.length} of ${all.length} nuclear sites in ${C[b].flag} ${C[b].name}, then fly home`, "peace"); sfx("jet", 0.5);
   return true;
 }
 function b2Pass(u) { // bombs each nuclear site as the B-2 passes over it
@@ -2015,7 +2120,9 @@ function b2Pass(u) { // bombs each nuclear site as the B-2 passes over it
 function drawSites(sxOf, oy) {
   if (cam.z < 1.3 || !G.sites) return;
   const r = Math.max(4, Math.min(7, cam.z * 0.9));
+  const all = cam.z >= 6;
   for (const q of G.sites) { const id = q[1]; if (!G.alive[id] && q[2]) continue;
+    if (!all && id !== G.player && id !== selected && !atWar(id, G.player)) continue;
     const x = sxOf(cx(q[0])), y = oy + cy(q[0]) * cam.z; if (x < -10 || x > SW + 10 || y < -10 || y > SH + 10) continue;
     if (q[2] && owner[q[0]] === id) {
       ctx.fillStyle = "#ffd400"; ctx.strokeStyle = "#111"; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); ctx.stroke(); ctx.fillStyle = "#111";
@@ -2103,14 +2210,14 @@ function arrive(u) {
   }
 }
 function detonate(u) {
-  const mini = u.type === "mini", N_ = mini ? { name: "MIRV warhead", r: 5.5, kill: 0.06 } : NUKES[u.tier], t = u.target, x0 = u.x, y0 = u.y, R = N_.r, hits = new Map();
+  const mini = u.type === "mini", N_ = mini ? { name: "MIRV warhead", r: 4, kill: 0.05 } : NUKES[u.tier], t = u.target, x0 = u.x, y0 = u.y, R = N_.r, hits = new Map();
   for (let dy = -Math.ceil(R); dy <= Math.ceil(R); dy++) for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
     if (dx * dx + dy * dy > R * R) continue; const y = Math.floor(y0) + dy; if (y < 0 || y >= H) continue;
     const o = owner[y * W + ((Math.floor(x0) + dx) % W + W) % W]; if (o) hits.set(o, (hits.get(o) || 0) + 1); }
   for (const [o, n] of hits) { if (o === u.a) continue;
     const f = Math.min(0.95, n / Math.max(1, cells[o]) * 0.9 + (o === u.b ? N_.kill : N_.kill * 0.3));
     G.troops[o] *= 1 - f; G.money[o] *= 1 - f * 0.4; G.fallout[o] = Math.max(G.fallout[o] || 0, Math.round(20 + R * 3)); }
-  const got = bombCapture(u.a, x0, y0, mini ? 4.3 : R * 0.5, 0.25);
+  const got = bombCapture(u.a, x0, y0, mini ? 3.4 : R * 0.5, 0.25);
   G.scars.push({ x: x0, y: y0, r: R, day: G.day }); if (G.scars.length > 60) G.scars.shift();
   addMark(x0, y0, Math.max(1.5, R * 0.45), "n");
   fx.push({ nuke: true, x: x0, y: y0, r: R, t: performance.now() });
@@ -2120,7 +2227,7 @@ function detonate(u) {
   const who = `${C[u.a].flag} ${C[u.a].name}`, tgt = `${C[u.b].flag} ${C[u.b].name}`;
   logMsg(`${ic("nuke")} ${N_.name} detonated in ${tgt}! (fired by ${who})${got ? ` — ${got} areas seized` : ""}`, "ww");
 }
-// ---------- MIRV: one giant missile that splits into 15 warheads across the enemy ----------
+// ---------- MIRV: one giant missile that splits into 40 warheads across the enemy ----------
 function launchEOW(a, b) {
   if (!(G.eow[a] > 0) || !G.alive[b] || !hasSite(a)) return false;
   const [ax, ay] = centerOf(a), [bx, by] = centerOf(b);
@@ -2135,11 +2242,11 @@ function launchEOW(a, b) {
 function splitEOW(u) {
   const a = u.a; let b = u.b; if (!G.alive[b]) b = owner[u.target];
   const L = b ? lists[b] : null; if (!L || !L.length) return;
-  const samp = []; for (let k = 0; k < Math.min(1500, L.length * 2); k++) samp.push(L[(rnd() * L.length) | 0]);
+  const samp = []; for (let k = 0; k < Math.min(2500, L.length * 3); k++) samp.push(L[(rnd() * L.length) | 0]);
   const d2 = (c, x, y) => { const dx = wrapDx(cx(c) - x), dy = cy(c) - y; return dx * dx + dy * dy; };
   const tg = [samp.reduce((p, c) => d2(c, u.x, u.y) < d2(p, u.x, u.y) ? c : p)];
   const minD = samp.map(c => d2(c, cx(tg[0]), cy(tg[0])));
-  while (tg.length < 15) { let bi = 0; for (let k = 1; k < samp.length; k++) if (minD[k] > minD[bi]) bi = k; if (minD[bi] <= 0) break;
+  while (tg.length < 40) { let bi = 0; for (let k = 1; k < samp.length; k++) if (minD[k] > minD[bi]) bi = k; if (minD[bi] <= 0) break;
     const c = samp[bi]; tg.push(c); for (let k = 0; k < samp.length; k++) minD[k] = Math.min(minD[k], d2(samp[k], cx(c), cy(c))); }
   for (const c of tg) { const pts = [[u.x, u.y], [u.x + wrapDx(cx(c) - u.x), cy(c)]], dist = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) || 1;
     addUnit("mini", a, b, pts, Math.max(5, dist / 2.5), { target: c, dist }); }
@@ -2153,7 +2260,7 @@ function eowFx(a, b) {
 function eowMenu(b) {
   const p = G.player, cost = recruitCost(p) * 5;
   if (!(G.eow[p] > 0)) { alertBox("Already used", "You only get one MIRV."); return; }
-  modal(`<div class="bigf" style="color:#ff4d3d">${ic("nuke")}</div><h3>MIRV</h3><p>One giant missile flies to ${C[b].flag} ${C[b].name} and splits into <b>15 nuclear warheads</b> that spread across the whole country. Every place they hit becomes yours — ${C[b].name} has to fight to win it back.<br><br>You only have <b>one</b>. Cost: ${fmtM(cost)}</p>`,
+  modal(`<div class="bigf" style="color:#ff4d3d">${ic("nuke")}</div><h3>MIRV</h3><p>One giant missile flies to ${C[b].flag} ${C[b].name} and splits into <b>40 nuclear warheads</b> that spread across the whole country. Every place they hit becomes yours — ${C[b].name} has to fight to win it back.<br><br>You only have <b>one</b>. Cost: ${fmtM(cost)}</p>`,
     [{ label: ic("nuke") + " LAUNCH IT", cls: "big red", disabled: G.money[p] < cost, fn: () => { G.money[p] -= cost; launchEOW(p, b); updHud(); renderPanel(); } }, { label: "Cancel", cancel: true }]);
 }
 let shake = 0, shakeAmt = 0, flash = 0;
@@ -2184,7 +2291,7 @@ function nukeMenu(b) {
   const btns = NUKES.map((n, i) => { const cost = recruitCost(p) * n.cost, ok = i <= max && G.money[p] >= cost;
     return { label: `${ic("nuke")} ${n.name} <small style="opacity:.8;font-weight:600;text-transform:none">· ${i <= max ? n.note + " · " + fmtM(cost) : "Locked"}</small>`, cls: i <= max ? (i >= 4 ? "red" : "") : "",
       disabled: !ok, fn: () => { G.money[p] -= cost; G.nukeCd = 20; launchNuke(p, b, i); updHud(); renderPanel(); } }; }).reverse();
-  if (EOW_OK(p)) btns.unshift({ label: `${ic("nuke")} MIRV <small style="opacity:.85;font-weight:600;text-transform:none">· 15 warheads · ${G.eow[p] > 0 ? "1 left" : "used"}</small>`, cls: "red", disabled: !(G.eow[p] > 0), keep: true, fn: () => eowMenu(b) });
+  if (EOW_OK(p)) btns.unshift({ label: `${ic("nuke")} MIRV <small style="opacity:.85;font-weight:600;text-transform:none">· 40 warheads · ${G.eow[p] > 0 ? "1 left" : "used"}</small>`, cls: "red", disabled: !(G.eow[p] > 0), keep: true, fn: () => eowMenu(b) });
   btns.push({ label: "Cancel", cancel: true });
   modal(`<div class="bigf" style="color:#9dff6a">${ic("nuke")}</div><h3>Launch a nuke at ${C[b].name}</h3><p><b style="color:#9dff6a">Nukes left: ${left} / ${nukeStock0(p)} · Nuclear sites: ${sitesOf(p).length}</b> — once they're gone, they're gone.<br>${max >= 5 ? "You have the strongest nukes on Earth — up to the Tsar Bomba." : max >= 4 ? "You have powerful nuclear weapons." : max >= 3 ? "You have real nuclear weapons, but not the biggest." : max ? C[p].name + " has no real nuclear program — only tiny, weak nukes." : C[p].name + " is a weak country — it can only build a really weak dirty bomb."}</p>`, btns);
 }
@@ -2219,7 +2326,7 @@ function frame(t) {
 
 /* ---------- loading screen ---------- */
 (function embers() { const e = $("embers"); for (let i = 0; i < 26; i++) { const s = document.createElement("i"); s.style.left = (rnd() * 100) + "vw"; s.style.setProperty("--dx", ((rnd() - 0.5) * 120) + "px"); s.style.animationDuration = (5 + rnd() * 7) + "s"; s.style.animationDelay = (-rnd() * 10) + "s"; e.appendChild(s); } })();
-const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: propose alliances — allies defend each other", "Tip: in a war, Call allies to ask them for help", "Tip: tap the trophy to see the world leaderboard", "Tip: strong countries have one MIRV — 15 warheads in one missile", "Tip: nukes are limited — use them wisely", "Tip: if NATO and BRICS clash, it's World War III", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
+const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: propose alliances — allies defend each other", "Tip: in a war, Call allies to ask them for help", "Tip: tap the trophy to see the world leaderboard", "Tip: tap Build to add cities, factories and bases", "Tip: strong countries have one MIRV — 40 warheads in one missile", "Tip: nukes are limited — use them wisely", "Tip: if NATO and BRICS clash, it's World War III", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
 const LOADMS = 7000; const t0 = performance.now();
 (function loadStep() {
   const p = Math.min(1, (performance.now() - t0) / LOADMS);
