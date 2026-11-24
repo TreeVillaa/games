@@ -138,6 +138,11 @@ button.hb{color:var(--gold)}
 .alist{display:flex;flex-direction:column;gap:6px;margin:6px 0 12px;text-align:left}
 .arow{display:flex;justify-content:space-between;gap:8px;background:#0d0f13;border-radius:10px;padding:8px 10px;font-size:14px;align-items:center}
 .arow b{font-size:13px;text-align:right}.arow b.ok{color:#8be59b}.arow b.no{color:#ff8a80}
+#eowfx{position:fixed;inset:0;z-index:44;pointer-events:none;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle,rgba(0,0,0,0) 30%,rgba(160,0,0,.55) 100%)}
+#eowfx.on{display:flex;animation:eowpulse 3.2s ease-out both}
+#eowfx b{font-family:WAWStencil,Impact,sans-serif;font-weight:400;font-size:clamp(26px,8vw,48px);color:#ff4d3d;text-align:center;text-shadow:0 3px 0 #300,0 0 30px rgba(255,60,30,.9);letter-spacing:.04em}
+#eowfx span{background:rgba(0,0,0,.8);border:1px solid #ff4d3d;border-radius:10px;padding:6px 12px;font-weight:800;font-size:15px}
+@keyframes eowpulse{0%{opacity:0;transform:scale(1.4)}10%{opacity:1;transform:scale(1)}25%{opacity:.75}40%{opacity:1}55%{opacity:.75}70%{opacity:1}100%{opacity:0}}
 /* modal */
 #modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
 #modal.on{display:flex}
@@ -374,6 +379,7 @@ L-36 384 V294 L-22 290 V282 H-16 V150 H-8 L-8 134 L-36 120 L-36 108 L-6 112 V28 
   <path d="M2 128h36q2 5-2 9H4q-4-4-2-9z" fill="url(#swGold)" stroke="#3a2203" stroke-width="1.2"/><rect x="15.5" y="137" width="9" height="42" rx="2" fill="#4a2a12" stroke="#1d1103"/>
   <path d="M15.5 145h9M15.5 153h9M15.5 161h9M15.5 169h9" stroke="#8a5a2a" stroke-width="2"/><circle cx="20" cy="186" r="7.5" fill="url(#swGold)" stroke="#3a2203" stroke-width="1.2"/></g>
 </defs></svg>
+<div id="eowfx" aria-hidden="true"><b>MIRV LAUNCHED</b><span></span></div>
 <div id="modal"><div class="mbox" id="mbox"></div></div>
 
 <script>
@@ -792,8 +798,9 @@ function repaintAll() { palDirty = warDirty = true; }
 const cellTex = new Uint8Array(W * H * 4), trans = [];
 const now16 = () => (performance.now() * 0.06) % 65536;
 const transDur = () => G && G.speed ? Math.max(0.25, 1.2 / DPS[G.speed]) : 0.35;
+let capDelay = -1;
 function markCapture(i, from, to) {
-  const j = i * 4, delay = G && G.speed ? rnd() / DPS[G.speed] : 0;
+  const j = i * 4, delay = capDelay >= 0 ? capDelay + rnd() * 0.15 : G && G.speed ? rnd() / DPS[G.speed] : 0;
   const t16 = Math.floor(now16() + delay * 60) & 0xffff;
   cellTex[j] = to; cellTex[j + 1] = from || to; cellTex[j + 2] = t16 >> 8; cellTex[j + 3] = t16 & 255;
   trans.push(i, performance.now() + delay * 1000 + 2000);
@@ -1059,7 +1066,30 @@ function drawArrow(x, y, dx, dy, len, wid, color, t) {
     ctx.beginPath(); ctx.moveTo(cx - dx * wid * 0.5 + px * wid * 0.6, cy - dy * wid * 0.5 + py * wid * 0.6); ctx.lineTo(cx, cy); ctx.lineTo(cx - dx * wid * 0.5 - px * wid * 0.6, cy - dy * wid * 0.5 - py * wid * 0.6); ctx.stroke(); }
   ctx.restore();
 }
+function drawDrops(sxOf, oy, now) {
+  for (let k = fx.length - 1; k >= 0; k--) { const e = fx[k];
+    if (e.drop) { const a = (now - e.t) / 420; if (a < 0) continue;
+      if (a >= 1) { fx.splice(k, 1); fx.push({ x: e.x, y: e.y, t: now, big: 1, r: rnd() }); if (Math.abs(wrapDx(e.x - cam.x)) * cam.z < SW) sfx("boom", 0.6); continue; }
+      const x = sxOf(e.x), y = oy + e.y * cam.z, h = (1 - a) * Math.max(40, cam.z * 9), s = Math.max(4.5, Math.min(9, cam.z * 0.8));
+      ctx.fillStyle = `rgba(0,0,0,${0.25 + a * 0.3})`; ctx.beginPath(); ctx.ellipse(x, y, s * (0.6 + a * 0.6), s * 0.35 * (0.6 + a * 0.6), 0, 0, 7); ctx.fill();
+      ctx.fillStyle = "#2b2f36"; ctx.strokeStyle = "#0b0d10"; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(x, y - h, s * 0.45, s, 0, 0, 7); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#c9a227"; ctx.fillRect(x - s * 0.5, y - h - s * 1.15, s, s * 0.35); }
+    else if (e.flyby) { const a = (now - e.t) / 1800; if (a >= 1) { fx.splice(k, 1); continue; }
+      const d = a * 30, px = e.x + Math.cos(e.ang) * d, py = e.y + Math.sin(e.ang) * d, x = sxOf(px), y = oy + py * cam.z, s = Math.max(13, Math.min(28, cam.z * 2.4)), rgb = C[e.a].rgb;
+      ctx.globalAlpha = Math.min(1, (1 - a) * 2); const bx = Math.cos(e.ang), by = Math.sin(e.ang), qx = -by, qy = bx;
+      drawJet(x, y, e.ang, s, rgb); drawJet(x - bx * s * 1.6 + qx * s * 1.4, y - by * s * 1.6 + qy * s * 1.4, e.ang, s * 0.85, rgb); drawJet(x - bx * s * 1.6 - qx * s * 1.4, y - by * s * 1.6 - qy * s * 1.4, e.ang, s * 0.85, rgb);
+      ctx.globalAlpha = 1; }
+  }
+}
+function drawCraters(sxOf, oy) {
+  for (const m of G.marks) { const age = G.day - m.day, f = 1 - age / (m.k === "n" ? 420 : 300); if (f <= 0) continue;
+    const x = sxOf(m.x), y = oy + m.y * cam.z, R = Math.max(2.5, m.r * cam.z * 1.1); if (x < -R || x > SW + R || y < -R || y > SH + R) continue;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, `rgba(20,14,8,${0.85 * f})`); g.addColorStop(0.55, `rgba(55,40,25,${0.7 * f})`); g.addColorStop(0.8, `rgba(90,70,45,${0.55 * f})`); g.addColorStop(1, "rgba(60,45,30,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R, 0, 7); ctx.fill();
+    if (R > 5) { ctx.strokeStyle = `rgba(130,105,70,${0.6 * f})`; ctx.lineWidth = Math.max(1, R * 0.1); ctx.beginPath(); ctx.arc(x, y, R * 0.72, 0, 7); ctx.stroke(); } }
+}
 function drawScars(sxOf, oy, t) {
+  drawCraters(sxOf, oy);
   for (const s of G.scars) { const age = G.day - s.day, f = 1 - age / 420; if (f <= 0) continue;
     const x = sxOf(s.x), y = oy + s.y * cam.z, R = Math.max(4, s.r * cam.z * 1.15); if (x < -R || x > SW + R || y < -R || y > SH + R) continue;
     const g = ctx.createRadialGradient(x, y, 0, x, y, R); g.addColorStop(0, `rgba(25,18,10,${0.75 * f})`); g.addColorStop(0.6, `rgba(45,35,20,${0.5 * f})`); g.addColorStop(1, "rgba(40,30,20,0)");
@@ -1090,15 +1120,16 @@ function drawUnits(sxOf, oy, t) {
   for (const u of units) {
     const ux = u.px + (u.x - u.px) * f, uy = u.py + (u.y - u.py) * f;
     let x = sxOf(ux), y = oy + uy * cam.z;
-    if (u.type === "nuke") {
-      const x0 = u.pts[0][0], y0 = u.pts[0][1], alt = p => { const q = Math.min(1, Math.hypot(p[0] - x0, p[1] - y0) / u.dist); return Math.sin(Math.PI * q) * u.dist * 0.3 * cam.z; };
+    if (MISSILE[u.type]) {
+      const hf = u.type === "mini" ? 0.22 : 0.3, x0 = u.pts[0][0], y0 = u.pts[0][1], alt = p => { const q = Math.min(1, Math.hypot(p[0] - x0, p[1] - y0) / u.dist); return Math.sin(Math.PI * q) * u.dist * hf * cam.z; };
       ctx.lineCap = "round";
       for (let k = 1; k < u.trail.length; k++) { const a = u.trail[k - 1], b = u.trail[k];
-        ctx.strokeStyle = `rgba(230,230,230,${k / u.trail.length * 0.7})`; ctx.lineWidth = 2 + k / u.trail.length * 3;
+        ctx.strokeStyle = u.type === "eow" ? `rgba(255,120,100,${k / u.trail.length * 0.8})` : `rgba(230,230,230,${k / u.trail.length * 0.7})`; ctx.lineWidth = (u.type === "mini" ? 1 : u.type === "eow" ? 3 : 2) + k / u.trail.length * 3;
         ctx.beginPath(); ctx.moveTo(sxOf(a[0]), oy + a[1] * cam.z - alt(a)); ctx.lineTo(sxOf(b[0]), oy + b[1] * cam.z - alt(b)); ctx.stroke(); }
       y -= alt([ux, uy]);
-      ctx.fillStyle = "#ffef9a"; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
-      ctx.fillStyle = "rgba(255,120,20,.6)"; ctx.beginPath(); ctx.arc(x, y, 10 + Math.sin(t / 40) * 2, 0, 7); ctx.fill();
+      const big = u.type === "eow" ? 1.8 : u.type === "mini" ? 0.6 : 1;
+      ctx.fillStyle = u.type === "eow" ? "#fff" : "#ffef9a"; ctx.beginPath(); ctx.arc(x, y, 5 * big, 0, 7); ctx.fill();
+      ctx.fillStyle = u.type === "eow" ? "rgba(255,40,30,.7)" : "rgba(255,120,20,.6)"; ctx.beginPath(); ctx.arc(x, y, (10 + Math.sin(t / 40) * 2) * big, 0, 7); ctx.fill();
       continue;
     }
     if (x < -60 || x > SW + 60 || y < -60 || y > SH + 60) continue;
@@ -1250,10 +1281,11 @@ function draw(t) {
   frontFx(performance.now());
   drawFrontFx(sxOf, oy, performance.now());
   drawUnits(sxOf, oy, t);
+  drawDrops(sxOf, oy, performance.now());
   // explosions
   const now = performance.now();
   ctx.globalCompositeOperation = "lighter";
-  for (let k = fx.length - 1; k >= 0; k--) { const e = fx[k]; if (e.nuke) continue; const a = (now - e.t) / (e.big ? 900 : 650); if (a >= 1) { fx.splice(k, 1); continue; }
+  for (let k = fx.length - 1; k >= 0; k--) { const e = fx[k]; if (e.nuke || e.drop || e.flyby) continue; if (now < e.t) continue; const a = (now - e.t) / (e.big ? 900 : 650); if (a >= 1) { fx.splice(k, 1); continue; }
     const sx = sxOf(e.x), sy = oy + e.y * cam.z; if (sx < -40 || sx > SW + 40 || sy < -40 || sy > SH + 40) continue;
     const R = Math.max(3, cam.z * (e.big ? 3.2 : 1.8)) * (0.4 + a * 1.1), al = 1 - a;
     const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, R); g.addColorStop(0, `rgba(255,240,180,${al})`); g.addColorStop(0.35, `rgba(255,140,30,${al * 0.8})`); g.addColorStop(1, "rgba(255,40,0,0)");
@@ -1480,7 +1512,7 @@ function saveGame() {
   const wars = Object.keys(G.warStart).map(k => [...k.split("-").map(Number), G.warStart[k]]);
   const data = { v: 1, slot: G.slot, player: G.player, day: G.day, speed: G.speed, ai: G.ai, offCd: G.offCd, peaceCd: G.peaceCd,
     troops: G.troops.map(v => Math.round(v * 10) / 10), money: G.money.map(v => Math.round(v * 10) / 10), alive: G.alive.map(v => v ? 1 : 0), boost: G.boost,
-    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
+    wars, out: G.out, warned: G.warned, fallout: G.fallout, airhit: G.airhit, scars: G.scars, airCd: G.airCd, nukeCd: G.nukeCd, navy: G.navy, airS: G.airS, nukes: G.nukes, eow: G.eow, marks: G.marks, allies: G.allies, allyCd: G.allyCd, callCd: G.callCd || {}, peaceOffer: G.peaceOffer, nextWar: G.nextWar, grid: encodeGrid(owner), gw: W, gh: H, cam: { x: cam.x, y: cam.y, z: cam.z } };
   const saves = readSaves(); const meta = { slot: G.slot, code: C[G.player].code, name: C[G.player].name, day: G.day, savedAt: Date.now(), land: pctLand(G.player), data };
   const i = saves.findIndex(s => s.slot === G.slot);
   if (i >= 0) saves[i] = meta; else { if (saves.length >= MAXSLOTS) return false; saves.push(meta); }
@@ -1503,7 +1535,7 @@ function loadGame(meta) {
   const newIds = []; for (let id = 1; id <= N; id++) if (d.troops[id] === 0 && d.alive[id] && !d.money[id]) newIds.push(id);
   G = { slot: d.slot, player: d.player, day: d.day, speed: d.speed || 1, ai: d.ai ?? 2, troops: d.troops, money: d.money, alive: d.alive.map(Boolean), boost: d.boost, offCd: d.offCd || 0, peaceCd: d.peaceCd || {}, warStart: {}, out: d.out || { nato: d.natoOut || {}, brics: {} }, warned: d.warned || {},
     fallout: d.fallout || new Array(M).fill(0), airhit: d.airhit || new Array(M).fill(0), scars: d.scars || [], airCd: d.airCd || 0, nukeCd: d.nukeCd || 0,
-    navy: d.navy, airS: d.airS, nukes: d.nukes, allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
+    navy: d.navy, airS: d.airS, nukes: d.nukes, eow: d.eow, marks: d.marks || [], allies: d.allies || [], allyCd: d.allyCd || {}, callCd: d.callCd || {}, peaceOffer: d.peaceOffer || {}, nextWar: d.nextWar ?? d.day + 300 };
   initArsenal();
   rebuild();
   for (const id of newIds) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
@@ -1779,9 +1811,10 @@ const NUKESTOCK = { US: 12, RU: 10, CN: 6, GB: 4, FR: 4, IN: 3, PK: 2, IL: 2, KP
 const maxNavy = id => C[id].power >= 1.2 ? Math.min(8, Math.round(C[id].power * 1.5)) : 1;
 const maxAir = id => Math.min(15, Math.max(1, Math.round(C[id].power * 2.5)));
 const nukeStock0 = id => NUKESTOCK[C[id].code] ?? 1;
+const EOW_OK = id => nukeMax(id) >= 4; // USA, Russia, China, UK, France, India
 function initArsenal() {
-  G.navy = G.navy || []; G.airS = G.airS || []; G.nukes = G.nukes || [];
-  for (let id = 1; id <= N; id++) { if (G.navy[id] == null) G.navy[id] = maxNavy(id); if (G.airS[id] == null) G.airS[id] = maxAir(id); if (G.nukes[id] == null) G.nukes[id] = nukeStock0(id); }
+  G.navy = G.navy || []; G.airS = G.airS || []; G.nukes = G.nukes || []; G.eow = G.eow || []; G.marks = G.marks || [];
+  for (let id = 1; id <= N; id++) { if (G.navy[id] == null) G.navy[id] = maxNavy(id); if (G.airS[id] == null) G.airS[id] = maxAir(id); if (G.nukes[id] == null) G.nukes[id] = nukeStock0(id); if (G.eow[id] == null) G.eow[id] = EOW_OK(id) ? 1 : 0; }
 }
 const nukeMax = id => NUKEMAX[C[id].code] ?? (C[id].power >= 1.2 ? 1 : 0);
 const NS = 6, NW = Math.ceil(W / NS), NH = Math.ceil(H / NS);
@@ -1816,7 +1849,8 @@ function addUnit(type, a, b, pts, spd, extra) {
   const u = Object.assign({ type, a, b, pts, seg: 0, x: pts[0][0], y: pts[0][1], px: pts[0][0], py: pts[0][1], ang: 0, spd, trail: [] }, extra || {});
   units.push(u); return u;
 }
-const unitsOf = a => units.reduce((n, u) => n + (u.a === a && u.type !== "nuke" ? 1 : 0), 0);
+const MISSILE = { nuke: 1, eow: 1, mini: 1 };
+const unitsOf = a => units.reduce((n, u) => n + (u.a === a && !MISSILE[u.type] ? 1 : 0), 0);
 const navyCost = id => recruitCost(id) * 0.6, airCost = id => recruitCost(id) * 0.4;
 function launchNavy(a, b, manual) {
   if (!(G.navy[a] > 0)) { if (manual) logMsg(`${ic("ship")} No fleets left — a new one is built every 90 days`); return false; }
@@ -1854,7 +1888,7 @@ function launchNuke(a, b, tier) {
 function moveUnits() {
   for (let k = units.length - 1; k >= 0; k--) {
     const u = units[k]; u.px = u.x; u.py = u.y;
-    if (!G.alive[u.a] && u.type !== "nuke") { units.splice(k, 1); continue; }
+    if (!G.alive[u.a] && !MISSILE[u.type]) { units.splice(k, 1); continue; }
     let left = u.spd;
     while (left > 0 && u.seg < u.pts.length - 1) {
       const [tx, ty] = u.pts[u.seg + 1], dx = tx - u.x, dy = ty - u.y, d = Math.hypot(dx, dy);
@@ -1865,9 +1899,23 @@ function moveUnits() {
     if (u.seg >= u.pts.length - 1) { units.splice(k, 1); arrive(u); }
   }
 }
+// bombed ground switches to the attacker (the defender has to win it back) and keeps a crater mark
+function bombCapture(a, x0, y0, R, delay) {
+  if (!G.alive[a]) return 0; const hit = new Map(); let got = 0; capDelay = delay;
+  for (let dy = -Math.ceil(R); dy <= Math.ceil(R); dy++) for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
+    if (dx * dx + dy * dy > R * R) continue; const y = Math.floor(y0) + dy; if (y < 0 || y >= H) continue;
+    const c = y * W + ((Math.floor(x0) + dx) % W + W) % W, o = owner[c]; if (!o || o === a || !atWar(a, o)) continue;
+    const gar = G.troops[o] / Math.max(1, cells[o]); G.troops[o] = Math.max(0, G.troops[o] - gar * 1.2);
+    transfer(c, a); got++; hit.set(o, 1); }
+  capDelay = -1;
+  for (const o of hit.keys()) if (cells[o] === 0 && G.alive[o]) eliminate(o, a);
+  return got;
+}
+function addMark(x, y, r, k) { G.marks.push({ x, y, r, k, day: G.day }); if (G.marks.length > 160) G.marks.shift(); }
 function arrive(u) {
   const t = u.target, a = u.a, b = owner[t];
-  if (u.type === "nuke") return detonate(u);
+  if (u.type === "nuke" || u.type === "mini") return detonate(u);
+  if (u.type === "eow") return splitEOW(u);
   if (!b || !G.alive[a] || !atWar(a, b)) { if (u.load) G.troops[a] += u.load; if (a === G.player) logMsg(`${ic(u.type === "ship" ? "ship" : "jet")} Mission cancelled — the target is no longer an enemy`); return; }
   if (u.type === "ship") {
     const gar = Math.max(0.01, G.troops[b] / Math.max(1, cells[b]));
@@ -1884,27 +1932,69 @@ function arrive(u) {
   } else {
     const dmg = G.troops[b] * 0.05 * Math.max(0.5, Math.min(2, C[a].power / C[b].power));
     G.troops[b] = Math.max(0, G.troops[b] - dmg); G.airhit[b] = 15;
-    for (let k = 0; k < 9; k++) { const c = t + Math.round((rnd() - 0.5) * 8) + Math.round((rnd() - 0.5) * 8) * W; if (c >= 0 && c < W * H) boom(c, k < 3); }
+    // carpet bombing run: bombs fall one after another along the jets' path
+    const dx = Math.cos(u.ang), dy = Math.sin(u.ang), x0 = cx(t), y0 = cy(t), now = performance.now();
+    for (let k = 0; k < 7; k++) { const off = (k - 3) * 1.7, bx = x0 + dx * off + (rnd() - 0.5), by = y0 + dy * off + (rnd() - 0.5);
+      fx.push({ drop: true, x: bx, y: by, t: now + k * 150 }); bombCapture(a, bx, by, 1.5, 0.42 + k * 0.15); addMark(bx, by, 1.4, "c"); }
+    fx.push({ flyby: true, x: x0, y: y0, ang: u.ang, a, t: now });
     if (a === G.player) logMsg(`${ic("jet")} Air strike hit ${C[b].flag} ${C[b].name}: ${fmtT(dmg)} troops destroyed`, "peace");
     else if (b === G.player) logMsg(`${ic("jet")} ${C[a].flag} ${C[a].name} bombed you: ${fmtT(dmg)} troops lost`, "war");
     sfx("bigboom", 0.6);
   }
 }
 function detonate(u) {
-  const N_ = NUKES[u.tier], t = u.target, x0 = cx(t), y0 = cy(t), R = N_.r, hits = new Map();
+  const mini = u.type === "mini", N_ = mini ? { name: "MIRV warhead", r: 5.5, kill: 0.06 } : NUKES[u.tier], t = u.target, x0 = u.x, y0 = u.y, R = N_.r, hits = new Map();
   for (let dy = -Math.ceil(R); dy <= Math.ceil(R); dy++) for (let dx = -Math.ceil(R); dx <= Math.ceil(R); dx++) {
     if (dx * dx + dy * dy > R * R) continue; const y = Math.floor(y0) + dy; if (y < 0 || y >= H) continue;
     const o = owner[y * W + ((Math.floor(x0) + dx) % W + W) % W]; if (o) hits.set(o, (hits.get(o) || 0) + 1); }
-  for (const [o, n] of hits) { if (o === u.a && o !== u.b) continue;
+  for (const [o, n] of hits) { if (o === u.a) continue;
     const f = Math.min(0.95, n / Math.max(1, cells[o]) * 0.9 + (o === u.b ? N_.kill : N_.kill * 0.3));
     G.troops[o] *= 1 - f; G.money[o] *= 1 - f * 0.4; G.fallout[o] = Math.max(G.fallout[o] || 0, Math.round(20 + R * 3)); }
-  G.scars.push({ x: x0, y: y0, r: R, day: G.day });
-  if (G.scars.length > 40) G.scars.shift();
+  const got = bombCapture(u.a, x0, y0, mini ? 4.3 : R * 0.5, 0.25);
+  G.scars.push({ x: x0, y: y0, r: R, day: G.day }); if (G.scars.length > 60) G.scars.shift();
+  addMark(x0, y0, Math.max(1.5, R * 0.45), "n");
   fx.push({ nuke: true, x: x0, y: y0, r: R, t: performance.now() });
   const onScreen = Math.abs(wrapDx(x0 - cam.x)) * cam.z < SW && Math.abs(y0 - cam.y) * cam.z < SH;
-  if (onScreen || u.a === G.player || u.b === G.player) { shake = performance.now(); shakeAmt = Math.min(18, 4 + R); flash = performance.now(); sfx("nuke"); }
+  if (onScreen || u.a === G.player || u.b === G.player) { shake = performance.now(); shakeAmt = Math.min(18, 4 + R); if (!mini || rnd() < 0.3) flash = performance.now(); sfx(mini ? "bigboom" : "nuke"); }
+  if (mini) return;
   const who = `${C[u.a].flag} ${C[u.a].name}`, tgt = `${C[u.b].flag} ${C[u.b].name}`;
-  logMsg(`${ic("nuke")} ${N_.name} detonated in ${tgt}! (fired by ${who})`, "ww");
+  logMsg(`${ic("nuke")} ${N_.name} detonated in ${tgt}! (fired by ${who})${got ? ` — ${got} areas seized` : ""}`, "ww");
+}
+// ---------- MIRV: one giant missile that splits into 15 warheads across the enemy ----------
+function launchEOW(a, b) {
+  if (!(G.eow[a] > 0) || !G.alive[b]) return false;
+  const [ax, ay] = centerOf(a), [bx, by] = centerOf(b);
+  const t = pickCell(b, bx, by, false, 400), s0 = pickCell(a, ax, ay, false, 60); if (t < 0 || s0 < 0) return false;
+  G.eow[a]--;
+  const pts = [[cx(s0), cy(s0)], [cx(s0) + wrapDx(cx(t) - cx(s0)), cy(t)]];
+  addUnit("eow", a, b, pts, 14, { target: t, dist: Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) });
+  logMsg(`${ic("nuke")} ${C[a].flag} ${C[a].name} launched a MIRV at ${C[b].flag} ${C[b].name}!`, "ww");
+  eowFx(a, b); sfx(b === G.player ? "alarm" : "launch");
+  return true;
+}
+function splitEOW(u) {
+  const a = u.a; let b = u.b; if (!G.alive[b]) b = owner[u.target];
+  const L = b ? lists[b] : null; if (!L || !L.length) return;
+  const samp = []; for (let k = 0; k < Math.min(1500, L.length * 2); k++) samp.push(L[(rnd() * L.length) | 0]);
+  const d2 = (c, x, y) => { const dx = wrapDx(cx(c) - x), dy = cy(c) - y; return dx * dx + dy * dy; };
+  const tg = [samp.reduce((p, c) => d2(c, u.x, u.y) < d2(p, u.x, u.y) ? c : p)];
+  const minD = samp.map(c => d2(c, cx(tg[0]), cy(tg[0])));
+  while (tg.length < 15) { let bi = 0; for (let k = 1; k < samp.length; k++) if (minD[k] > minD[bi]) bi = k; if (minD[bi] <= 0) break;
+    const c = samp[bi]; tg.push(c); for (let k = 0; k < samp.length; k++) minD[k] = Math.min(minD[k], d2(samp[k], cx(c), cy(c))); }
+  for (const c of tg) { const pts = [[u.x, u.y], [u.x + wrapDx(cx(c) - u.x), cy(c)]], dist = Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]) || 1;
+    addUnit("mini", a, b, pts, Math.max(5, dist / 2.5), { target: c, dist }); }
+  flash = performance.now(); shake = performance.now(); shakeAmt = 8; sfx("bigboom");
+  logMsg(`${ic("nuke")} The MIRV split into ${tg.length} nuclear warheads over ${C[b].flag} ${C[b].name}!`, "ww");
+}
+function eowFx(a, b) {
+  const el = $("eowfx"); el.querySelector("span").innerHTML = `${C[a].flag} ${C[a].name} ${ic("nuke")} ${C[b].flag} ${C[b].name}`;
+  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on"); clearTimeout(eowFx.t); eowFx.t = setTimeout(() => el.classList.remove("on"), 3300);
+}
+function eowMenu(b) {
+  const p = G.player, cost = recruitCost(p) * 5;
+  if (!(G.eow[p] > 0)) { alertBox("Already used", "You only get one MIRV."); return; }
+  modal(`<div class="bigf" style="color:#ff4d3d">${ic("nuke")}</div><h3>MIRV</h3><p>One giant missile flies to ${C[b].flag} ${C[b].name} and splits into <b>15 nuclear warheads</b> that spread across the whole country. Every place they hit becomes yours — ${C[b].name} has to fight to win it back.<br><br>You only have <b>one</b>. Cost: ${fmtM(cost)}</p>`,
+    [{ label: ic("nuke") + " LAUNCH IT", cls: "big red", disabled: G.money[p] < cost, fn: () => { G.money[p] -= cost; launchEOW(p, b); updHud(); renderPanel(); } }, { label: "Cancel", cancel: true }]);
 }
 let shake = 0, shakeAmt = 0, flash = 0;
 // AI use of ships, jets and nukes
@@ -1914,17 +2004,26 @@ function aiMilitary(a, b, r) {
 }
 function aiNukes() {
   if (G.ai < 2) return;
+  const used = new Set();
+  const sum = L => L.reduce((t, x) => t + (G.alive[x] ? strength(x) : 0), 0);
   for (const key in G.warStart) { const [p, q] = key.split("-").map(Number);
-    for (const [a, b] of [[p, q], [q, p]]) { if (a === G.player || nukeMax(a) < 3 || !(G.nukes[a] > 0) || !G.alive[a] || !G.alive[b]) continue;
+    for (const [a, b] of [[p, q], [q, p]]) {
+      if (a !== G.player && G.eow[a] > 0 && !used.has(a) && G.alive[a] && G.alive[b] && G.day - G.warStart[key] > 90) {
+        const A = side(a, b), B = side(b, a);
+        if (A.length > 1 || B.length > 1 || (G.allies && (isAlly(b) || b === G.player) && G.allies.length)) {
+          const sa = sum(A), sb = sum(B); used.add(a);
+          if (sa / (sa + sb) < 0.38 && rnd() < 0.05) { const tgt = B.filter(x => G.alive[x] && atWar(a, x)).reduce((m, x) => strength(x) > strength(m) ? x : m, b); launchEOW(a, tgt); continue; } } } if (a === G.player || nukeMax(a) < 3 || !(G.nukes[a] > 0) || !G.alive[a] || !G.alive[b]) continue;
       const sa = strength(a), sb = strength(b); if (sa / (sa + sb) < 0.3 && rnd() < (G.ai === 3 ? 0.08 : 0.025)) launchNuke(a, b, 2 + ((rnd() * (nukeMax(a) - 1)) | 0)); } }
 }
 function nukeMenu(b) {
   const p = G.player, max = nukeMax(p), left = G.nukes[p] || 0;
+  if (!left && G.eow[p] > 0) { eowMenu(b); return; }
   if (!left) { alertBox("No nukes left", `${C[p].name} has used its whole nuclear arsenal (${nukeStock0(p)} nukes). Nukes are never rebuilt.`); return; }
   if (G.nukeCd > 0) { alertBox("Launch systems reloading", `You can launch again in ${G.nukeCd} days. Nukes left: ${left}.`); return; }
   const btns = NUKES.map((n, i) => { const cost = recruitCost(p) * n.cost, ok = i <= max && G.money[p] >= cost;
     return { label: `${ic("nuke")} ${n.name} <small style="opacity:.8;font-weight:600;text-transform:none">· ${i <= max ? n.note + " · " + fmtM(cost) : "Locked"}</small>`, cls: i <= max ? (i >= 4 ? "red" : "") : "",
       disabled: !ok, fn: () => { G.money[p] -= cost; G.nukeCd = 20; launchNuke(p, b, i); updHud(); renderPanel(); } }; }).reverse();
+  if (EOW_OK(p)) btns.unshift({ label: `${ic("nuke")} MIRV <small style="opacity:.85;font-weight:600;text-transform:none">· 15 warheads · ${G.eow[p] > 0 ? "1 left" : "used"}</small>`, cls: "red", disabled: !(G.eow[p] > 0), keep: true, fn: () => eowMenu(b) });
   btns.push({ label: "Cancel", cancel: true });
   modal(`<div class="bigf" style="color:#9dff6a">${ic("nuke")}</div><h3>Launch a nuke at ${C[b].name}</h3><p><b style="color:#9dff6a">Nukes left: ${left} / ${nukeStock0(p)}</b> — once they're gone, they're gone.<br>${max >= 5 ? "You have the strongest nukes on Earth — up to the Tsar Bomba." : max >= 4 ? "You have powerful nuclear weapons." : max >= 3 ? "You have real nuclear weapons, but not the biggest." : max ? C[p].name + " has no real nuclear program — only tiny, weak nukes." : C[p].name + " is a weak country — it can only build a really weak dirty bomb."}</p>`, btns);
 }
@@ -1959,7 +2058,7 @@ function frame(t) {
 
 /* ---------- loading screen ---------- */
 (function embers() { const e = $("embers"); for (let i = 0; i < 26; i++) { const s = document.createElement("i"); s.style.left = (rnd() * 100) + "vw"; s.style.setProperty("--dx", ((rnd() - 0.5) * 120) + "px"); s.style.animationDuration = (5 + rnd() * 7) + "s"; s.style.animationDelay = (-rnd() * 10) + "s"; e.appendChild(s); } })();
-const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: propose alliances — allies defend each other", "Tip: in a war, Call allies to ask them for help", "Tip: tap the trophy to see the world leaderboard", "Tip: nukes are limited — use them wisely", "Tip: if NATO and BRICS clash, it's World War III", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
+const TIPS = ["Mapping 198 nations…", "Raising armies…", "Drawing borders…", "Tip: tap a country, then Declare war", "Tip: Make it fight lets any two countries go to war", "Tip: attack a NATO member and all of NATO comes for you", "Tip: propose alliances — allies defend each other", "Tip: in a war, Call allies to ask them for help", "Tip: tap the trophy to see the world leaderboard", "Tip: strong countries have one MIRV — 15 warheads in one missile", "Tip: nukes are limited — use them wisely", "Tip: if NATO and BRICS clash, it's World War III", "Tip: you can keep up to 15 saved games", "Briefing commanders…"];
 const LOADMS = 7000; const t0 = performance.now();
 (function loadStep() {
   const p = Math.min(1, (performance.now() - t0) / LOADMS);
