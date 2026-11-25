@@ -21,7 +21,7 @@
     backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
   }
   #hud {
-    position: fixed; z-index: 10; top: max(10px, env(safe-area-inset-top)); left: 0; right: 0;
+    position: fixed; z-index: 10; top: calc(max(10px, env(safe-area-inset-top)) + 46px); left: 0; right: 0;
     text-align: center; pointer-events: none; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.55);
   }
   #hud .dist { font-size: 1.15rem; }
@@ -72,6 +72,23 @@
   .menu .item.primary { background: linear-gradient(135deg, #8bc34a, #3f8f3a); border-color: transparent; font-size: 1.35rem; }
   .menu .item.sel { outline: 4px solid #ffe082; outline-offset: 2px; }
   .hints { font-size: .88rem; opacity: .9; }
+  #spawnBtn {
+    position: fixed; z-index: 30; top: max(10px, env(safe-area-inset-top)); right: 66px; height: 40px; padding: 0 12px;
+    border: 0; border-radius: 12px; color: #fff; font-weight: 800; font-size: .95rem; background: rgba(0,0,0,.28); display: none;
+  }
+  body.playing #spawnBtn { display: block; }
+  #hpWrap { width: 150px; height: 10px; margin: 6px auto 0; border-radius: 6px; background: rgba(0,0,0,.45); overflow: hidden; display: none; }
+  #hpWrap.on { display: block; }
+  #hp { height: 100%; width: 100%; background: linear-gradient(90deg, #c62828, #ff7043); transition: width .15s; }
+  #hurt { position: fixed; inset: 0; z-index: 8; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(120,0,0,0) 30%, rgba(160,0,0,.9) 100%); }
+  #toast {
+    position: fixed; z-index: 12; left: 50%; top: 28%; transform: translateX(-50%); padding: 10px 16px; border-radius: 12px;
+    background: rgba(0,0,0,.5); font-weight: 700; opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+  }
+  .menu.two { display: grid; grid-template-columns: 1fr 1fr; width: min(390px, 92vw); }
+  .menu.two .item { font-size: 1.05rem; padding: 14px 8px; }
+  .menu.two .wide { grid-column: span 2; }
+  #caughtMenu { background: radial-gradient(ellipse at center, rgba(70,0,0,.6), rgba(8,0,0,.92)); }
   #err { position: fixed; inset: 0; z-index: 40; display: none; place-items: center; text-align: center; padding: 24px; background: #223; }
 </style>
 </head>
@@ -79,7 +96,10 @@
 <canvas id="c"></canvas>
 <a id="home" href="../">← Games</a>
 <button id="pauseBtn" aria-label="Pause">❚❚</button>
-<div id="hud"><div class="dist" id="dist">0 m walked</div><div class="comp" id="comp">N</div></div>
+<button id="spawnBtn">＋ Spawn</button>
+<div id="hud"><div class="dist" id="dist">0 m walked</div><div class="comp" id="comp">N</div><div id="hpWrap"><div id="hp"></div></div></div>
+<div id="hurt"></div>
+<div id="toast"></div>
 
 <div id="touch">
   <div id="stickBase"><div id="stickKnob"></div></div>
@@ -95,9 +115,10 @@
     <button class="item primary" data-act="play">▶ Play</button>
     <button class="item" data-act="quality">Quality: Medium</button>
     <button class="item" data-act="sound">Sound: On</button>
+    <button class="item" data-act="attacks">Grinner attacks: On</button>
     <a class="item" data-act="games" href="../">← Games</a>
   </div>
-  <p class="hints">👆 Touch: left side to walk, right side to look<br>⌨️ WASD + mouse, Shift run, Space jump<br>🎮 Controller: left stick walk, right stick look, A jump / start, B run</p>
+  <p class="hints">＋ Spawn trees, rocks, crates, balls… and the Grinner (E key · 🎮 Y)<br>👆 Touch: left side to walk, right side to look<br>⌨️ WASD + mouse, Shift run, Space jump<br>🎮 Controller: left stick walk, right stick look, A jump / start, B run</p>
 </div>
 
 <div class="overlay hidden" id="pauseMenu">
@@ -107,9 +128,34 @@
     <button class="item primary" data-act="resume">▶ Resume</button>
     <button class="item" data-act="quality">Quality: Medium</button>
     <button class="item" data-act="sound">Sound: On</button>
+    <button class="item" data-act="attacks">Grinner attacks: On</button>
     <a class="item" data-act="games" href="../">← Games</a>
   </div>
   <p class="hints">🎮 D-pad to choose, A to select, B or Start to resume</p>
+</div>
+
+<div class="overlay hidden" id="spawnMenu">
+  <h1>＋ Spawn</h1>
+  <div class="menu two">
+    <button class="item" data-act="sp-tree">🌳 Tree</button>
+    <button class="item" data-act="sp-rock">🪨 Boulder</button>
+    <button class="item" data-act="sp-crate">📦 Crate</button>
+    <button class="item" data-act="sp-ball">🔴 Ball</button>
+    <button class="item wide" data-act="sp-grinner">😈 The Grinner</button>
+    <button class="item" data-act="sp-clear">🧹 Clear all</button>
+    <button class="item" data-act="close">✕ Close</button>
+  </div>
+  <p class="hints">The Grinner hunts you. Turn its attacks off in Settings (pause menu).<br>🎮 D-pad to choose, A to spawn, B to close · ⌨️ E to open/close</p>
+</div>
+
+<div class="overlay hidden" id="caughtMenu">
+  <h1>😈 Caught!</h1>
+  <p>The Grinner got you.</p>
+  <div class="menu">
+    <button class="item primary" data-act="retry">↻ Try again</button>
+    <button class="item" data-act="attacks">Grinner attacks: On</button>
+    <a class="item" data-act="games" href="../">← Games</a>
+  </div>
 </div>
 <div id="err"><div><h2>3D isn't available</h2><p>This browser couldn't start WebGL 2. Try an up-to-date Chrome, Safari or Firefox.</p><p><a href="../" style="color:#9cf">← Games</a></p></div></div>
 
@@ -354,8 +400,9 @@ const OBJ_VS = COMMON + `
 layout(location=0) in vec3 aPos; layout(location=1) in vec3 aNor; layout(location=2) in float aAo; layout(location=3) in float aKind;
 layout(location=4) in vec4 iPos; layout(location=5) in float iRot;
 uniform mat4 uVP;
-out vec3 vRel; out vec3 vN; out vec3 vLoc; out float vAo; out float vKind; out vec2 vW;
+out vec3 vRel; out vec3 vN; out vec3 vLoc; out float vAo; out float vKind; out vec2 vW; out vec3 vObj;
 void main() {
+  vObj = aPos;
   float c = cos(iRot), s = sin(iRot);
   vec3 p = aPos * iPos.w;
   p.xz = vec2(c * p.x - s * p.z, s * p.x + c * p.z);
@@ -370,7 +417,7 @@ void main() {
   gl_Position = uVP * vec4(vRel, 1.0);
 }`;
 const OBJ_FS = COMMON + `
-in vec3 vRel; in vec3 vN; in vec3 vLoc; in float vAo; in float vKind; in vec2 vW;
+in vec3 vRel; in vec3 vN; in vec3 vLoc; in float vAo; in float vKind; in vec2 vW; in vec3 vObj;
 uniform vec2 uFade;
 out vec4 outC;
 void main() {
@@ -394,13 +441,36 @@ void main() {
     float diff = max(dot(n2, uSun) * 0.75 + 0.25, 0.0) * (0.25 + 0.75 * vAo);
     float trans = pow(max(dot(-V, uSun), 0.0), 3.0) * 0.5 * vAo;
     col = alb * (SUNC * (diff + trans) + AMB * (0.4 + 0.8 * vAo)) * mix(0.45, 1.0, vAo);
-  } else {                      // rock
+  } else if (vKind < 2.5) {     // rock
     float r = vnoise(vLoc.xz * 4.0 + vLoc.y * 3.0) * 0.6 + vnoise(vLoc.xy * 11.0 - vLoc.z * 5.0) * 0.4;
     vec3 alb = mix(vec3(0.13, 0.125, 0.115), vec3(0.22, 0.21, 0.19), r);
     float moss = smoothstep(0.55, 0.9, n.y) * smoothstep(0.35, 0.65, vnoise(vLoc.xz * 3.0 + 9.0));
     alb = mix(alb, vec3(0.05, 0.075, 0.02), moss * 0.85);
     float diff = max(dot(n, uSun), 0.0);
     col = alb * (SUNC * diff + AMB * (0.55 + 0.45 * n.y)) * vAo;
+  } else if (vKind < 3.5) {     // wooden crate
+    vec3 q = abs(vObj);
+    float edge = step(0.43, max(max(min(q.x, q.y), min(q.y, q.z)), min(q.x, q.z)));
+    float plank = smoothstep(0.0, 0.03, abs(fract(vObj.y * 3.0 + 0.5) - 0.5));
+    float grain = vnoise(vec2((vObj.x + vObj.z) * 3.0, vObj.y * 40.0));
+    vec3 alb = mix(vec3(0.16, 0.09, 0.035), vec3(0.27, 0.16, 0.065), grain) * mix(0.4, 1.0, plank);
+    alb = mix(alb, vec3(0.09, 0.055, 0.025), edge);
+    col = alb * (SUNC * max(dot(n, uSun), 0.0) + AMB * (0.6 + 0.4 * n.y));
+  } else if (vKind < 4.5) {     // ball
+    vec3 alb = abs(vObj.y) < 0.13 ? vec3(0.8) : vec3(0.6, 0.03, 0.02);
+    float spec = pow(max(dot(reflect(-uSun, n), V), 0.0), 40.0);
+    col = alb * (SUNC * max(dot(n, uSun), 0.0) + AMB * (0.6 + 0.4 * n.y)) + SUNC * spec * 0.35;
+  } else if (vKind < 5.5) {     // creature fur
+    float f = vnoise(vLoc.xy * 18.0 + vLoc.z * 7.0) * 0.5 + vnoise(vLoc.zy * 31.0) * 0.5;
+    vec3 alb = vec3(0.016, 0.014, 0.017) * (0.55 + 0.9 * f);
+    float sheen = pow(1.0 - abs(dot(n, V)), 3.0) * 0.08;
+    col = alb * (SUNC * max(dot(n, uSun), 0.0) + AMB * (0.5 + 0.5 * n.y)) + AMB * sheen;
+  } else if (vKind < 6.5) {     // glowing eyes
+    col = vec3(2.8, 2.4, 0.9);
+  } else if (vKind < 7.5) {     // teeth and claws
+    col = vec3(0.42, 0.38, 0.25) * (SUNC * max(dot(n, uSun), 0.0) * 0.6 + AMB * 1.3);
+  } else {                      // inside of the mouth
+    col = vec3(0.035, 0.004, 0.004);
   }
   float fadeOut = smoothstep(uFade.x, uFade.y, d);
   outC = vec4(tonemap(fogApply(col, vRel, fadeOut)), 1.0);
@@ -504,7 +574,7 @@ function icosphere(sub) {
 }
 function Mesh() { this.v = []; this.i = []; }
 Mesh.prototype.add = function (p, n, ao, kind) { this.v.push(p[0], p[1], p[2], n[0], n[1], n[2], ao, kind); return this.v.length / 8 - 1; };
-function cylinder(m, p0, p1, r0, r1, segs, ao0, ao1) {
+function cylinder(m, p0, p1, r0, r1, segs, ao0, ao1, kind = 0) {
   const ax = norm([p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]]);
   const u = norm(cross(ax, Math.abs(ax[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), w = cross(ax, u);
   const base = m.v.length / 8;
@@ -513,7 +583,7 @@ function cylinder(m, p0, p1, r0, r1, segs, ao0, ao1) {
     for (let s = 0; s <= segs; s++) {
       const a = s / segs * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
       const n = [u[0] * ca + w[0] * sa, u[1] * ca + w[1] * sa, u[2] * ca + w[2] * sa];
-      m.add([p[0] + n[0] * rad, p[1] + n[1] * rad, p[2] + n[2] * rad], n, r ? ao1 : ao0, 0);
+      m.add([p[0] + n[0] * rad, p[1] + n[1] * rad, p[2] + n[2] * rad], n, r ? ao1 : ao0, kind);
     }
   }
   for (let s = 0; s < segs; s++) { const a = base + s, b = a + segs + 1; m.i.push(a, b, a + 1, a + 1, b, b + 1); }
@@ -573,21 +643,139 @@ function buildRock(seed) {
   return m;
 }
 function uploadMesh(m) {
-  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
   const vb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(m.v), gl.STATIC_DRAW);
+  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(m.i), gl.STATIC_DRAW);
+  const w = makeObjVAO(vb, ib);
+  return { vao: w.vao, inst: w.inst, count: m.i.length, n: 0, spawn: makeObjVAO(vb, ib) };
+}
+function makeObjVAO(vb, ib) {
+  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vb);
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 32, 0);
   gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 32, 12);
   gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 32, 24);
   gl.enableVertexAttribArray(3); gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 32, 28);
-  const ib = gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(m.i), gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib);
   const inst = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, inst);
   gl.enableVertexAttribArray(4); gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 20, 0); gl.vertexAttribDivisor(4, 1);
   gl.enableVertexAttribArray(5); gl.vertexAttribPointer(5, 1, gl.FLOAT, false, 20, 16); gl.vertexAttribDivisor(5, 1);
   gl.bindVertexArray(null);
-  return { vao, inst, count: m.i.length, n: 0 };
+  return { vao, inst, n: 0 };
 }
+function buildCrate() {
+  const m = new Mesh();
+  for (const n of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+    const u = Math.abs(n[1]) > 0.5 ? [1, 0, 0] : [0, 1, 0], w = cross(n, u), b = m.v.length / 8;
+    for (const [a, c] of [[-1, -1], [1, -1], [1, 1], [-1, 1]])
+      m.add([(n[0] + u[0] * a + w[0] * c) * 0.5, (n[1] + u[1] * a + w[1] * c) * 0.5, (n[2] + u[2] * a + w[2] * c) * 0.5], n, 1, 3);
+    m.i.push(b, b + 1, b + 2, b, b + 2, b + 3);
+  }
+  return m;
+}
+function buildBall() { const m = new Mesh(), ico = icosphere(2); for (const u of ico.v) m.add(u, u, 1, 4); for (const f of ico.f) m.i.push(f[0], f[1], f[2]); return m; }
 const treeMeshes = [buildTree(11), buildTree(29), buildTree(47)].map(uploadMesh);
 const rockMesh = uploadMesh(buildRock(5));
+const crateMesh = uploadMesh(buildCrate()), ballMesh = uploadMesh(buildBall());
+const spawnMeshes = [...treeMeshes, rockMesh, crateMesh, ballMesh];
+
+// ---------- the Grinner (an original creature, rebuilt every frame so it can move its limbs) ----------
+const ICO1 = icosphere(1), ICO2 = icosphere(2);
+function madd(a, b, s) { return [a[0] + b[0] * s, a[1] + b[1] * s, a[2] + b[2] * s]; }
+function lin(R, U, F, x, y, z) { return [R[0] * x + U[0] * y + F[0] * z, R[1] * x + U[1] * y + F[1] * z, R[2] * x + U[2] * y + F[2] * z]; }
+function ellipsoid(m, c, R, U, F, rx, ry, rz, kind, ico) {
+  const base = m.v.length / 8;
+  for (const u of ico.v) {
+    const o = lin(R, U, F, u[0] * rx, u[1] * ry, u[2] * rz);
+    m.add([c[0] + o[0], c[1] + o[1], c[2] + o[2]], norm(lin(R, U, F, u[0] / rx, u[1] / ry, u[2] / rz)), 1, kind);
+  }
+  for (const f of ico.f) m.i.push(base + f[0], base + f[1], base + f[2]);
+}
+function buildGrinner(mo) {
+  const m = new Mesh();
+  const F = [Math.sin(mo.yaw), 0, -Math.cos(mo.yaw)], R = [Math.cos(mo.yaw), 0, Math.sin(mo.yaw)], U = [0, 1, 0];
+  const P = (x, y, z) => lin(R, U, F, x, y, z);
+  const run = Math.min(1, Math.abs(mo.speed) / 7), atk = mo.attack, p = mo.phase;
+  const bob = Math.abs(Math.sin(p)) * 0.07 * run;
+  const lean = 0.18 + 0.3 * run + 0.35 * atk;
+  const hip = P(0, 1.55 + bob, 0), chest = P(0, 2.5 + bob - 0.1 * atk, lean), neck = P(0, 2.78 + bob - 0.12 * atk, lean * 1.15 + 0.05);
+  // gaunt torso
+  cylinder(m, hip, chest, 0.17, 0.23, 10, 1, 1, 5);
+  ellipsoid(m, P(0, 1.6 + bob, 0), R, U, F, 0.21, 0.2, 0.16, 5, ICO1);
+  ellipsoid(m, chest, R, U, F, 0.34, 0.17, 0.19, 5, ICO1);
+  cylinder(m, chest, neck, 0.08, 0.07, 8, 1, 1, 5);
+  // long legs
+  for (const sd of [-1, 1]) {
+    const ph = p + (sd > 0 ? 0 : Math.PI);
+    const sw = Math.sin(ph) * 0.6 * run;
+    const flex = (Math.max(0, -Math.cos(ph)) * 0.9 + 0.12) * (0.3 + 0.7 * run);
+    const hj = madd(hip, R, 0.15 * sd);
+    const knee = madd(hj, P(0, -Math.cos(sw), Math.sin(sw)), 0.82);
+    const foot = madd(knee, P(0, -Math.cos(sw - flex), Math.sin(sw - flex)), 0.8);
+    cylinder(m, hj, knee, 0.095, 0.07, 8, 1, 1, 5);
+    cylinder(m, knee, foot, 0.07, 0.045, 8, 1, 1, 5);
+    ellipsoid(m, knee, R, U, F, 0.075, 0.075, 0.075, 5, ICO1);
+    const toe = madd(foot, F, 0.34);
+    cylinder(m, foot, [toe[0], toe[1] - 0.03, toe[2]], 0.055, 0.02, 6, 1, 1, 5);
+  }
+  // dangling arms that reach for you when it attacks
+  for (const sd of [-1, 1]) {
+    const ph = p + (sd > 0 ? Math.PI : 0);
+    const sw = Math.sin(ph) * 0.45 * run;
+    const raise = sw * (1 - atk) + (1.35 + 0.3 * Math.sin(time * 9 + sd)) * atk;
+    const sh = madd(chest, R, 0.31 * sd);
+    const d1 = norm(P(0.1 * sd, -Math.cos(raise), Math.sin(raise)));
+    const elbow = madd(sh, d1, 0.85);
+    const a2 = raise + 0.2 + 0.3 * atk;
+    const d2 = norm(P(0.04 * sd, -Math.cos(a2), Math.sin(a2)));
+    const wrist = madd(elbow, d2, 0.85);
+    cylinder(m, sh, elbow, 0.07, 0.055, 8, 1, 1, 5);
+    cylinder(m, elbow, wrist, 0.055, 0.04, 8, 1, 1, 5);
+    ellipsoid(m, elbow, R, U, F, 0.06, 0.06, 0.06, 5, ICO1);
+    ellipsoid(m, wrist, R, U, F, 0.065, 0.085, 0.05, 5, ICO1);
+    for (let k = -1; k <= 1; k++) {
+      const fd = norm([d2[0] + R[0] * 0.2 * k + F[0] * 0.12, d2[1], d2[2] + R[2] * 0.2 * k + F[2] * 0.12]);
+      const mid = madd(wrist, fd, 0.3);
+      const tip = madd(mid, norm([fd[0] + F[0] * 0.5, fd[1], fd[2] + F[2] * 0.5]), 0.2);
+      cylinder(m, wrist, mid, 0.026, 0.018, 5, 1, 1, 5);
+      cylinder(m, mid, tip, 0.018, 0.002, 5, 1, 1, 7);
+    }
+  }
+  // head, cocked to one side
+  const tilt = 0.28 + 0.1 * Math.sin(time * 0.7 + mo.x);
+  const hc = P(0, 3.1 + bob - 0.15 * atk, lean * 1.2 + 0.14);
+  const ct = Math.cos(tilt), st = Math.sin(tilt);
+  const HR = [R[0] * ct + U[0] * st, R[1] * ct + U[1] * st, R[2] * ct + U[2] * st];
+  const HU = [U[0] * ct - R[0] * st, U[1] * ct - R[1] * st, U[2] * ct - R[2] * st];
+  const H = (x, y, z) => { const l = lin(HR, HU, F, x, y, z); return [hc[0] + l[0], hc[1] + l[1], hc[2] + l[2]]; };
+  ellipsoid(m, hc, HR, HU, F, 0.34, 0.4, 0.33, 5, ICO2);
+  for (const sd of [-1, 1]) cylinder(m, H(0.19 * sd, 0.27, -0.02), H(0.34 * sd, 0.74, -0.06), 0.12, 0.004, 6, 1, 1, 5);
+  for (const sd of [-1, 1]) ellipsoid(m, H(0.135 * sd, 0.09, 0.3), HR, HU, F, 0.075, 0.042, 0.03, 6, ICO1);
+  // a wide, jagged grin that wraps around the face
+  const surf = (th, y, out) => { const k = Math.sqrt(Math.max(0, 1 - (y / 0.4) ** 2)); return H(Math.sin(th) * 0.34 * k * out, y, Math.cos(th) * 0.33 * k * out); };
+  const nrmAt = (th, y) => norm(lin(HR, HU, F, Math.sin(th), y * 1.2, Math.cos(th)));
+  const NT = 14, th0 = -1.1, th1 = 1.1;
+  const upY = th => -0.1 + 0.075 * th * th, loY = th => -0.17 - 0.05 * (1 - 0.6 * th * th) + 0.07 * th * th;
+  const b0 = m.v.length / 8;
+  for (let i = 0; i <= NT; i++) {
+    const th = th0 + (th1 - th0) * i / NT;
+    m.add(surf(th, upY(th), 1.02), nrmAt(th, 0), 1, 8);
+    m.add(surf(th, loY(th), 1.02), nrmAt(th, 0), 1, 8);
+  }
+  for (let i = 0; i < NT; i++) { const a = b0 + i * 2; m.i.push(a, a + 1, a + 2, a + 2, a + 1, a + 3); }
+  for (let i = 0; i < NT; i++) {
+    const ta = th0 + (th1 - th0) * i / NT, tb = th0 + (th1 - th0) * (i + 1) / NT, tm = (ta + tb) / 2;
+    const len = 0.045 + 0.02 * ((i * 7) % 3) / 2;
+    let b = m.v.length / 8;
+    m.add(surf(ta, upY(ta), 1.035), nrmAt(tm, 0), 1, 7); m.add(surf(tb, upY(tb), 1.035), nrmAt(tm, 0), 1, 7);
+    m.add(surf(tm, upY(tm) - len, 1.04), nrmAt(tm, 0), 1, 7); m.i.push(b, b + 1, b + 2);
+    b = m.v.length / 8;
+    m.add(surf(ta, loY(ta), 1.035), nrmAt(tm, 0), 1, 7); m.add(surf(tb, loY(tb), 1.035), nrmAt(tm, 0), 1, 7);
+    m.add(surf(tm, loY(tm) + len * 0.85, 1.04), nrmAt(tm, 0), 1, 7); m.i.push(b, b + 1, b + 2);
+  }
+  return m;
+}
+const monVB = gl.createBuffer(), monIB = gl.createBuffer();
+const monObj = makeObjVAO(monVB, monIB);
 
 // ======================================================================
 //  Quality presets
@@ -599,8 +787,9 @@ const QUALITY = {
 };
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 let qualityKey = isTouch ? 'medium' : 'high';
-let soundOn = true;
+let soundOn = true, attacksOn = true;
 try {
+  if (localStorage.getItem('meadow.attacks') === 'off') attacksOn = false;
   const q = localStorage.getItem('meadow.quality'); if (q && QUALITY[q]) qualityKey = q;
   if (localStorage.getItem('meadow.sound') === 'off') soundOn = false;
 } catch (e) {}
@@ -721,6 +910,13 @@ function collide() {
   for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
     const r = rockAt(rcx + dx, rcz + dz); if (r && r.s > 0.55) pushOut(r.x, r.z, 1.05 * r.s + 0.3);
   }
+  for (const o of spawned) {
+    if (Math.abs(o.x - player.x) > 4 || Math.abs(o.z - player.z) > 4) continue;
+    if (o.type === 'tree') pushOut(o.x, o.z, 0.3 * o.s + 0.35);
+    else if (o.type === 'rock') pushOut(o.x, o.z, 1.05 * o.s + 0.3);
+    else if (o.type === 'crate') pushOut(o.x, o.z, 0.8);
+  }
+  for (const mo of monsters) pushOut(mo.x, mo.z, 0.55);
 }
 function pushOut(x, z, rad) {
   const dx = player.x - x, dz = player.z - z, d = Math.hypot(dx, dz);
@@ -745,6 +941,8 @@ const stickBase = document.getElementById('stickBase'), stickKnob = document.get
 addEventListener('keydown', e => {
   keys[e.code] = true;
   if (e.code === 'Space') { if (state === 'play') jumpQueued = true; e.preventDefault(); }
+  if (state === 'spawn' && (e.code === 'Escape' || e.code === 'KeyE' || e.code === 'Tab')) { resume(); e.preventDefault(); return; }
+  if (state === 'play' && (e.code === 'KeyE' || e.code === 'Tab')) { openSpawn(); e.preventDefault(); return; }
   if (e.code === 'Escape' || e.code === 'KeyP') { if (state === 'play') pause(); else if (state === 'pause' && e.code === 'KeyP') resume(); }
   if (state !== 'play') {
     if (e.code === 'ArrowDown') { moveSel(1); e.preventDefault(); }
@@ -804,6 +1002,7 @@ const jumpBtn = document.getElementById('jumpBtn'), runBtn = document.getElement
 jumpBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); jumpQueued = true; });
 runBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); runToggle = !runToggle; runBtn.classList.toggle('on', runToggle); });
 document.getElementById('pauseBtn').addEventListener('click', () => { if (state === 'play') pause(); });
+document.getElementById('spawnBtn').addEventListener('click', () => { if (state === 'play') openSpawn(); });
 
 // ---- gamepad ----
 let padPrev = [];
@@ -821,8 +1020,9 @@ function dead(v) { const a = Math.abs(v); return a < DZ ? 0 : Math.sign(v) * (a 
 //  Menus (touch, mouse, keyboard and controller)
 // ======================================================================
 const startMenu = document.getElementById('startMenu'), pauseMenu = document.getElementById('pauseMenu');
+const spawnMenu = document.getElementById('spawnMenu'), caughtMenu = document.getElementById('caughtMenu');
 let sel = 0;
-function curMenu() { return state === 'menu' ? startMenu : state === 'pause' ? pauseMenu : null; }
+function curMenu() { return { menu: startMenu, pause: pauseMenu, spawn: spawnMenu, caught: caughtMenu }[state] || null; }
 function menuItems() { const m = curMenu(); return m ? [...m.querySelectorAll('.item')] : []; }
 function showSel() { menuItems().forEach((b, i) => b.classList.toggle('sel', i === sel)); }
 function moveSel(d) { const it = menuItems(); if (!it.length) return; sel = (sel + d + it.length) % it.length; showSel(); }
@@ -830,9 +1030,19 @@ function activateSel() { const it = menuItems(); if (it[sel]) doAct(it[sel].data
 function refreshLabels() {
   document.querySelectorAll('[data-act=quality]').forEach(b => b.textContent = 'Quality: ' + Q.name);
   document.querySelectorAll('[data-act=sound]').forEach(b => b.textContent = 'Sound: ' + (soundOn ? 'On' : 'Off'));
+  document.querySelectorAll('[data-act=attacks]').forEach(b => b.textContent = 'Grinner attacks: ' + (attacksOn ? 'On' : 'Off'));
 }
 function doAct(act) {
-  if (act === 'play' || act === 'resume') resume();
+  if (act === 'play' || act === 'resume' || act === 'close') resume();
+  else if (act && act.startsWith('sp-')) { resume(); spawnThing(act.slice(3)); }
+  else if (act === 'attacks') {
+    attacksOn = !attacksOn; try { localStorage.setItem('meadow.attacks', attacksOn ? 'on' : 'off'); } catch (e) {}
+    refreshLabels();
+  } else if (act === 'retry') {
+    health = 100;
+    for (const mo of monsters) { mo.x = player.x - Math.sin(player.yaw) * 70; mo.z = player.z + Math.cos(player.yaw) * 70; mo.speed = 0; mo.attack = 0; mo.cool = 1; }
+    resume();
+  }
   else if (act === 'quality') {
     const order = ['low', 'medium', 'high'];
     qualityKey = order[(order.indexOf(qualityKey) + 1) % 3]; Q = QUALITY[qualityKey];
@@ -849,21 +1059,25 @@ document.querySelectorAll('.menu .item').forEach(b => b.addEventListener('click'
 }));
 function resume() {
   state = 'play';
-  startMenu.classList.add('hidden'); pauseMenu.classList.add('hidden');
+  for (const m of [startMenu, pauseMenu, spawnMenu, caughtMenu]) m.classList.add('hidden');
   document.body.classList.add('playing');
   if (isTouch) document.body.classList.add('touch');
   startAudio();
   if (!isTouch && canvas.requestPointerLock) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => {}); } catch (e) {} }
 }
-function pause() {
-  state = 'pause';
+function leavePlay(newState, menu) {
+  state = newState;
   document.body.classList.remove('playing');
-  pauseMenu.classList.remove('hidden');
-  document.getElementById('pauseDist').textContent = 'You have walked ' + fmtDist(player.dist) + '.';
+  menu.classList.remove('hidden');
   touchMove.id = touchLook.id = null; stickBase.style.display = 'none';
   if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
   sel = 0; showSel();
 }
+function pause() {
+  document.getElementById('pauseDist').textContent = 'You have walked ' + fmtDist(player.dist) + '.';
+  leavePlay('pause', pauseMenu);
+}
+function openSpawn() { leavePlay('spawn', spawnMenu); }
 function fmtDist(m) { return m < 1000 ? Math.floor(m) + ' m' : (m / 1000).toFixed(2) + ' km'; }
 refreshLabels(); showSel();
 
@@ -912,6 +1126,114 @@ function footstep(strength) {
 }
 
 // ======================================================================
+//  Spawning: props and the Grinner
+// ======================================================================
+const spawned = [], monsters = [];
+let health = 100, lastHurt = -99, shake = 0, hurtA = 0, toastT = 0;
+const hurtEl = document.getElementById('hurt'), toastEl = document.getElementById('toast');
+const hpEl = document.getElementById('hp'), hpWrap = document.getElementById('hpWrap');
+function toast(msg) { toastEl.textContent = msg; toastEl.style.opacity = 1; toastT = 2; }
+function ahead(d) { return [player.x + Math.sin(player.yaw) * d, player.z - Math.cos(player.yaw) * d]; }
+function spawnThing(kind) {
+  if (kind === 'clear') { spawned.length = 0; monsters.length = 0; toast('Cleared everything you spawned'); return; }
+  if (kind === 'grinner') {
+    if (monsters.length >= 3) monsters.shift();
+    const [x, z] = ahead(16);
+    monsters.push({ x, z, y: terrainH(x, z), yaw: player.yaw + Math.PI, phase: 0, speed: 0, attack: 0, cool: 1 });
+    startGrowl();
+    toast(attacksOn ? '😈 The Grinner is coming… RUN!' : '😈 The Grinner is watching you');
+    return;
+  }
+  if (spawned.length >= 80) spawned.shift();
+  const [x, z] = ahead({ tree: 7, rock: 5, crate: 3.5, ball: 3 }[kind]);
+  const o = { type: kind, x, z, s: 1, rot: Math.random() * 6.2832, variant: Math.floor(Math.random() * 3) };
+  if (kind === 'tree') { o.s = 0.85 + Math.random() * 0.4; o.y = groundFor(x, z, 0.5 * o.s) - 0.1; }
+  else if (kind === 'rock') { o.s = 0.8 + Math.random() * 0.6; o.y = groundFor(x, z, 0.9 * o.s) + 0.02 * o.s; }
+  else if (kind === 'crate') { o.y = groundFor(x, z, 0.5) + 0.5; }
+  else { o.s = 0.35; o.y = terrainH(x, z) + 1.5; o.vx = 0; o.vy = 0; o.vz = 0; }
+  spawned.push(o);
+  toast('Spawned ' + { tree: 'a tree 🌳', rock: 'a boulder 🪨', crate: 'a crate 📦', ball: 'a ball 🔴' }[kind]);
+}
+function updateBalls(dt) {
+  for (const o of spawned) {
+    if (o.type !== 'ball') continue;
+    o.vy -= 9.81 * dt; o.x += o.vx * dt; o.y += o.vy * dt; o.z += o.vz * dt;
+    const h = terrainH(o.x, o.z);
+    if (o.y - o.s < h) {
+      const e = 0.3, n = norm([terrainH(o.x - e, o.z) - terrainH(o.x + e, o.z), 2 * e, terrainH(o.x, o.z - e) - terrainH(o.x, o.z + e)]);
+      o.y = h + o.s;
+      const vn = o.vx * n[0] + o.vy * n[1] + o.vz * n[2];
+      if (vn < 0) { const k = vn < -1.5 ? 1.55 : 1; o.vx -= k * vn * n[0]; o.vy -= k * vn * n[1]; o.vz -= k * vn * n[2]; }
+      const fr = Math.max(0, 1 - dt * 0.9); o.vx *= fr; o.vz *= fr;
+    }
+    // kick it by walking into it
+    const dx = o.x - player.x, dz = o.z - player.z, d = Math.hypot(dx, dz);
+    if (d < o.s + 0.45 && d > 1e-3 && o.y - player.y < 1.2) {
+      const sp = Math.max(3, Math.hypot(player.vx, player.vz) * 1.5);
+      o.vx = dx / d * sp; o.vz = dz / d * sp; o.vy = Math.max(o.vy, 2.5);
+      o.x = player.x + dx / d * (o.s + 0.46); o.z = player.z + dz / d * (o.s + 0.46);
+    }
+  }
+}
+function updateMonsters(dt) {
+  let nearest = 1e9;
+  for (const mo of monsters) {
+    const dx = player.x - mo.x, dz = player.z - mo.z, d = Math.hypot(dx, dz);
+    nearest = Math.min(nearest, d);
+    let da = Math.atan2(dx, -dz) - mo.yaw; da = Math.atan2(Math.sin(da), Math.cos(da));
+    mo.yaw += da * Math.min(1, dt * 4);
+    let want;
+    if (attacksOn) want = d > 28 ? 3.4 : d < 1.4 ? 0 : 7.3;   // walking is too slow to escape, running (8.5) is just fast enough
+    else want = d > 16 ? 2.6 : d < 6 ? -1.4 : 0;               // harmless: keeps its distance and stares
+    mo.speed += (want - mo.speed) * Math.min(1, dt * 3);
+    mo.x += Math.sin(mo.yaw) * mo.speed * dt; mo.z -= Math.cos(mo.yaw) * mo.speed * dt;
+    const cx = Math.floor(mo.x / TREE_CELL), cz = Math.floor(mo.z / TREE_CELL);
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+      const t = treeAt(cx + i, cz + j); if (!t) continue;
+      const ex = mo.x - t.x, ez = mo.z - t.z, ed = Math.hypot(ex, ez), r = 0.3 * t.s + 0.45;
+      if (ed < r && ed > 1e-4) { mo.x = t.x + ex / ed * r; mo.z = t.z + ez / ed * r; }
+    }
+    mo.y = terrainH(mo.x, mo.z);
+    mo.phase += Math.abs(mo.speed) * dt * 1.5;
+    mo.cool -= dt;
+    mo.attack += ((attacksOn && d < 2.2 ? 1 : 0) - mo.attack) * Math.min(1, dt * 6);
+    if (attacksOn && d < 1.75 && mo.cool <= 0 && state === 'play') { mo.cool = 1.3; hurt(34); }
+  }
+  if (monsters.length && !growlGain) startGrowl();
+  if (growlGain) {
+    const g = monsters.length ? (attacksOn ? 0.32 : 0.08) * Math.max(0, 1 - nearest / 35) : 0;
+    growlGain.gain.value = soundOn ? g : 0;
+  }
+  if (time - lastHurt > 4 && health < 100) health = Math.min(100, health + 8 * dt);
+}
+function hurt(dmg) {
+  health -= dmg; lastHurt = time; shake = 0.6; hurtA = 1;
+  scream();
+  if (health <= 0) { health = 0; leavePlay('caught', caughtMenu); }
+}
+let growlGain = null;
+function startGrowl() {
+  if (!actx || growlGain) return;
+  try {
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 240;
+    growlGain = actx.createGain(); growlGain.gain.value = 0;
+    for (const f of [46, 49.5, 97]) { const o = actx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(lp); o.start(); }
+    lp.connect(growlGain); growlGain.connect(master);
+  } catch (e) { growlGain = null; }
+}
+function scream() {
+  if (!actx || !soundOn) return;
+  const t = actx.currentTime;
+  const o = actx.createOscillator(); o.type = 'sawtooth';
+  o.frequency.setValueAtTime(950, t); o.frequency.exponentialRampToValueAtTime(160, t + 0.6);
+  const len = Math.floor(actx.sampleRate * 0.6), buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+  const nz = actx.createBufferSource(); nz.buffer = buf;
+  const g = actx.createGain(); g.gain.setValueAtTime(0.28, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
+  o.connect(g); nz.connect(g); g.connect(master); o.start(t); o.stop(t + 0.7); nz.start(t);
+}
+
+// ======================================================================
 //  Main loop
 // ======================================================================
 let W = 0, H = 0;
@@ -936,14 +1258,19 @@ function update(dt) {
     if ((down || up) && padNavCooldown <= 0) { moveSel(down ? 1 : -1); padNavCooldown = 0.25; }
     if (!down && !up) padNavCooldown = 0;
     if (pressed(0)) { activateSel(); consumed = true; }
-    else if (state === 'pause' && (pressed(1) || pressed(9))) { resume(); consumed = true; }
+    else if ((state === 'pause' || state === 'spawn') && (pressed(1) || pressed(9))) { resume(); consumed = true; }
+    else if (state === 'spawn' && pressed(3)) { resume(); consumed = true; }
     else if (state === 'menu' && pressed(9)) { resume(); consumed = true; }
   } else if (state === 'play' && pad && pressed(9)) { pause(); consumed = true; }
+  else if (state === 'play' && pad && pressed(3)) { openSpawn(); consumed = true; }
 
   if (state !== 'play') {
-    // gently look around behind the menu
-    menuSpin += dt * 0.04;
-    player.yaw = menuSpin; player.pitch = -0.04;
+    if (state === 'menu') {
+      // gently look around behind the title screen
+      menuSpin += dt * 0.04;
+      player.yaw = menuSpin; player.pitch = -0.04;
+    }
+    if (growlGain) growlGain.gain.value = 0;
     padPrev = pb; return;
   }
 
@@ -1005,6 +1332,8 @@ function update(dt) {
     windGain.gain.value = 0.16 + 0.22 * gust + (run ? 0.05 : 0);
     windFilter.frequency.value = 350 + 500 * gust;
   }
+  updateBalls(dt);
+  updateMonsters(dt);
   padPrev = pb;
 }
 
@@ -1030,7 +1359,8 @@ function render() {
   gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, mapTex);
 
   const bobY = player.onGround ? Math.abs(Math.sin(player.bob)) * 0.05 - 0.025 : 0;
-  const cam = [player.x, player.y + EYE + bobY, player.z];
+  const sk = shake * shake * 0.25;
+  const cam = [player.x + (Math.random() - 0.5) * sk, player.y + EYE + bobY + (Math.random() - 0.5) * sk, player.z + (Math.random() - 0.5) * sk];
   const cp = Math.cos(player.pitch), f = [Math.sin(player.yaw) * cp, Math.sin(player.pitch), -Math.cos(player.yaw) * cp];
   const r = norm(cross(f, [0, 1, 0])), u = cross(r, f);
   const aspect = W / H, fovy = (aspect < 1 ? 78 : 66) * Math.PI / 180, tn = 1 / Math.tan(fovy / 2), near = 0.08, far = 2400;
@@ -1051,6 +1381,26 @@ function render() {
   if (rockMesh.n) { gl.bindVertexArray(rockMesh.vao); gl.drawElementsInstanced(gl.TRIANGLES, rockMesh.count, gl.UNSIGNED_SHORT, 0, rockMesh.n); }
   gl.uniform2f(P.obj.u.uFade, Q.treeR * 0.8, Q.treeR);
   for (const m of treeMeshes) if (m.n) { gl.bindVertexArray(m.vao); gl.drawElementsInstanced(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0, m.n); }
+  // things the player spawned
+  gl.uniform2f(P.obj.u.uFade, 1e5, 1e5 + 1);
+  const lists = new Map(spawnMeshes.map(m => [m, []]));
+  for (const o of spawned) {
+    const mesh = o.type === 'tree' ? treeMeshes[o.variant] : o.type === 'rock' ? rockMesh : o.type === 'crate' ? crateMesh : ballMesh;
+    lists.get(mesh).push(o.x, o.y, o.z, o.s, o.rot);
+  }
+  for (const [m, l] of lists) {
+    m.spawn.n = l.length / 5; if (!l.length) continue;
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.spawn.inst); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(l), gl.DYNAMIC_DRAW);
+    gl.bindVertexArray(m.spawn.vao); gl.drawElementsInstanced(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0, m.spawn.n);
+  }
+  for (const mo of monsters) {
+    const mm = buildGrinner(mo);
+    gl.bindVertexArray(monObj.vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, monVB); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(mm.v), gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, monIB); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mm.i), gl.DYNAMIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, monObj.inst); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([mo.x, mo.y, mo.z, 1, 0]), gl.DYNAMIC_DRAW);
+    gl.drawElementsInstanced(gl.TRIANGLES, mm.i.length, gl.UNSIGNED_SHORT, 0, 1);
+  }
 
   // grass: dense near layer + sparser far layer
   const g = P.grass;
@@ -1096,6 +1446,11 @@ function frame(now) {
   }
   rebuildTrees(player.x, player.z); rebuildRocks(player.x, player.z);
   render();
+  hurtA = Math.max(0, hurtA - dt * 1.5); hurtEl.style.opacity = hurtA.toFixed(3);
+  shake = Math.max(0, shake - dt * 1.2);
+  if (toastT > 0) { toastT -= dt; if (toastT <= 0) toastEl.style.opacity = 0; }
+  hpWrap.classList.toggle('on', state === 'play' && attacksOn && (monsters.length > 0 || health < 100));
+  hpEl.style.width = Math.max(0, health) + '%';
   hudTimer -= dt;
   if (hudTimer <= 0 && state === 'play') {
     hudTimer = 0.2;
