@@ -225,10 +225,13 @@
   #noise { top: calc(max(10px, env(safe-area-inset-top)) + 146px) !important; }
   #ammo { position: absolute; right: 16px; top: calc(max(10px, env(safe-area-inset-top)) + 52px); display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 1.1rem; text-shadow: 0 2px 3px #000; }
   #ammo .ic { width: 34px; height: 34px; }
-  #cross { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; }
-  #cross i, #hitm i { position: absolute; background: rgba(255,255,255,.9); box-shadow: 0 0 2px #000; }
-  #cross i:nth-child(1) { left: 16px; top: 0; width: 2px; height: 10px; } #cross i:nth-child(2) { left: 16px; bottom: 0; width: 2px; height: 10px; }
-  #cross i:nth-child(3) { top: 16px; left: 0; height: 2px; width: 10px; } #cross i:nth-child(4) { top: 16px; right: 0; height: 2px; width: 10px; }
+  #cross { position: absolute; left: 50%; top: 50%; width: 0; height: 0; --gap: 6px; }
+  #cross i { position: absolute; background: rgba(255,255,255,.92); box-shadow: 0 0 2px #000; transition: transform .06s; }
+  #cross i:nth-child(1) { left: -1px; top: calc(-1 * var(--gap) - 10px); width: 2px; height: 10px; } #cross i:nth-child(2) { left: -1px; top: var(--gap); width: 2px; height: 10px; }
+  #cross i:nth-child(3) { top: -1px; left: calc(-1 * var(--gap) - 10px); height: 2px; width: 10px; } #cross i:nth-child(4) { top: -1px; left: var(--gap); height: 2px; width: 10px; }
+  #cross::after { content: ""; position: absolute; left: -2px; top: -2px; width: 4px; height: 4px; border-radius: 50%; background: rgba(255,255,255,.8); }
+  #cross.head::after { background: #ff2020; width: 6px; height: 6px; left: -3px; top: -3px; }
+  #hitm i { position: absolute; background: rgba(255,255,255,.9); box-shadow: 0 0 2px #000; }
   #cross.lock i { background: #ff5050; }
   #hitm { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; opacity: 0; transform: rotate(45deg); }
   #hitm i:nth-child(1) { left: 14px; top: 0; width: 2px; height: 9px; } #hitm i:nth-child(2) { left: 14px; bottom: 0; width: 2px; height: 9px; }
@@ -1797,14 +1800,23 @@ function buildHitHouse() {
   const nm = signMat('sign_412', 128, 64, (g, W, Hh) => { g.fillStyle = '#f2efe6'; g.fillRect(0, 0, W, Hh); g.fillStyle = '#222'; g.font = 'bold 46px Arial'; g.textAlign = 'center'; g.fillText('412', W / 2, 50); });
   const np = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), nm); np.position.set(fd + 0.9, 2.6, z1 - t - 0.02); np.rotation.y = Math.PI; scene.add(np);
   addCol(-119.1, 85.5, -118.9, 85.7, 1.2);
-  // animated doors (front + back)
-  for (const d of [{ x: fd, z: z1 - t / 2, w: 1.1, sgn: -1 }, { x: bd, z: z2 + t / 2, w: 1.0, sgn: 1 }]) {
-    const g = new THREE.Group(); g.position.set(d.x - d.w / 2, 0, d.z); scene.add(g);
-    const dm = new THREE.Mesh(new THREE.BoxGeometry(d.w, 2.1, 0.05), std({ color: 0x6b3f22, roughness: 0.6 })); dm.position.set(d.w / 2, 1.05, 0); dm.castShadow = true; g.add(dm);
-    const kn = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), std({ color: 0xd0c080, metalness: 1, roughness: 0.3 })); kn.position.set(d.w - 0.1, 1.0, d.sgn * 0.04); g.add(kn);
-    const col = addCol(d.x - d.w / 2, d.z - 0.08, d.x + d.w / 2, d.z + 0.08, 2.1, 'door');
-    HH_DOORS.push({ g, col, x: d.x, z: d.z, sgn: d.sgn, open: 0 });
-  }
+  // hinged doors (physics): front, back, kitchen doorway, bedroom doorway
+  const doorMat = std({ color: 0x6b3f22, roughness: 0.6 }), inMat = std({ color: 0xece6d8, roughness: 0.55 }), knobMat = std({ color: 0xd0c080, metalness: 1, roughness: 0.3 });
+  const mkDoor = (hx, hz, axis, w, sgn, mat, h = 2.1) => {
+    const g = new THREE.Group(); g.position.set(hx, 0, hz); scene.add(g);
+    const along = axis === 'x' ? [1, 0] : [0, 1];
+    const dm = new THREE.Mesh(axis === 'x' ? new THREE.BoxGeometry(w, h, 0.045) : new THREE.BoxGeometry(0.045, h, w), mat);
+    dm.position.set(along[0] * w / 2, h / 2, along[1] * w / 2); dm.castShadow = true; dm.receiveShadow = true; g.add(dm);
+    for (const side of [-1, 1]) { const kn = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), knobMat); kn.position.set(along[0] * (w - 0.09) + (axis === 'z' ? side * 0.04 : 0), 1.0, along[1] * (w - 0.09) + (axis === 'x' ? side * 0.04 : 0)); g.add(kn); }
+    const cx = hx + along[0] * w / 2, cz = hz + along[1] * w / 2;
+    const col = axis === 'x' ? addCol(hx, hz - 0.06, hx + w, hz + 0.06, h, 'door') : addCol(hx - 0.06, hz, hx + 0.06, hz + w, h, 'door');
+    HH_DOORS.push({ g, col, x: cx, z: cz, sgn, open: false, ang: 0, vel: 0, w });
+  };
+  mkDoor(fd - 0.55, z1 - t / 2, 'x', 1.1, -1, doorMat);
+  mkDoor(bd - 0.5, z2 + t / 2, 'x', 1.0, 1, doorMat);
+  mkDoor(-128, 100.6, 'z', 1.0, 1, inMat);
+  mkDoor(-127.6, 104, 'x', 1.0, -1, inMat);
+
 }
 
 // ============================================================================
@@ -2092,10 +2104,11 @@ class Particles {
     });
     this.mesh = new THREE.Points(g, mat); this.mesh.frustumCulled = false; this.mesh.renderOrder = 5; scene.add(this.mesh);
   }
-  spawn(x, y, z, vx, vy, vz, life, size, col, alpha = 1, grav = 0, drag = 0, grow = 0) {
+  spawn(x, y, z, vx, vy, vz, life, size, col, alpha = 1, grav = 0, drag = 0, grow = 0, land = 0) {
     let i = this.n < this.max ? this.n++ : (Math.random() * this.max) | 0;
     this.p[i * 3] = x; this.p[i * 3 + 1] = y; this.p[i * 3 + 2] = z; this.v[i * 3] = vx; this.v[i * 3 + 1] = vy; this.v[i * 3 + 2] = vz;
     const c = new THREE.Color(col); this.c[i * 3] = c.r; this.c[i * 3 + 1] = c.g; this.c[i * 3 + 2] = c.b;
+    if (!this.land) { this.land = new Uint8Array(this.max); this.landed = []; } this.land[i] = land;
     this.life[i] = life; this.age[i] = 0; this.sz[i] = size; this.a0[i] = alpha; this.a[i] = alpha; this.grav[i] = grav; this.drag[i] = drag; this.grow[i] = grow;
   }
   update(dt) {
@@ -2105,11 +2118,13 @@ class Particles {
         const j = --this.n; if (i === j) break;
         for (const arr of [this.p, this.v, this.c]) { arr[i * 3] = arr[j * 3]; arr[i * 3 + 1] = arr[j * 3 + 1]; arr[i * 3 + 2] = arr[j * 3 + 2]; }
         for (const arr of [this.sz, this.a, this.life, this.age, this.grav, this.drag, this.grow, this.a0]) arr[i] = arr[j];
+        if (this.land) this.land[i] = this.land[j];
         i--; continue;
       }
       const k = Math.exp(-this.drag[i] * dt);
       this.v[i * 3] *= k; this.v[i * 3 + 1] = this.v[i * 3 + 1] * k - this.grav[i] * dt; this.v[i * 3 + 2] *= k;
       this.p[i * 3] += this.v[i * 3] * dt; this.p[i * 3 + 1] += this.v[i * 3 + 1] * dt; this.p[i * 3 + 2] += this.v[i * 3 + 2] * dt;
+      if (this.p[i * 3 + 1] < 0.02 && this.grav[i] > 0 && this.land && this.land[i]) { this.land[i] = 0; if (this.landed.length < 200) this.landed.push(this.p[i * 3], this.p[i * 3 + 2], this.sz[i]); }
       if (this.p[i * 3 + 1] < 0.02 && this.grav[i] > 0) { this.p[i * 3 + 1] = 0.02; this.v[i * 3 + 1] *= -0.3; this.v[i * 3] *= 0.6; this.v[i * 3 + 2] *= 0.6; }
       this.sz[i] += this.grow[i] * dt;
       const f = this.age[i] / this.life[i]; this.a[i] = this.a0[i] * (1 - f) * Math.min(1, this.age[i] * 12);
@@ -2511,6 +2526,11 @@ function plateTex(text) {
 //  rigid-body impulses with angular response, damage + deformation.
 // ============================================================================
 const debris = [];
+const CAR_CFG = {
+  sedan: { m: 1300, a: 1.2, b: 1.52, h: 0.55, Iz: 2150, T: 172, red: 6500, idle: 800, gears: [3.55, 2.06, 1.4, 1.03, 0.78], final: 4.06, rev: 3.3, rw: 0.315, cda: 0.62, rwd: false },
+  suv: { m: 1700, a: 1.3, b: 1.4, h: 0.68, Iz: 3000, T: 245, red: 6200, idle: 750, gears: [3.3, 1.96, 1.31, 1.0, 0.76], final: 4.1, rev: 3.2, rw: 0.36, cda: 0.9, rwd: false },
+  pickup: { m: 2100, a: 1.6, b: 1.9, h: 0.75, Iz: 4700, T: 380, red: 5600, idle: 700, gears: [3.0, 1.8, 1.25, 1.0, 0.72], final: 3.55, rev: 3.0, rw: 0.39, cda: 1.05, rwd: true },
+};
 class Vehicle {
   constructor(model, x, z, h) {
     this.m = model; this.x = x; this.z = z; this.h = h; this.vx = 0; this.vz = 0; this.w = 0;
@@ -2565,31 +2585,78 @@ class Vehicle {
   pointVel(rx, rz) { return [this.vx + this.w * rz, this.vz - this.w * rx]; }
   applyImpulse(jx, jz, rx, rz) { this.vx += jx / this.mass; this.vz += jz / this.mass; this.w += (rz * jx - rx * jz) / this.I; }
   update(dt) {
-    const I = this.flipped ? { steer: 0, thr: 0, brk: 0, hand: 0, rev: false } : this.input, fx = Math.sin(this.h), fz = Math.cos(this.h), rx = -fz, rz = fx;
-    let vF = this.vx * fx + this.vz * fz, vR = this.vx * rx + this.vz * rz;
+    // ================= tyre + engine model (bicycle model, Pacejka-style tyres, weight transfer, 5-speed auto)
+    const I = this.flipped ? { steer: 0, thr: 0, brk: 0, hand: 0, rev: false } : this.input;
+    const C = this.cfg || (this.cfg = CAR_CFG[this.m.kind] || CAR_CFG.sedan);
+    const fx = Math.sin(this.h), fz = Math.cos(this.h), lx = Math.cos(this.h), lz = -Math.sin(this.h), rx = -fz, rz = fx;
+    let u = this.vx * fx + this.vz * fz, v = this.vx * lx + this.vz * lz, w = this.w;
     const paved = onRoad(this.x, this.z);
     const dmg = clamp(this.health / 1000, 0, 1), dead = this.health <= 0;
-    const top = (paved ? 47 : 23) * (0.55 + 0.45 * dmg);
-    this.steer = lerp(this.steer, I.steer, Math.min(1, dt * 6));
-    let acc = 0;
-    const thr = dead ? 0 : I.thr;
-    if (thr > 0.02) acc += thr * (vF < 0 ? 14 : 8.2 * (0.6 + 0.4 * dmg) * (1 - clamp(vF / top, 0, 1) * 0.94));
-    if (I.brk > 0.02) { if (vF > 0.6) acc -= I.brk * 15; else if (!dead && (I.rev || I.rev === undefined)) acc -= I.brk * 5 * (vF > -9 ? 1 : 0); else if (vF > 0) vF = Math.max(0, vF - 15 * dt); }
-    acc -= vF * (paved ? 0.04 : 0.4) + Math.sign(vF) * Math.min(Math.abs(vF), (paved ? 0.3 : 1.6)) * (thr < 0.02 ? 1 : 0);
-    acc -= vF * Math.abs(vF) * 0.0011;
-    if (I.hand > 0.5) acc -= Math.sign(vF) * Math.min(Math.abs(vF) / dt, 7);
-    vF += acc * dt;
-    if (thr < 0.02 && I.brk < 0.02 && Math.abs(vF) < 0.25 && Math.abs(vR) < 0.25) vF = 0;
-    // tyres: lateral grip saturates → realistic slides
     this.spinT = Math.max(0, this.spinT - dt);
-    const sp = this.spinT > 0 ? 0.3 : 1;
-    const gripA = this.flipped ? 2 : (I.hand > 0.5 ? 3.2 : paved ? 13 : 7.5) * sp;
-    this.slip = Math.abs(vR);
-    vR -= Math.sign(vR) * Math.min(Math.abs(vR), gripA * dt);
-    const maxSteer = 0.62 / (1 + Math.abs(vF) * 0.04);
-    const target = -vF / (this.m.wb * 2) * Math.tan(this.steer * maxSteer) * (I.hand > 0.5 ? 1.5 : 1);
-    this.w += (target - this.w) * Math.min(1, dt * (I.hand > 0.5 ? 3 : paved ? 9 : 6) * sp);
-    this.vx = fx * vF + rx * vR; this.vz = fz * vF + rz * vR;   // velocity stays in the old frame: the car slides if it turns faster than grip allows
+    const mu = (paved ? 1.02 : 0.64) * (this.spinT > 0 ? 0.45 : 1);
+    // steering: rate-limited, speed-sensitive, returns to centre
+    const maxS = lerp(0.6, 0.075, Math.pow(clamp(Math.abs(u) / 34, 0, 1), 0.7));
+    this.steer += clamp(I.steer - this.steer, -dt * 3.4, dt * 3.4);
+    const delta = -this.steer * maxS;
+    // gearbox
+    const rev = !!I.rev;
+    if (rev && u < 1.0) this.gear = -1; else if (!rev && (this.gear === -1 || !this.gear) && u > -1.0) this.gear = 1;
+    const ratio = this.gear === -1 ? C.rev : C.gears[this.gear - 1];
+    const toRpm = Math.abs(u) / C.rw * 60 / TAU * ratio * C.final;
+    const pedal = dead ? 0 : rev ? I.brk : I.thr, brakeIn = rev ? I.thr : I.brk;
+    this.shiftT = Math.max(0, (this.shiftT || 0) - dt);
+    let rpm = Math.max(C.idle, toRpm);
+    if (this.gear === 1 || this.gear === -1) rpm = Math.max(rpm, C.idle + pedal * 2800 * clamp(1 - Math.abs(u) / 6, 0, 1)); // clutch slip off the line
+    if (this.gear > 0 && this.shiftT <= 0) {
+      if (rpm > 4300 + pedal * 1900 && this.gear < C.gears.length) { this.gear++; this.shiftT = 0.3; this.shifted = 1; }
+      else if (rpm < 1700 + pedal * 1100 && this.gear > 1) { this.gear--; this.shiftT = 0.2; this.shifted = -1; }
+    }
+    const limiter = rpm > C.red ? 0 : 1;
+    const torque = C.T * (0.62 + 0.38 * Math.sin(clamp((rpm - 900) / (C.red - 900), 0, 1) * Math.PI * 0.92)) * limiter;
+    let Fdrive = (this.shiftT > 0 ? 0.15 : 1) * pedal * torque * ratio * C.final * 0.9 / C.rw * (0.55 + 0.45 * dmg) * (this.gear === -1 ? -0.55 * clamp(1 - Math.abs(u) / 8, 0, 1) : 1);
+    if (pedal < 0.05 && this.gear > 0 && Math.abs(u) > 1) Fdrive -= Math.sign(u) * 18 * ratio * C.final / C.rw * (rpm / 3000); // engine braking
+    const g = 9.8, L = C.a + C.b, m = C.m;
+    let wheelspin = 0, lockup = 0, Fyf = 0, Fyr = 0, aF = 0, aR = 0;
+    const nT = 4, tdt = dt / nT;
+    for (let k = 0; k < nT; k++) {
+      const ax = this.axS || 0;
+      const Fzf = Math.max(0.15 * m * g, m * g * C.b / L - m * ax * C.h / L), Fzr = Math.max(0.15 * m * g, m * g * C.a / L + m * ax * C.h / L);
+      const sg = Math.abs(u) > 0.3 ? Math.sign(u) : 0;
+      // brakes (68/32 split) with ABS: never more than the tyre can take
+      const Fb = brakeIn * 1.1 * m * g;
+      let FbF = Math.min(Fb * 0.68, mu * Fzf * 0.97), FbR = Math.min(Fb * 0.32, mu * Fzr * 0.97);
+      if (Fb * 0.68 > mu * Fzf * 0.97 && Math.abs(u) > 6) lockup = 1;
+      const hand = I.hand > 0.5;
+      if (hand) FbR = Math.max(FbR, mu * Fzr * 0.75);
+      // traction control: drive force capped by grip on the driven axle
+      const Fzd = C.rwd ? Fzr : Fzf; let Fd = Fdrive;
+      if (Math.abs(Fd) > mu * Fzd) { wheelspin = Math.abs(Fd) / (mu * Fzd) - 1; Fd = Math.sign(Fd) * mu * Fzd * (1 - Math.min(0.25, wheelspin * 0.2)); }
+      let Fxf = (C.rwd ? 0 : Fd) - FbF * sg, Fxr = (C.rwd ? Fd : 0) - FbR * sg;
+      // slip angles + Pacejka-style lateral force, sharing grip with braking/drive (friction circle)
+      const us = Math.max(Math.abs(u), 2.0);
+      aF = Math.atan2(v + C.a * w, us) - delta * (u >= -0.5 ? 1 : -1);
+      aR = Math.atan2(v - C.b * w, us);
+      const capF = Math.sqrt(Math.max(0, (mu * 0.9 * Fzf) ** 2 - Fxf * Fxf)), capR = Math.sqrt(Math.max(0, (mu * 1.3 * Fzr * (hand ? 0.33 : 1)) ** 2 - Fxr * Fxr));
+      Fyf = -capF * Math.sin(1.2 * Math.atan(7 * aF)); Fyr = -capR * Math.sin((hand ? 1.3 : 1.0) * Math.atan(10 * aR)); // stiffer rear = stable, front washes out first (understeer)
+      const Fres = (paved ? 0.013 : 0.05) * m * g * sg + C.cda * 0.6 * u * Math.abs(u);
+      const du = (Fxf * Math.cos(delta) - Fyf * Math.sin(delta) + Fxr - Fres) / m + v * w;
+      const dv = (Fxf * Math.sin(delta) + Fyf * Math.cos(delta) + Fyr) / m - u * w;
+      const dw = (C.a * (Fxf * Math.sin(delta) + Fyf * Math.cos(delta)) - C.b * Fyr) / C.Iz;
+      const u0 = u; u += du * tdt; v += dv * tdt; w += dw * tdt;
+      if (sg !== 0 && Math.sign(u) !== sg && Fdrive * sg <= 0) u = 0; // brakes stop the car, they don't reverse it
+      // low speed: blend to rolling (kinematic) motion so the car doesn't skate or spin in place
+      const lowK = clamp(1 - Math.abs(u) / 3, 0, 1);
+      if (lowK > 0) { v *= 1 - lowK * Math.min(1, tdt * 12); w = lerp(w, u * Math.tan(delta) / L, lowK * Math.min(1, tdt * 12)); }
+      this.axS = lerp(ax, (u - u0) / tdt, 0.2);
+      this.ayS = lerp(this.ayS || 0, u * w, 0.2);
+    }
+    if (pedal < 0.02 && brakeIn < 0.02 && Math.abs(u) < 0.12 && Math.abs(v) < 0.12) { u = 0; v = 0; w *= 0.5; }
+    if (brakeIn > 0.05 && Math.abs(u) < 0.4 && !rev) { u = 0; v *= 0.5; }
+    this.w = w; { const hn = this.h + w * dt, sx = Math.sin(hn), cz = Math.cos(hn); this.vx = sx * u + cz * v; this.vz = cz * u - sx * v; } // body-frame result expressed with this frame's new heading
+    const vR = -v;
+    this.slip = Math.max(Math.abs(aF), Math.abs(aR)) * Math.abs(u) * 0.6 + (wheelspin > 0.05 ? 4 + wheelspin * 6 : 0);
+    this.wheelspin = wheelspin; this.lockup = lockup; this.pedal = pedal; this.brakeAmt = brakeIn;
+    this.rpm = lerp(this.rpm || C.idle, dead ? 0 : Math.min(C.red + 150 + (limiter ? 0 : Math.random() * 200), rpm + (wheelspin > 0.1 ? wheelspin * 1500 : 0)), Math.min(1, dt * 9));
     // static collisions: sub-stepped so fast cars can't tunnel through walls
     let impact = 0, best = null;
     const nSub = Math.min(12, Math.max(1, Math.ceil(Math.hypot(this.vx, this.vz) * dt / 0.14)));
@@ -2602,6 +2669,7 @@ class Vehicle {
       const q = { x: wx, z: wz };
       const hit = pushCircle(q, 0.16, 0.45);
       if (!hit) continue;
+      this.touchT = 0.15;
       const dx = q.x - wx, dz = q.z - wz;
       this.x += dx; this.z += dz;
       const r0 = wx - this.x, r1 = wz - this.z;
@@ -2623,18 +2691,16 @@ class Vehicle {
     const nF = this.vx * fx + this.vz * fz;
     const longA = (nF - this.fwd) / Math.max(dt, 1e-3);
     this.fwd = nF; this.speed = Math.hypot(this.vx, this.vz);
-    this.pitch = lerp(this.pitch, clamp(-longA * 0.0045, -0.06, 0.06), Math.min(1, dt * 5));
-    this.roll = lerp(this.roll, clamp(this.w * nF * 0.0065, -0.07, 0.07), Math.min(1, dt * 5));
+    // suspension: body pitches under braking / acceleration and rolls in corners (spring + damper)
+    this.pv = (this.pv || 0) + ((clamp(-(this.axS || 0) * 0.0042, -0.07, 0.07) - this.pitch) * 70 - this.pv * 9) * dt; this.pitch += this.pv * dt;
+    this.rv = (this.rv || 0) + ((clamp((this.ayS || 0) * 0.0075, -0.085, 0.085) - this.roll) * 60 - this.rv * 8) * dt; this.roll += this.rv * dt;
     // suspension bounce after hits
     this.bv += (-this.bounce * 160 - this.bv * 9) * dt; this.bounce += this.bv * dt;
     // ---- rollover: sliding sideways on dirt digs the tyres in and trips the car
-    if (!paved && Math.abs(vR) > 7.5 && !this.flipped && Math.abs(this.rollA) < 1) { this.rollV += Math.sign(vR) * (Math.abs(vR) - 7.5) * 1.35 * dt; }
+    if (!paved && Math.abs(vR) > 8 && !this.flipped && Math.abs(this.rollA) < 1) { this.rollV += Math.sign(vR) * (Math.abs(vR) - 7.5) * 1.35 * dt; }
     this.stepRoll(dt);
     this.spin += nF * dt / this.m.wr;
-    this.brakeLit = I.brk > 0.05 && nF > 0.3 || I.hand > 0.5;
-    const gears = [0, 9, 17, 26, 36, 60]; let gi = 1; while (gi < 5 && Math.abs(nF) > gears[gi]) gi++;
-    const lo = gears[gi - 1], hi = gears[gi];
-    this.rpm = lerp(this.rpm, dead ? 0 : 850 + clamp((Math.abs(nF) - lo) / (hi - lo), 0, 1) * 4600 + thr * 600, Math.min(1, dt * 6));
+    this.brakeLit = this.brakeAmt > 0.05 && Math.abs(nF) > 0.3 || I.hand > 0.5;
     this.sync();
     return impact;
   }
@@ -2867,6 +2933,7 @@ const AU = {
     const w = c.createBufferSource(); w.buffer = nb; w.loop = true; const wf = c.createBiquadFilter(); wf.type = 'lowpass'; wf.frequency.value = 300; const wg = c.createGain(); wg.gain.value = 0;
     w.connect(wf); wf.connect(wg); wg.connect(this.master); n.start(); w.start();
     this.amb = { ag, wg };
+    if (this.buildV2) this.buildV2();
   },
   setOn(on) { if (this.master) this.master.gain.value = on ? 0.8 : 0; },
   beep(freq, dur, type = 'sine', vol = 0.2, when = 0, slide = 0) {
@@ -3138,7 +3205,7 @@ const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const touch = { joy: null, jx: 0, jy: 0, cam: null, act: false, sprint: false, gas: false, brake: false, hand: false, punch: false, crouch: false, left: false, right: false, aim: false, reload: false, weapon: false, stomp: false };
-let jumpEdge = false, punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
+let mouseFire = false, jumpEdge = false, punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
 let mouseCam = null;
 const camDelta = { x: 0, y: 0 };
 addEventListener('pointerdown', e => {
@@ -3146,7 +3213,7 @@ addEventListener('pointerdown', e => {
   if (state === 'cine') { skipCine(); return; }
   if (state !== 'play') return;
   if (e.target.closest && e.target.closest('.tb, #pauseBtn')) return;
-  if (e.pointerType === 'mouse') { if (e.button === 2) { mouseAim = true; return; } if (e.button === 0 && W && W.cur === 'glock' && !P.inCar) fireEdge = true; mouseCam = { id: e.pointerId, x: e.clientX, y: e.clientY }; return; }
+  if (e.pointerType === 'mouse') { if (e.button === 2) { mouseAim = true; return; } if (e.button === 0 && W && W.cur === 'glock' && !P.inCar) { fireEdge = true; mouseFire = true; } mouseCam = { id: e.pointerId, x: e.clientX, y: e.clientY }; return; }
   if (e.clientX < innerWidth * 0.42 && !touch.joy && !P.inCar) {
     touch.joy = { id: e.pointerId, x: e.clientX, y: e.clientY };
     const b = $('joyBase'); b.style.display = 'block'; b.style.left = e.clientX + 'px'; b.style.top = e.clientY + 'px'; $('joyKnob').style.transform = '';
@@ -3169,11 +3236,12 @@ const endPtr = e => {
   if (touch.cam && e.pointerId === touch.cam.id) touch.cam = null;
   if (mouseCam && e.pointerId === mouseCam.id) mouseCam = null;
   if (e.pointerType === 'mouse' && e.button === 2) mouseAim = false;
+  if (e.pointerType === 'mouse' && e.button === 0) mouseFire = false;
 };
 addEventListener('pointerup', endPtr); addEventListener('pointercancel', endPtr);
 for (const [id, k] of [['tAct', 'act'], ['tSprint', 'sprint'], ['tGas', 'gas'], ['tBrake', 'brake'], ['tHand', 'hand'], ['tPunch', 'punch'], ['tCrouch', 'crouch'], ['tLeft', 'left'], ['tRight', 'right'], ['tAim', 'aim'], ['tReload', 'reload'], ['tWeapon', 'weapon'], ['tStomp', 'stomp'], ['tJump', 'jump']]) {
   const b = $(id);
-  b.addEventListener('pointerdown', e => { e.preventDefault(); AU.init(); touch[k] = true; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) { } if (k === 'act') actEdge = true; if (k === 'punch') punchEdge = true; if (k === 'crouch') crouchEdge = true; if (k === 'reload') reloadEdge = true; if (k === 'weapon') switchEdge = true; if (k === 'stomp') stompEdge = true; if (k === 'jump') jumpEdge = true; if (k === 'aim') aimAssist(); });
+  b.addEventListener('pointerdown', e => { e.preventDefault(); AU.init(); touch[k] = true; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) { } if (k === 'aim') { touch.aimOn = !touch.aimOn; touch.aim = false; } if (k === 'act') actEdge = true; if (k === 'punch') punchEdge = true; if (k === 'crouch') crouchEdge = true; if (k === 'reload') reloadEdge = true; if (k === 'weapon') switchEdge = true; if (k === 'stomp') stompEdge = true; if (k === 'jump') jumpEdge = true; if (k === 'aim') aimAssist(); });
   const up = () => { touch[k] = false; b.classList.remove('on'); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
 }
@@ -3207,8 +3275,9 @@ function pollInput(dt) {
   inp.actEdge = edge(0) || actEdge; actEdge = false;
   inp.jump = jumpEdge || (!P.inCar && keys.Space && !inp.spaceHeld) || (!P.inCar && edge(0) && !(state === 'play' && currentInteraction())); inp.spaceHeld = !!keys.Space; jumpEdge = false;
   const armed = W && W.cur === 'glock' && !P.inCar;
-  inp.aim = (armed && (bv(6) > 0.3 || touch.aim || mouseAim || keys.KeyV));
-  inp.fire = armed && (edge(7) || fireEdge || (touch.punch && !touch.punchHeld) || keys.KeyK); touch.punchHeld = touch.punch; fireEdge = false;
+  if (!armed) touch.aimOn = false;
+  inp.aim = (armed && (bv(6) > 0.3 || touch.aimOn || mouseAim || keys.KeyV));
+  inp.fire = armed && (bt(7) || fireEdge || touch.punch || keys.KeyK || mouseFire); touch.punchHeld = touch.punch; fireEdge = false;
   inp.reload = (armed && edge(2) && !nearDownedQuick()) || reloadEdge || keys.KeyR; reloadEdge = false;
   inp.switchW = (!P.inCar && (edge(4) || edge(5))) || switchEdge; switchEdge = false;
   inp.stomp = stompEdge || (edge(2) && nearDownedQuick()); stompEdge = false;
@@ -3344,6 +3413,7 @@ function resetWorld() {
   if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.y = 0; P.vy = 0; P.hurtT = 9; player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
   if (W) { W.reloadT = -1; W.mag = 15; W.reserve = 60; if (W.handMag) { W.handMag.removeFromParent(); W.handMag = null; } W.gun.mag.visible = true; }
   $('timer').classList.add('hidden'); seq = null; car.doorA = 0;
+  for (const d of HH_DOORS) { d.open = false; d.ang = 0; d.vel = 0; d.g.rotation.y = 0; d.col.on = true; }
 }
 function startContract(id) {
   clearMissionEnts(); setupMission2();
@@ -3447,6 +3517,7 @@ function skipCine() { if (cine && !cine.outro) { cine = null; show('play'); } }
 function currentInteraction() {
   if (seq) return null;
   { const tk = takedownTarget(); if (tk) return { label: 'Silent takedown', tap: true, go: () => takedown(tk) }; }
+  if (!P.inCar) { const d = nearestDoor(P.x, P.z); if (d) return { label: d.open ? 'Close door' : 'Open door', tap: true, go: () => toggleDoor(d) }; }
   if (car.flipped && car.speed < 1.5 && (P.inCar || Math.hypot(P.x - car.x, P.z - car.z) < 4)) return { label: 'Flip the car back over', hold: 1.5, go: () => { car.flipUpright(); AU.hit(0.5, 200, 0.3); } };
   if (P.inCar) {
     if (car.speed < 2 && (MS.free || MS.id > 1 || MS.stage >= 3)) return { label: 'Get out', tap: true, go: beginExit };
@@ -3489,8 +3560,8 @@ function aimSolve(tx, ty, tz) { // camera yaw/pitch so the crosshair ray (throug
 }
 function doorStand() { const V = car.m.shape.V; return car.toWorld(car.m.hinge.x + 0.75, (V.door[0] + V.door[1]) / 2 - 0.1); }
 function seatPos() { const V = car.m.shape.V, cab = V.tubs[0]; return car.toWorld(0.37, (cab[0] + cab[1]) / 2 + 0.1); }
-function beginEnter() { if (seq) return; seq = { kind: 'in', t: 0, from: [P.x, P.z] }; P.vx = P.vz = 0; AU.hit(0.25, 900, 0.06); }
-function beginExit() { if (seq) return; seq = { kind: 'out', t: 0 }; car.input = { steer: 0, thr: 0, brk: 1, hand: 1 }; AU.hit(0.25, 900, 0.06); }
+function beginEnter() { if (seq) return; seq = { kind: 'in', t: 0, from: [P.x, P.z] }; P.vx = P.vz = 0; setTimeout(() => AU.carDoor('open'), 250); }
+function beginExit() { if (seq) return; seq = { kind: 'out', t: 0 }; car.input = { steer: 0, thr: 0, brk: 1, hand: 1 }; AU.carDoor('open'); }
 function updateSeq(dt) {
   const q = seq; q.t += dt;
   const st = doorStand(), sp = seatPos(), face = car.h - Math.PI / 2;
@@ -3503,7 +3574,7 @@ function updateSeq(dt) {
     player.update(dt, { spd: q.t < 0.45 ? 2 : 0, crouch: sit > 0.2, t: gameT });
     player.root.position.set(P.x, sit * 0.05, P.z); player.root.rotation.set(0, P.h, 0);
     if (q.t > 1.12 && !P.inCar) enterCar();
-    if (q.t > 1.6) { car.doorA = 0; seq = null; AU.hit(0.45, 260, 0.12); }
+    if (q.t > 1.6) { car.doorA = 0; seq = null; AU.carDoor('close'); AU.ignition(); }
   } else {
     car.doorA = q.t < 0.9 ? sm01(q.t / 0.3) : 1 - sm01((q.t - 0.95) / 0.35);
     if (q.t > 0.3 && P.inCar) exitCar(true);
@@ -3512,7 +3583,7 @@ function updateSeq(dt) {
       player.update(dt, { spd: q.t < 0.8 ? 1.2 : 0, crouch: k < 0.4, t: gameT });
       player.root.position.set(P.x, 0, P.z); player.root.rotation.set(0, P.h, 0);
     }
-    if (q.t > 1.3) { car.doorA = 0; seq = null; AU.hit(0.45, 260, 0.12); P.vx = P.vz = 0; }
+    if (q.t > 1.3) { car.doorA = 0; seq = null; AU.carDoor('close'); P.vx = P.vz = 0; }
   }
   car.sync();
 }
@@ -3714,10 +3785,10 @@ function processHits(v, mine) {
   for (const h of v.hits) {
     const near = Math.hypot(h.wx - camera.position.x, h.wz - camera.position.z);
     if (h.scrape) { FX.sparks(h.wx + (Math.random() - .5) * 2, 0.3, h.wz + (Math.random() - .5) * 2, 4); continue; }
-    if (h.roll) { FX.dust(h.wx, h.wz, 6); FX.sparks(h.wx, 0.4, h.wz, 10); if (near < 90) AU.crash(h.imp); if (mine) shakeAmt = Math.max(shakeAmt, 0.3); continue; }
+    if (h.roll) { FX.dust(h.wx, h.wz, 6); FX.sparks(h.wx, 0.4, h.wz, 10); if (near < 90) AU.crash(h.imp, h.wx, h.wz); if (mine) shakeAmt = Math.max(shakeAmt, 0.3); continue; }
     FX.sparks(h.wx, 0.55, h.wz, Math.min(40, Math.round(h.imp * 2.5)), h.nx, h.nz);
     if (h.imp > 5) FX.smoke(h.wx, 0.6, h.wz, 0x8a8580, 3, 0.8, 1.2, 0.8);
-    if (near < 90) AU.crash(h.imp * (mine ? 1 : 0.6));
+    if (near < 90) AU.crash(h.imp, h.wx, h.wz);
     if (mine) shakeAmt = Math.max(shakeAmt, Math.min(0.5, h.imp * 0.025));
   }
   v.hits.length = 0;
@@ -3805,7 +3876,7 @@ function updatePlayer(dt) {
   if (armed && inp.aim && !W.lock && W.relockT > 0) { W.relockT -= dt; if (W.relockT <= 0) { W.lockYO = 0; W.lockPO = 0; aimAssist(); } }
   if (armed && W.lock && inp.aim && !W.lock.rag && !W.lock.dead) { // sticky aim for touch
     const [yw, pt] = aimSolve(W.lock.x, 1.25, W.lock.z); camYaw += wrapA(yw + (W.lockYO || 0) - camYaw) * Math.min(1, dt * 12);
-    camPitch = damp(camPitch, pt + (W.lockPO || 0), 10, dt);
+    camPitch = damp(camPitch, pt + (W.lockPO || 0) - (W.recVis || 0), 10, dt);
   }
   if (armed && inp.aim) { P.h = camYaw + Math.PI; combat.fightT = 0; }
   if (armed && inp.fire) { if (!inp.aim) P.h = camYaw + Math.PI; playerShoot(); }
@@ -3836,6 +3907,7 @@ function updatePlayer(dt) {
   }
   P.turn = damp(P.turn, wrapA(P.h - oldH) / Math.max(dt, 1e-3), 10, dt);
   P.acc = damp(P.acc, (spd - P.lastSpd) / Math.max(dt, 1e-3), 8, dt); P.lastSpd = spd;
+  if (P.sprint && P.spd > 4) { const d = nearestDoor(P.x + Math.sin(P.h) * 0.6, P.z + Math.cos(P.h) * 0.6, 0.7); if (d && !d.open) toggleDoor(d, true); }
   // hard wall stop
   const before = { x: P.x, z: P.z };
   if (pushCircle(P, 0.33, P.y + 0.3)) { const lost = Math.hypot(P.x - before.x, P.z - before.z) / Math.max(dt, 1e-3); if (lost > 0.5) { const k = Math.max(0, 1 - lost / Math.max(spd, 0.1)); P.vx *= k; P.vz *= k; } }
@@ -3849,7 +3921,8 @@ function updatePlayer(dt) {
   if (ev === 'impact') { if (player.st.act && player.st.act.def.leg) resolveStomp(); else if (!armed) resolvePunch(); }
   player.root.position.set(P.x, P.y, P.z); player.root.rotation.set(0, P.h, 0);
   sneakAmt = P.crouch ? 1 : 0;
-  P.stepT += (P.y > 0 ? 0 : spd) * dt; if (P.stepT > (P.sprint ? 1.7 : 1.25)) { P.stepT = 0; AU.hit(P.sprint ? 0.16 : P.crouch ? 0.015 : 0.05, inside ? 900 : 500, 0.05); if (P.sprint && !onRoad(P.x, P.z) && !inside) FX.dust(P.x, P.z, 2); }
+  P.stepT += (P.y > 0 ? 0 : spd) * dt; if (P.stepT > (P.sprint ? 1.7 : 1.25)) { P.stepT = 0; P.footL = !P.footL;
+    if (DEC && inBlood(P.x, P.z)) P.bloodSteps = 14; if (P.bloodSteps > 0) { footprint(P.x, P.z, P.h, P.footL, P.bloodSteps / 14); P.bloodSteps--; } AU.step(INTERIORS.some(I => P.x > I.x1 && P.x < I.x2 && P.z > I.z1 && P.z < I.z2) ? 'wood' : insideWH(P.x, P.z) ? 'hard' : onRoad(P.x, P.z) ? (PAVED.some(r => r && P.x >= r[0] && P.x <= r[2] && P.z >= r[1] && P.z <= r[3]) && !ROADS.some(r => P.x >= r.minx && P.x <= r.maxx && P.z >= r.minz && P.z <= r.maxz) && insideWH(P.x, P.z, 50) ? 'gravel' : 'hard') : 'grass', P.sprint ? 1 : P.crouch ? 0.25 : 0.55); if (P.sprint && !onRoad(P.x, P.z) && !inside) FX.dust(P.x, P.z, 2); }
 }
 
 function updateMission(dt) {
@@ -3959,7 +4032,9 @@ function updateHUD(dt) {
   const armed = W.cur === 'glock' && !P.inCar;
   document.body.classList.toggle('armed', armed); document.body.classList.toggle('hasgun', W.has.glock && !P.inCar);
   $('ammo').classList.toggle('hidden', !armed); if (armed) $('ammoT').textContent = W.mag + ' / ' + (W.infinite ? '\u221e' : W.reserve) + (W.reloadT >= 0 ? '  RELOADING' : '');
-  $('cross').classList.toggle('hidden', !(armed && W.aim > 0.5)); $('cross').classList.toggle('lock', !!W.lock);
+  $('cross').classList.toggle('hidden', !(armed && W.aim > 0.5)); $('cross').classList.toggle('lock', !!W.lock || !!W.over); $('cross').classList.toggle('head', W.over === 'head');
+  if (armed && W.aim > 0.5) $('cross').style.setProperty('--gap', (5 + (W.spread + Math.min(0.04, P.spd * 0.006)) * 520 + W.recoil * 8).toFixed(1) + 'px');
+  $('tAim').classList.toggle('on', !!touch.aimOn);
   document.body.classList.toggle('canstomp', nearDownedQuick() && !P.dead);
   // speedometer
   $('speedo').classList.toggle('hidden', !P.inCar);
@@ -4045,9 +4120,7 @@ function update(dt) {
   updateGrass(camera.position.x, camera.position.z, q.grass);
   // engine audio
   if (AU.ctx && AU.engine) {
-    const e = AU.engine, on = P.inCar && (state === 'play' || state === 'cine');
-    const f = car.rpm / 60 * 2; e.o1.frequency.value = f; e.o2.frequency.value = f * 0.5; e.f.frequency.value = 300 + car.rpm * 0.25 + car.input.thr * 600;
-    e.g.gain.value = lerp(e.g.gain.value, on ? 0.05 + car.input.thr * 0.05 : 0, 0.1);
+    AU.updateCar(dt, [car, ...traffic.map(a => a.v)], state === 'play' || state === 'cine');
     AU.amb.ag.gain.value = (state === 'play' || state === 'cine') ? 0.02 * (1 - inAdapt * 0.6) : 0;
     AU.amb.wg.gain.value = (state === 'play' || state === 'cine') ? 0.05 + (P.inCar ? car.speed * 0.004 : 0) : 0;
   }
@@ -4122,7 +4195,7 @@ async function boot() {
   $('btnFree').classList.toggle('hidden', !save.passed); $('btnCont').classList.toggle('hidden', !save.pos);
   $('mainMenu').classList.remove('hidden');
   show('menu');
-  window.__PL = player; window.__SL = { aimAt: (e, y) => { const [a, b] = aimSolve(e.x, y, e.z); camYaw = a; camPitch = b; camIdle = -99; }, castBullet, partSegments, camera, get W() { return W; }, MS2, humans, hitPerson, playerShoot, startContract, saveGame, continueGame, setCam: (y, p) => { camYaw = y; camPitch = p; camIdle = -99; }, ready: true, scene, renderer, P, MS, car, npcs, traffic, combat, startPunch, guard: () => guard, state: () => state, HOME, startMission, startFreeRoam, enterCar, passMission };
+  window.__PL = player; window.__SL = { doors: HH_DOORS, aimAt: (e, y) => { const [a, b] = aimSolve(e.x, y, e.z); camYaw = a; camPitch = b; camIdle = -99; }, castBullet, partSegments, camera, get W() { return W; }, MS2, humans, hitPerson, playerShoot, startContract, saveGame, continueGame, setCam: (y, p) => { camYaw = y; camPitch = p; camIdle = -99; }, ready: true, scene, renderer, P, MS, car, npcs, traffic, combat, startPunch, guard: () => guard, state: () => state, HOME, startMission, startFreeRoam, enterCar, passMission };
 }
 requestAnimationFrame(loop);
 boot().catch(e => { console.error(e); $('loadLabel').textContent = 'Error: ' + e.message; });
@@ -4142,7 +4215,12 @@ const _q1 = new THREE.Quaternion(), _q2 = new THREE.Quaternion(), _v1 = new THRE
 const UPV = new THREE.Vector3(0, 1, 0), DOWNV = new THREE.Vector3(0, -1, 0);
 
 // ---------------------------------------------------------------- decals (blood, bullet holes)
-let DEC = null;
+let DEC = null, DEC_FOOT = null;
+function footprint(x, z, h, left, k) {
+  const m = new THREE.Mesh(DEC.geo, DEC_FOOT[Math.min(3, Math.floor((1 - k) * 4))]); m.rotation.order = 'YXZ'; m.rotation.set(-Math.PI / 2, h, 0);
+  m.position.set(x + Math.cos(h) * (left ? 0.1 : -0.1), 0.036, z - Math.sin(h) * (left ? 0.1 : -0.1)); m.scale.set(0.11, 0.26, 1); scene.add(m); DEC.list.push(m);
+}
+function inBlood(x, z) { for (const e of humans()) if (e.pool && Math.hypot(e.pool.position.x - x, e.pool.position.z - z) < e.pool.scale.x * 0.42) return true; return false; }
 function initDecals() {
   const R = rng(55);
   const red = a => `rgba(${84 + R() * 34 | 0},${3 + R() * 7 | 0},${5 + R() * 6 | 0},${a})`;
@@ -4181,6 +4259,9 @@ function initDecals() {
   });
   const run = signTex(32, 128, (g, W, H) => { g.clearRect(0, 0, W, H); const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, 'rgba(80,0,4,.9)'); gr.addColorStop(1, 'rgba(80,0,4,.2)'); g.fillStyle = gr; g.beginPath(); g.moveTo(10, 0); g.lineTo(22, 0); g.lineTo(18, H - 12); g.arc(16, H - 10, 6, 0, TAU); g.lineTo(13, H - 12); g.fill(); });
   const mk = (t, op, side) => new THREE.MeshStandardMaterial({ map: t, transparent: true, depthWrite: false, roughness: 0.22, metalness: 0.1, opacity: op, side: side || THREE.FrontSide, polygonOffset: true, polygonOffsetFactor: -9, polygonOffsetUnits: -9 });
+  const foot = signTex(64, 128, (g, W, H) => { g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(80,4,6,.9)'; g.beginPath(); g.ellipse(32, 40, 18, 30, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(32, 100, 14, 18, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(0,0,0,0)'; });
+  const footM = [0.85, 0.6, 0.38, 0.2].map(o => new THREE.MeshStandardMaterial({ map: foot, transparent: true, opacity: o, depthWrite: false, roughness: 0.3, polygonOffset: true, polygonOffsetFactor: -9, polygonOffsetUnits: -9 }));
+  DEC_FOOT = footM;
   DEC = { splat: mk(splat, 1), streak: mk(streak, 1), pool: mk(pool, 0.95), drop: mk(drop, 1), hole: mk(hole, 1), stain: mk(stain, 1, THREE.DoubleSide), run: mk(run, 1, THREE.DoubleSide), list: [], max: 220, geo: new THREE.PlaneGeometry(1, 1), geo2: new THREE.PlaneGeometry(2, 1) };
 }
 function decal(kind, x, y, z, nx, ny, nz, size, dirx = null, diry = 0, dirz = 0) {
@@ -4200,10 +4281,10 @@ function bloodBurst(x, y, z, dx, dy, dz, power = 1, head = false) {
   for (let i = 0; i < n; i++) {
     const back = Math.random() < 0.22, sp = (back ? 1 + Math.random() * 2 : 2.5 + Math.random() * 6) * power;
     const sx = back ? -dx : dx, sz = back ? -dz : dz;
-    FXS.norm.spawn(x, y, z, sx * sp + (Math.random() - .5) * 1.8, dy * sp + (Math.random() - .3) * 2.2, sz * sp + (Math.random() - .5) * 1.8, 0.6 + Math.random() * 0.8, 0.03 + Math.random() * 0.05, Math.random() < 0.5 ? 0x7a0a0c : 0x5a0608, 0.95, 9.8, 0.3, 0);
+    FXS.norm.spawn(x, y, z, sx * sp + (Math.random() - .5) * 1.8, dy * sp + (Math.random() - .3) * 2.2, sz * sp + (Math.random() - .5) * 1.8, 1.4 + Math.random() * 0.8, 0.03 + Math.random() * 0.05, Math.random() < 0.5 ? 0x7a0a0c : 0x5a0608, 0.95, 9.8, 0.3, 0, i % 2);
   }
   for (let i = 0; i < G.mist * power * k; i++) { const sp = 0.6 + Math.random() * 2.2; FXS.norm.spawn(x + dx * 0.1, y, z + dz * 0.1, dx * sp + (Math.random() - .5) * 0.9, dy * sp + (Math.random() - .4) * 0.7, dz * sp + (Math.random() - .5) * 0.9, 0.45 + Math.random() * 0.5, 0.16 + Math.random() * 0.3, Math.random() < 0.5 ? 0xb01828 : 0x8a0c18, 0.42, 0.3, 2.8, 1.3); }
-  for (let i = 0; i < G.decals * k * power; i++) {
+  for (let i = 0; i < G.decals * k * power * 0.5; i++) {
     const d = 0.4 + Math.random() * 2.2 * power, gx = x + dx * d + (Math.random() - .5) * 0.8, gz = z + dz * d + (Math.random() - .5) * 0.8;
     if (Math.random() < 0.5) decal('streak', gx, 0.04, gz, 0, 1, 0, (0.25 + Math.random() * 0.5) * G.streak * power, dx, 0, dz);
     else decal('splat', gx, 0.04, gz, 0, 1, 0, 0.2 + Math.random() * 0.5 * power);
@@ -4217,11 +4298,16 @@ function bloodBurst(x, y, z, dx, dy, dz, power = 1, head = false) {
       const nl = Math.hypot(nx, nz) || 1; nx /= nl; nz /= nl;
       decal('streak', hx, hy, hz, nx, 0, nz, (0.45 + Math.random() * 0.6) * G.streak * power * (head ? 1.3 : 1), dx, dy - 0.15, dz);
       for (let i = 0; i < 3 * k; i++) decal('drop', hx + nz * (Math.random() - .5) * 0.9, hy + (Math.random() - .5) * 0.7, hz - nx * (Math.random() - .5) * 0.9, nx, 0, nz, 0.06 + Math.random() * 0.12);
+      for (let i = 0; i < 2 + G.drip * 1.5; i++) {
+        const ox = (Math.random() - .5) * 0.7, wy = hy + (Math.random() - .3) * 0.3;
+        const m = new THREE.Mesh(DEC.geo, DEC.run); m.position.set(hx + nz * ox + nx * 0.014, wy, hz - nx * ox + nz * 0.014); m.lookAt(m.position.x + nx, wy, m.position.z + nz);
+        m.scale.set(0.035 + Math.random() * 0.03, 0.01, 1); scene.add(m); DEC.list.push(m); WALLRUNS.push({ m, t: 0, y0: wy, len: 0.25 + Math.random() * 0.8 * power, rate: 0.12 + Math.random() * 0.2 });
+      }
     }
   }
 }
 // wounds on the body: a bullet hole, blood soaking out into the shirt, and a run of blood down from it
-const WOUNDS = [];
+const WOUNDS = [], WALLRUNS = [];
 function woundMark(e, part, point, dx = 0, dz = 0) {
   const m = e.m; if (!DEC) return;
   let grp;
@@ -4248,6 +4334,9 @@ function updateGore(dt) {
     if (!w.e.rag) { const r = w.runMax * Math.min(1, w.t / 6); w.run.scale.y = Math.max(0.01, r); w.run.position.y = w.run.position.y; }
     if (w.t > 12) WOUNDS.splice(i, 1);
   }
+  for (let i = WALLRUNS.length - 1; i >= 0; i--) { const r = WALLRUNS[i]; r.t += dt; const l = Math.min(r.len, r.t * r.rate * (1 - r.t * 0.05)); r.m.scale.y = Math.max(0.01, l); r.m.position.y = r.y0 - l / 2; if (r.t > 8 || !r.m.parent) WALLRUNS.splice(i, 1); }
+  // drops that hit the ground leave a mark where they actually landed
+  const L = FXS.norm.landed; if (L) { for (let n = 0; n < Math.min(L.length, 60); n += 3) decal('drop', L[n], 0.035, L[n + 1], 0, 1, 0, 0.04 + L[n + 2] * 1.6); L.splice(0, Math.min(L.length, 60)); }
   // wounded people drip and leave a trail
   const G = gore();
   for (const e of humans()) {
@@ -4544,7 +4633,7 @@ function ejectCasing(pos, dir) {
 }
 function updateCasings(dt) {
   CAS.list.forEach((c, i) => {
-    if (c.t < 4) { c.t += dt; c.v.y -= 9.8 * dt; c.p.addScaledVector(c.v, dt); c.r.x += c.w * dt; c.r.z += c.w * 0.7 * dt; if (c.p.y < 0.01) { c.p.y = 0.01; if (c.v.y < -0.5) { c.v.y *= -0.35; c.v.x *= 0.6; c.v.z *= 0.6; c.w *= 0.5; if (c.v.y > 0.3 && Math.random() < 0.6) AU.tink(); } else { c.v.set(0, 0, 0); c.w = 0; } } }
+    if (c.t < 4) { c.t += dt; c.v.y -= 9.8 * dt; c.p.addScaledVector(c.v, dt); c.r.x += c.w * dt; c.r.z += c.w * 0.7 * dt; if (c.p.y < 0.01) { c.p.y = 0.01; if (c.v.y < -0.5) { c.v.y *= -0.35; c.v.x *= 0.6; c.v.z *= 0.6; c.w *= 0.5; if (c.v.y > 0.3 && Math.random() < 0.6) AU.tink(c.p.x, c.p.z); } else { c.v.set(0, 0, 0); c.w = 0; } } }
     CAS.mesh.setMatrixAt(i, new THREE.Matrix4().compose(c.p, new THREE.Quaternion().setFromEuler(c.r), new THREE.Vector3(1, 1, 1)));
   });
   CAS.mesh.count = CAS.list.length; CAS.mesh.instanceMatrix.needsUpdate = true;
@@ -4581,7 +4670,7 @@ function fireGun(o, d, shooter, isPlayer) {
 const aimRay = { o: new THREE.Vector3(), d: new THREE.Vector3() };
 function playerShoot() {
   if (W.cur !== 'glock' || W.reloadT >= 0 || W.cool > 0 || P.inCar || seq) return;
-  if (W.mag <= 0) { AU.click(); startReload(); return; }
+  if (W.mag <= 0) { AU.reload('empty'); W.cool = 0.25; startReload(); return; }
   W.mag--; W.cool = 0.13; W.recoil = W.suppressed ? 0.8 : 1; W.flashT = W.suppressed ? 0.025 : 0.05;
   W.flash.scale.setScalar(W.suppressed ? 0.14 : 0.35);
   // ray from the camera through the crosshair, start beyond the player
@@ -4598,19 +4687,22 @@ function playerShoot() {
   FX.smoke(m.x, m.y, m.z, 0xc8c4be, 2, 0.15, 0.7, 0.4);
   ejectCasing(W.gun.eject.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(Math.cos(P.h), 0, -Math.sin(P.h)));
   if (W.suppressed) AU.gunS(); else AU.gun(1);
-  shakeAmt = Math.max(shakeAmt, W.suppressed ? 0.04 : 0.06); camPitch += 0.018; camYaw += (Math.random() - .5) * 0.01;
+  if (hit.kind === 'person') AU.impact('flesh', hit.e.x, hit.e.z); else if (hit.kind === 'car') AU.impact('metal', aimRay.o.x + aimRay.d.x * hit.t, aimRay.o.z + aimRay.d.z * hit.t); else if (hit.kind !== 'none') AU.impact(hit.kind === 'wall' ? 'wall' : 'ground', aimRay.o.x + aimRay.d.x * hit.t, aimRay.o.z + aimRay.d.z * hit.t);
+  shakeAmt = Math.max(shakeAmt, W.suppressed ? 0.035 : 0.055);
+  const kick = 0.026 + Math.random() * 0.012; camPitch -= kick; W.rec = (W.rec || 0) + kick * 0.85; W.recVis = (W.recVis || 0) + kick; camYaw += (Math.random() - .5) * 0.012;
+  W.heat = Math.min(8, (W.heat || 0) + 1); if (W.mag === 0) W.slideLock = true;
   if (hit.kind === 'person') { showHit(hit.part === 'head'); }
   P.noise = 1;
 }
 function startReload() {
   if (W.reloadT >= 0 || W.mag >= 15 || (!W.infinite && W.reserve <= 0)) return;
-  W.reloadT = 0; W.dropped = false; W.inserted = false; W.racked = false;
+  W.reloadDur = W.mag > 0 ? 1.4 : 1.85; W.reloadT = 0; W.dropped = false; W.inserted = false; W.racked = false;
 }
 function updateReload(dt) {
   if (W.reloadT < 0) return;
-  W.reloadT += dt / 1.7; const r = W.reloadT;
+  W.reloadT += dt / (W.reloadDur || 1.7); const r = W.reloadT;
   if (r > 0.2 && !W.dropped) { // magazine drops out and falls with physics
-    W.dropped = true; AU.click(0.6);
+    W.dropped = true; AU.reload('out'); setTimeout(() => AU.reload('drop'), 380);
     const mag = W.gun.mag, wp = mag.getWorldPosition(new THREE.Vector3()), wq = mag.getWorldQuaternion(new THREE.Quaternion());
     const fm = mag.clone(); fm.position.copy(wp); fm.quaternion.copy(wq); scene.add(fm); mag.visible = false;
     debris.push({ o: fm, vx: (Math.random() - .5) * 0.6, vy: -0.5, vz: (Math.random() - .5) * 0.6, ax: (Math.random() - .5) * 8, az: (Math.random() - .5) * 8, t: 0 });
@@ -4618,8 +4710,8 @@ function updateReload(dt) {
   if (r > 0.42 && r < 0.75) { // new magazine in the left hand
     if (!W.handMag) { W.handMag = W.gun.mag.clone(); W.handMag.visible = true; W.handMag.position.set(0, -0.05, 0.02); W.handMag.rotation.set(0, 0, 0); player.arms.L.fist.add(W.handMag); }
   }
-  if (r > 0.75 && !W.inserted) { W.inserted = true; if (W.handMag) { W.handMag.parent.remove(W.handMag); W.handMag = null; } W.gun.mag.visible = true; AU.click(0.9); }
-  if (r > 0.88 && !W.racked) { W.racked = true; W.rackT = 0.12; AU.click(1.3); }
+  if (r > 0.75 && !W.inserted) { W.inserted = true; if (W.handMag) { W.handMag.parent.remove(W.handMag); W.handMag = null; } W.gun.mag.visible = true; AU.reload('in'); }
+  if (r > 0.88 && !W.racked) { W.racked = true; W.rackT = 0.12; W.slideLock = false; AU.reload(W.reloadDur > 1.5 ? 'rack' : 'in'); }
   if (r >= 1) { const need = 15 - W.mag; const take = W.infinite ? need : Math.min(need, W.reserve); W.mag += take; if (!W.infinite) W.reserve -= take; W.reloadT = -1; }
 }
 function showHit(head) { const hm = $('hitm'); hm.classList.remove('show'); void hm.offsetWidth; hm.classList.toggle('head', head); hm.classList.add('show'); }
@@ -4646,10 +4738,17 @@ function resolveStomp() {
 // ---------------------------------------------------------------- player weapon update (called every frame on foot)
 function updateWeapon(dt) {
   W.cool -= dt; W.spread = Math.max(0, W.spread - dt * 0.08); W.recoil = Math.max(0, W.recoil - dt * 7);
+  if (W.rec > 0) { const r = W.rec * Math.min(1, dt * 6); camPitch += r; W.rec -= r; }
+  W.recVis = (W.recVis || 0) * Math.exp(-dt * 9);
+  W.heat = Math.max(0, (W.heat || 0) - dt * 0.8);
+  if (W.heat > 2.5 && W.cur === 'glock' && !P.inCar && Math.random() < dt * W.heat * 2) { const m = W.gun.muz.getWorldPosition(_v1); FXS.norm.spawn(m.x, m.y, m.z, (Math.random() - .5) * 0.1, 0.25 + Math.random() * 0.2, (Math.random() - .5) * 0.1, 1.4, 0.04, 0xbdb8b0, 0.25, -0.05, 0.6, 0.12); }
+  // what's under the crosshair (for the red reticle / head dot)
+  W.over = null;
+  if (W.aim > 0.5 && W.cur === 'glock') { camera.getWorldDirection(_v2); const o = camera.position.clone(); let best = 60; for (const e of humans()) { if (e === P.ent || e.dead || Math.hypot(e.x - P.x, e.z - P.z) > 60) continue; for (const [part, a, b, r] of partSegments(e)) { const t = raySegment(o, _v2.clone(), a, b, r); if (t >= 0 && t < best) { best = t; W.over = part; } } } if (W.over && segHit(o.x, o.z, o.x + _v2.x * best, o.z + _v2.z * best, o.y, o.y + _v2.y * best) >= 0) W.over = null; }
   if (W.flashT > 0) { W.flashT -= dt; W.flash.visible = true; W.light.intensity = 9; } else { W.flash.visible = false; W.light.intensity = 0; }
   if (W.traceT > 0) { W.traceT -= dt; if (W.traceT <= 0) W.tracer.material.opacity = 0; }
   if (W.rackT > 0) { W.rackT -= dt; W.gun.slide.position.z = -0.03 * Math.sin(Math.max(0, W.rackT) / 0.12 * Math.PI); }
-  else W.gun.slide.position.z = -0.028 * W.recoil * (W.recoil > 0.7 ? 1 : 0.3);
+  else W.gun.slide.position.z = W.slideLock ? -0.032 : -0.03 * Math.min(1, W.recoil * 1.6) * (W.recoil > 0.45 ? 1 : W.recoil / 0.45);
   updateReload(dt);
   W.gun.g.visible = W.cur === 'glock' && !P.inCar && !(P.dead);
   if (W.gun.sup.visible !== !!W.suppressed) { W.gun.sup.visible = !!W.suppressed; W.gun.muz.position.z = W.suppressed ? 0.25 : 0.1; }
@@ -4799,7 +4898,8 @@ function updateTargets(dt) {
       else { e.x += Math.cos(th) * e.strafeDir * 1.2 * sp * dt; e.z -= Math.sin(th) * e.strafeDir * 1.2 * sp * dt; spd = 1.2 * sp; }
       e.cool -= dt; e.aim = d ? 1 : 0.4;
       // a beat to react before the first shot
-      if (d && e.cool <= 0 && e.clutch < 0.4 && gameT - (e.alertedAt || 0) > 0.7) { e.cool = 0.5 + Math.random() * 0.9; enemyShoot(e, d); }
+      if (d) e.seeT = (e.seeT || 0) + dt; else e.seeT = 0;
+      if (d && e.cool <= 0 && e.clutch < 0.4 && gameT - (e.alertedAt || 0) > 1.2 && e.seeT > 0.6) { e.cool = 0.85 + Math.random() * 1.0; enemyShoot(e, d); }
     }
     const p = { x: e.x, z: e.z }; pushCircle(p, 0.3); e.x = p.x; e.z = p.z;
     e.recoil = Math.max(0, (e.recoil || 0) - dt * 7);
@@ -4813,8 +4913,9 @@ function enemyShoot(e, d) {
   e.recoil = 1;
   const m = e.gun.muz.getWorldPosition(new THREE.Vector3());
   W.eflash.position.copy(m); W.eflash.visible = true; W.elight.position.copy(m); W.elight.intensity = 9; W.eFlashT = 0.05;
-  AU.gun(0.8); noiseEvent(e.x, e.z, 60, 'loud');
-  const acc = clamp(0.6 - d * 0.013 - Math.min(0.25, P.spd * 0.05) - (P.crouch ? 0.12 : 0) - (e.limp ? 0.1 : 0) - (e.clutch > 0.3 ? 0.2 : 0), 0.06, 0.6);
+  AU.gun(0.85, e.x, e.z); noiseEvent(e.x, e.z, 60, 'loud');
+  e.shots = (e.shots || 0) + 1;
+  const acc = e.shots <= 2 ? 0 : clamp(0.3 - d * 0.012 - Math.min(0.15, P.spd * 0.04) - (P.crouch ? 0.08 : 0) - (e.limp ? 0.08 : 0) - (e.clutch > 0.3 ? 0.12 : 0), 0.04, 0.3);
   const hit = Math.random() < acc;
   const tgt = new THREE.Vector3(P.x + (hit ? 0 : (Math.random() - .5) * 2.4), hit ? 1.2 : 0.4 + Math.random() * 1.6, P.z + (hit ? 0 : (Math.random() - .5) * 2.4));
   const dir = tgt.clone().sub(m).normalize();
@@ -4823,7 +4924,8 @@ function enemyShoot(e, d) {
   tp.setXYZ(0, m.x, m.y, m.z); tp.setXYZ(1, end.x, end.y, end.z); tp.needsUpdate = true; W.tracer.material.opacity = 0.6; W.traceT = 0.05;
   if (res.kind === 'wall' || res.kind === 'car' || res.kind === 'ground') { FX.sparks(end.x, end.y, end.z, 4, -dir.x, -dir.z); decal('hole', end.x - dir.x * 0.02, end.y, end.z - dir.z * 0.02, res.kind === 'ground' ? 0 : -dir.x, res.kind === 'ground' ? 1 : 0, res.kind === 'ground' ? 0 : -dir.z, 0.06); return; }
   if (res.kind === 'person') { hitPerson(res.e, res.part, end, dir.x, dir.y, dir.z, 'gun'); return; }
-  if (hit) hurtPlayer(9 + Math.random() * 8, e.x, e.z);
+  if (hit) hurtPlayer(7 + Math.random() * 5, e.x, e.z);
+  else if (Math.hypot(P.x - end.x, P.z - end.z) < 3) AU.tone(AU.ctx.currentTime, 0.12, 'sine', 2600, 0.05, 900, 0.1); // near-miss whizz
 }
 // silent takedown from behind on someone who hasn't noticed you
 function takedownTarget() {
@@ -4884,11 +4986,22 @@ function mission23Target() {
   if (MS.stage === 2) return { x: HOME.x, z: HOME.z };
   return null;
 }
+// hinged doors: spring toward open / shut, bounce off the stop, can be kicked open
+function nearestDoor(x, z, r = 1.4) { let best = null, bd = r; for (const d of HH_DOORS) { const dd = Math.hypot(x - d.x, z - d.z); if (dd < bd) { bd = dd; best = d; } } return best; }
+function toggleDoor(d, kick = false) {
+  d.open = kick ? true : !d.open;
+  if (kick) { d.vel = d.sgn * 9; AU.door('kick', d.x, d.z); noiseEvent(d.x, d.z, 14, 'quiet'); shakeAmt = Math.max(shakeAmt, 0.12); }
+  else AU.door(d.open ? 'open' : 'close', d.x, d.z);
+}
 function updateDoorsHH(dt) {
   for (const d of HH_DOORS) {
-    let near = Math.hypot(P.x - d.x, P.z - d.z) < 1.8;
-    for (const e of MS2.ents) if (!e.rag && Math.hypot(e.x - d.x, e.z - d.z) < 1.8) near = true;
-    d.open = clamp(d.open + (near ? dt * 3 : -dt * 1.2), 0, 1); d.g.rotation.y = d.sgn * d.open * 1.6; d.col.on = d.open < 0.5;
+    for (const e of MS2.ents) if (!e.rag && !e.dead && !d.open && Math.hypot(e.x - d.x, e.z - d.z) < 1.4 && (e.alerted || e.state === 'search' || e.state === 'return')) toggleDoor(d);
+    const target = d.open ? d.sgn * 1.55 : 0;
+    d.vel += ((target - d.ang) * 26 - d.vel * 5.5) * dt;
+    d.ang += d.vel * dt;
+    if (Math.abs(d.ang) > 1.75) { d.ang = Math.sign(d.ang) * 1.75; d.vel *= -0.35; } // door stop
+    if (!d.open && Math.abs(d.ang) < 0.03 && Math.abs(d.vel) > 0.6) { d.vel = 0; d.ang = 0; AU.door('close', d.x, d.z); }
+    d.g.rotation.y = d.ang; d.col.on = Math.abs(d.ang) < 0.35;
   }
 }
 
@@ -4900,6 +5013,184 @@ function saveGame() {
   save.glock = W.has.glock; save.time = Date.now();
   store.set('sl.save', save); toast('GAME SAVED', 1.6);
 }
+
+// ============================================================================
+//  SOUND v2 — everything synthesized live: a 4-cylinder engine built from its
+//  firing frequency, tyres, wind, brakes, scraping metal, layered crashes,
+//  guns with indoor/outdoor reverb, reloads, impacts, footsteps, doors.
+// ============================================================================
+const isIndoor = () => insideWH(camera.position.x, camera.position.z) || INTERIORS.some(I => camera.position.x > I.x1 && camera.position.x < I.x2 && camera.position.z > I.z1 && camera.position.z < I.z2);
+const attn = (x, z, range = 60) => x == null ? 1 : clamp(1 - Math.hypot(x - camera.position.x, z - camera.position.z) / range, 0, 1) ** 1.3;
+Object.assign(AU, {
+  buildV2() {
+    const c = this.ctx;
+    // reverbs: a short bright room and a long open-air tail
+    const ir = (sec, decay, pre = 0) => { const n = Math.floor(c.sampleRate * sec), b = c.createBuffer(2, n, c.sampleRate); for (let ch = 0; ch < 2; ch++) { const d = b.getChannelData(ch); for (let i = 0; i < n; i++) { const t = i / n; d[i] = i < pre * c.sampleRate ? 0 : (Math.random() * 2 - 1) * Math.pow(1 - t, decay) * (0.6 + 0.4 * Math.sin(i * 0.001 + ch)); } } return b; };
+    this.rvIn = c.createConvolver(); this.rvIn.buffer = ir(0.7, 3.5); this.rvOut = c.createConvolver(); this.rvOut.buffer = ir(2.6, 2.6, 0.02);
+    this.rvIn.connect(this.master); this.rvOut.connect(this.master);
+    const echo = c.createDelay(1); echo.delayTime.value = 0.38; const eg = c.createGain(); eg.gain.value = 0.22; const ef = c.createBiquadFilter(); ef.type = 'lowpass'; ef.frequency.value = 1400;
+    echo.connect(ef); ef.connect(eg); eg.connect(this.master); this.echo = echo;
+    const shaper = (amt) => { const s = c.createWaveShaper(), n = 1024, cv = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; cv[i] = Math.tanh(x * amt); } s.curve = cv; return s; };
+    this.shaper = shaper;
+    const noise = (lp) => { const s = c.createBufferSource(); s.buffer = this.noise; s.loop = true; s.start(); return s; };
+    const mkEngine = () => {
+      const E = {}; E.out = c.createGain(); E.out.gain.value = 0; E.out.connect(this.master);
+      E.pan = c.createGain(); E.pan.connect(E.out);
+      E.lp = c.createBiquadFilter(); E.lp.type = 'lowpass'; E.lp.Q.value = 1.4; E.lp.frequency.value = 400;
+      E.sh = shaper(2.2); E.mix = c.createGain(); E.mix.gain.value = 0.6; E.mix.connect(E.sh); E.sh.connect(E.lp); E.lp.connect(E.pan);
+      E.osc = [['sawtooth', 1, 0.55], ['triangle', 0.5, 0.6], ['square', 2, 0.1], ['sawtooth', 1.5, 0.12]].map(([t, mul, g]) => { const o = c.createOscillator(); o.type = t; const gg = c.createGain(); gg.gain.value = g; o.connect(gg); gg.connect(E.mix); o.start(); return { o, mul }; });
+      // exhaust: noise amplitude-pulsed at the firing frequency (the "burble")
+      const n = noise(); E.exLp = c.createBiquadFilter(); E.exLp.type = 'lowpass'; E.exLp.frequency.value = 500; E.exG = c.createGain(); E.exG.gain.value = 0.0;
+      E.pulse = c.createOscillator(); E.pulse.type = 'square'; const pg = c.createGain(); pg.gain.value = 0.5; E.pulse.connect(pg); pg.connect(E.exG.gain); E.pulse.start();
+      n.connect(E.exLp); E.exLp.connect(E.exG); E.exG.connect(E.pan);
+      // intake roar under load
+      const n2 = noise(); E.inBp = c.createBiquadFilter(); E.inBp.type = 'bandpass'; E.inBp.Q.value = 0.9; E.inG = c.createGain(); E.inG.gain.value = 0; n2.connect(E.inBp); E.inBp.connect(E.inG); E.inG.connect(E.pan);
+      return E;
+    };
+    this.eng = mkEngine(); this.eng2 = mkEngine();
+    const loop = (type, f, q, g0 = 0) => { const n = noise(), bf = c.createBiquadFilter(); bf.type = type; bf.frequency.value = f; bf.Q.value = q; const g = c.createGain(); g.gain.value = g0; n.connect(bf); bf.connect(g); g.connect(this.master); return { g, bf }; };
+    this.screech = loop('bandpass', 2300, 7); { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = 11; lg.gain.value = 260; l.connect(lg); lg.connect(this.screech.bf.frequency); l.start(); }
+    this.screech2 = loop('bandpass', 1500, 9);
+    this.dirt = loop('lowpass', 320, 0.8); this.wind = loop('lowpass', 500, 0.5); this.road = loop('bandpass', 140, 0.7);
+    this.scrape = loop('bandpass', 3200, 3); this.scrape2 = loop('bandpass', 5200, 6);
+    { const o = c.createOscillator(); o.frequency.value = 3050; const v = c.createOscillator(), vg = c.createGain(); v.frequency.value = 7; vg.gain.value = 40; v.connect(vg); vg.connect(o.frequency); const g = c.createGain(); g.gain.value = 0; o.connect(g); g.connect(this.master); o.start(); v.start(); this.squeal = { g }; }
+    if (this.engine) this.engine.g.gain.value = 0;
+  },
+  // route a one-shot voice: dry + reverb send matching where the listener is
+  out(node, wet = 0.35) {
+    node.connect(this.master);
+    if (!this.rvIn) return;
+    const s = this.ctx.createGain(); s.gain.value = wet; node.connect(s);
+    if (isIndoor()) s.connect(this.rvIn); else { s.connect(this.rvOut); const e = this.ctx.createGain(); e.gain.value = wet * 0.6; node.connect(e); e.connect(this.echo); }
+  },
+  burst(t, dur, type, f, q, vol, wet = 0.25, slide = 0) {
+    const c = this.ctx, s = c.createBufferSource(), bf = c.createBiquadFilter(), g = c.createGain();
+    s.buffer = this.noise; s.playbackRate.value = 0.8 + Math.random() * 0.4; bf.type = type; bf.frequency.setValueAtTime(f, t); if (slide) bf.frequency.exponentialRampToValueAtTime(slide, t + dur); bf.Q.value = q;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + Math.min(0.004, dur * 0.2)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(bf); bf.connect(g); this.out(g, wet); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  },
+  tone(t, dur, type, f, vol, f2 = 0, wet = 0.2) {
+    const c = this.ctx, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, vol), t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); this.out(g, wet); o.start(t); o.stop(t + dur + 0.05);
+  },
+  ring(t, f, q, vol, dur, wet = 0.2) { this.burst(t, dur, 'bandpass', f, q, vol, wet); },
+  // ---------------------------------------------------------------- guns
+  gun(v = 1, x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = v * attn(x, z, 140), wet = isIndoor() ? 0.55 : 0.45;
+    if (a <= 0.01) return;
+    this.burst(t, 0.035, 'highpass', 1800, 0.7, 1.0 * a, wet);          // supersonic crack
+    this.burst(t, 0.16, 'lowpass', 650, 0.8, 0.85 * a, wet);            // muzzle blast body
+    this.tone(t, 0.2, 'sine', 95, 0.75 * a, 38, wet);                   // chest thump
+    this.burst(t + 0.018, 0.05, 'bandpass', 3600, 8, 0.22 * a, 0.1);    // slide cycling
+    this.burst(t + 0.05, 0.035, 'bandpass', 2400, 10, 0.15 * a, 0.1);
+  },
+  gunS(x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 40);
+    this.burst(t, 0.07, 'lowpass', 900, 0.9, 0.45 * a, 0.12);           // suppressed "thup"
+    this.tone(t, 0.08, 'sine', 140, 0.25 * a, 60, 0.05);
+    this.burst(t + 0.012, 0.045, 'bandpass', 3400, 7, 0.38 * a, 0.08);  // the slide is the loudest part
+    this.burst(t + 0.045, 0.03, 'bandpass', 2200, 10, 0.25 * a, 0.05);
+  },
+  reload(step) {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    if (step === 'out') { this.burst(t, 0.03, 'bandpass', 2600, 6, 0.3, 0.08); this.burst(t + 0.02, 0.08, 'bandpass', 1200, 3, 0.15, 0.05); }
+    if (step === 'drop') { for (let i = 0; i < 3; i++) { this.ring(t + i * 0.09 + Math.random() * 0.03, 1700 + Math.random() * 900, 14, 0.18 / (i + 1), 0.12, 0.2); this.burst(t + i * 0.09, 0.03, 'bandpass', 900, 2, 0.12 / (i + 1), 0.1); } }
+    if (step === 'in') { this.burst(t, 0.05, 'bandpass', 900, 3, 0.25, 0.08); this.burst(t + 0.06, 0.025, 'bandpass', 3200, 9, 0.4, 0.08); }
+    if (step === 'rack') { this.burst(t, 0.07, 'bandpass', 2000, 2, 0.25, 0.08, 3800); this.ring(t + 0.075, 4200, 16, 0.4, 0.22, 0.12); this.burst(t + 0.075, 0.02, 'highpass', 3000, 1, 0.35, 0.1); }
+    if (step === 'empty') { this.burst(t, 0.018, 'bandpass', 3800, 9, 0.35, 0.05); this.burst(t + 0.012, 0.03, 'bandpass', 1400, 5, 0.12, 0.03); }
+  },
+  click(p = 1) { if (!this.ctx) return; this.burst(this.ctx.currentTime, 0.02, 'bandpass', 2800 * p, 8, 0.25, 0.05); },
+  tink(x, z) { if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 20); this.ring(t, 3800 + Math.random() * 1800, 22, 0.12 * a, 0.18, 0.15); },
+  impact(kind, x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 60); if (a < 0.02) return;
+    if (kind === 'flesh') { this.burst(t, 0.09, 'lowpass', 420, 1, 0.55 * a, 0.1); this.burst(t, 0.03, 'bandpass', 1300, 2, 0.3 * a, 0.05); }
+    else if (kind === 'metal') { this.ring(t, 1700 + Math.random() * 1400, 25, 0.35 * a, 0.45, 0.3); this.burst(t, 0.02, 'highpass', 3000, 1, 0.3 * a, 0.2); }
+    else if (kind === 'wall') { this.burst(t, 0.06, 'bandpass', 700, 1.2, 0.4 * a, 0.25); this.burst(t, 0.12, 'lowpass', 2500, 0.7, 0.15 * a, 0.2); }
+    else { this.burst(t, 0.08, 'lowpass', 500, 0.8, 0.35 * a, 0.2); }
+    if ((kind === 'metal' || kind === 'wall') && Math.random() < 0.22) this.tone(t + 0.01, 0.4, 'sine', 3400 + Math.random() * 800, 0.07 * a, 1000, 0.3); // ricochet
+  },
+  // ---------------------------------------------------------------- bodies, feet, doors
+  punch(p = 1) { if (!this.ctx) return; const t = this.ctx.currentTime; this.tone(t, 0.14, 'sine', 110, 0.55 * Math.min(1, p + 0.3), 45, 0.1); this.burst(t, 0.05, 'bandpass', 1100, 1.5, 0.4, 0.1); this.burst(t, 0.025, 'highpass', 2500, 1, 0.2, 0.05); },
+  step(surface, loud = 0.5, x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = loud * attn(x, z, 30);
+    if (surface === 'wood') { this.tone(t, 0.07, 'sine', 170, 0.2 * a, 120, 0.25); this.burst(t, 0.04, 'bandpass', 900, 2, 0.12 * a, 0.2); }
+    else if (surface === 'hard') { this.burst(t, 0.03, 'bandpass', 2600, 3, 0.16 * a, 0.15); this.burst(t, 0.05, 'lowpass', 300, 1, 0.12 * a, 0.1); }
+    else if (surface === 'gravel') { for (let i = 0; i < 4; i++) this.burst(t + i * 0.012, 0.025, 'bandpass', 1800 + Math.random() * 1500, 2, 0.08 * a, 0.05); }
+    else { this.burst(t, 0.09, 'highpass', 1600, 0.7, 0.1 * a, 0.05); this.burst(t + 0.02, 0.05, 'bandpass', 3000, 1.5, 0.05 * a, 0.03); }
+  },
+  door(kind, x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 30), c = this.ctx;
+    if (kind === 'open' || kind === 'kick') {
+      this.burst(t, 0.02, 'bandpass', 2400, 8, 0.25 * a, 0.2);
+      const o = c.createOscillator(), bf = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.linearRampToValueAtTime(115, t + 0.25); o.frequency.linearRampToValueAtTime(85, t + 0.55);
+      bf.type = 'bandpass'; bf.frequency.value = 1300; bf.Q.value = 5; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09 * a * (kind === 'kick' ? 0.6 : 1), t + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      o.connect(bf); bf.connect(g); this.out(g, 0.3); o.start(t); o.stop(t + 0.65);
+      if (kind === 'kick') { this.tone(t, 0.25, 'sine', 80, 0.7 * a, 40, 0.5); this.burst(t, 0.12, 'lowpass', 900, 1, 0.6 * a, 0.5); this.burst(t, 0.03, 'highpass', 2000, 1, 0.4 * a, 0.4); }
+    } else { this.tone(t, 0.12, 'sine', 95, 0.35 * a, 60, 0.35); this.burst(t, 0.08, 'lowpass', 700, 1, 0.3 * a, 0.3); this.burst(t + 0.03, 0.02, 'bandpass', 3000, 8, 0.2 * a, 0.2); }
+  },
+  carDoor(kind) {
+    if (!this.ctx) return; const t = this.ctx.currentTime;
+    if (kind === 'open') { this.burst(t, 0.025, 'bandpass', 2000, 6, 0.3, 0.1); this.burst(t + 0.02, 0.08, 'bandpass', 700, 2, 0.12, 0.1); }
+    else { this.tone(t, 0.12, 'sine', 70, 0.5, 45, 0.15); this.burst(t, 0.07, 'lowpass', 500, 1, 0.45, 0.15); this.burst(t + 0.015, 0.02, 'bandpass', 2600, 6, 0.25, 0.1); }
+  },
+  ignition() {
+    if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator(), g = c.createGain(), bf = c.createBiquadFilter(); o.type = 'sawtooth'; o.frequency.setValueAtTime(120, t); o.frequency.linearRampToValueAtTime(190, t + 0.55);
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 14; lg.gain.value = 0.5; lfo.connect(lg); lg.connect(g.gain);
+    bf.type = 'bandpass'; bf.frequency.value = 900; bf.Q.value = 1.5; g.gain.setValueAtTime(0.18, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
+    o.connect(bf); bf.connect(g); g.connect(this.master); o.start(t); lfo.start(t); o.stop(t + 0.75); lfo.stop(t + 0.75);
+    this.ignT = 0.55;
+  },
+  horn() { if (!this.ctx) return; const t = this.ctx.currentTime; for (const f of [415, 520]) { const c = this.ctx, o = c.createOscillator(), bf = c.createBiquadFilter(), g = c.createGain(), sh = this.shaper(3); o.type = 'square'; o.frequency.value = f; bf.type = 'bandpass'; bf.frequency.value = 900; bf.Q.value = 1.2; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.1, t + 0.02); g.gain.setValueAtTime(0.1, t + 0.45); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55); o.connect(sh); sh.connect(bf); bf.connect(g); this.out(g, 0.3); o.start(t); o.stop(t + 0.6); } },
+  // ---------------------------------------------------------------- crashes
+  crash(imp, x, z) {
+    if (!this.ctx) return; const t = this.ctx.currentTime, v = Math.min(1, imp / 20) * (x == null ? 1 : attn(x, z, 90)); if (v < 0.02) return;
+    this.tone(t, 0.35 + v * 0.3, 'sine', 70 + Math.random() * 25, 0.9 * v, 32, 0.4);                 // body thud
+    this.burst(t, 0.22 + v * 0.3, 'lowpass', 1200, 0.8, 0.9 * v, 0.4);                                // crunch
+    for (let i = 0; i < 3 + v * 6; i++) this.ring(t + Math.random() * 0.05, 600 + Math.random() * 4200, 18, (0.25 + Math.random() * 0.25) * v, 0.2 + Math.random() * 0.6, 0.35); // panels ringing
+    this.burst(t + 0.01, 0.05, 'highpass', 3500, 0.8, 0.5 * v, 0.2);                                  // plastic cracking
+    for (let i = 0; i < 2 + v * 8; i++) this.ring(t + 0.08 + Math.random() * 0.6, 2500 + Math.random() * 3000, 20, 0.08 * v, 0.1, 0.2); // debris settling
+  },
+  glass() { if (!this.ctx) return; const t = this.ctx.currentTime; this.burst(t, 0.25, 'highpass', 5500, 0.7, 0.45, 0.3); for (let i = 0; i < 18; i++) this.ring(t + Math.random() * 0.5, 4500 + Math.random() * 5000, 25, 0.06 + Math.random() * 0.06, 0.08 + Math.random() * 0.12, 0.25); },
+  // ---------------------------------------------------------------- continuous car audio (called every frame)
+  updateCar(dt, cars, playing) {
+    if (!this.eng) return;
+    const k = Math.min(1, dt * 10);
+    const set = (p, v) => p.setTargetAtTime(v, this.ctx.currentTime, 0.03);
+    const drive = (E, v, gain) => {
+      const rpm = Math.max(500, v.rpm || 800), f = rpm / 60 * 2, load = v.pedal || 0;
+      for (const o of E.osc) set(o.o.frequency, f * o.mul);
+      set(E.pulse.frequency, f);
+      set(E.lp.frequency, 180 + rpm * 0.32 + load * 1700);
+      set(E.exLp.frequency, 260 + rpm * 0.12 + load * 500);
+      set(E.exG.gain, (0.12 + load * 0.18) * gain);
+      set(E.inBp.frequency, 600 + rpm * 0.35); set(E.inG.gain, load * (rpm / 6500) * 0.16 * gain);
+      set(E.out.gain, gain * (0.09 + load * 0.07 + rpm / 6500 * 0.07));
+    };
+    const me = cars[0];
+    const on = playing && P.inCar && me.health > 0;
+    if (this.ignT > 0) this.ignT -= dt;
+    drive(this.eng, me, on ? (this.ignT > 0 ? 0.25 : 1) : 0);
+    // decel crackle when lifting off at high rpm
+    if (on && me.pedal < 0.05 && me.rpm > 3600 && Math.random() < dt * 7) { const t = this.ctx.currentTime; this.burst(t, 0.03, 'lowpass', 1400, 1, 0.12, 0.2); }
+    if (on && me.shifted) { const t = this.ctx.currentTime; this.burst(t, 0.04, 'lowpass', 500, 1, 0.08, 0.05); me.shifted = 0; }
+    // the nearest other moving car
+    let near = null, nd = 70; for (const v of cars.slice(1)) { const d = Math.hypot(v.x - camera.position.x, v.z - camera.position.z); if (d < nd && v.speed > 1) { nd = d; near = v; } }
+    if (near) { if (!near.rpm || near.rpm < 900) near.rpm = 1200 + near.speed * 90; drive(this.eng2, Object.assign({ pedal: 0.3 }, { rpm: near.rpm }), playing ? 0.8 * attn(near.x, near.z, 70) : 0); } else drive(this.eng2, { rpm: 800 }, 0);
+    // tyres / wind / road
+    const src = P.inCar ? me : null, paved = src ? onRoad(src.x, src.z) : true, spd = src ? src.speed : 0;
+    const sl = src ? clamp((src.slip - 2.2) / 7, 0, 1) + (src.lockup ? 0.35 : 0) : 0;
+    set(this.screech.g.gain, playing && paved ? sl * 0.2 : 0); set(this.screech2.g.gain, playing && paved ? sl * 0.08 : 0);
+    set(this.dirt.g.gain, playing && !paved ? Math.min(0.25, spd / 30 * 0.2) + sl * 0.1 : 0);
+    set(this.wind.g.gain, playing ? Math.min(0.25, (spd / 45) ** 2 * 0.25) : 0); set(this.wind.bf.frequency, 300 + spd * 25);
+    set(this.road.g.gain, playing && paved ? Math.min(0.15, spd / 40 * 0.15) : 0);
+    set(this.squeal.g.gain, playing && src && src.brakeAmt > 0.3 && spd > 0.4 && spd < 5 ? 0.025 : 0);
+    const scr = src && src.touchT > 0 ? Math.min(1, spd / 15) : 0;
+    set(this.scrape.g.gain, playing ? scr * 0.3 : 0); set(this.scrape2.g.gain, playing ? scr * 0.12 : 0);
+    if (src) src.touchT = Math.max(0, (src.touchT || 0) - dt);
+  },
+});
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
