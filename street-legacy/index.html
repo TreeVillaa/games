@@ -246,6 +246,9 @@
   body:not(.armed) #tAim, body:not(.armed) #tReload, body:not(.hasgun) #tWeapon, body:not(.canstomp) #tStomp, body.incar #tStomp, body.incar #tWeapon { display: none; }
   body.armed #tCrouch { right: 200px; bottom: max(100px, calc(env(safe-area-inset-bottom) + 92px)); }
   body.armed.canstomp #tStomp { right: 280px; }
+  #tJump { right: 200px; bottom: max(22px, env(safe-area-inset-bottom)); width: 66px; height: 66px; }
+  body.armed #tJump { right: 278px; }
+  body.incar #tJump { display: none; }
   .btn.locked { opacity: .45; } .btn .st { color: #ffe066; font-size: .75em; margin-left: 6px; }
   #rotate { margin-top: 6px; font-size: .78rem; color: #ffd3f2; display: none; }
   @media (orientation: portrait) and (max-width: 700px) { #rotate { display: block; } }
@@ -274,7 +277,7 @@
     <button class="btn primary" data-act="play"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic"><path d="M10 6l16 10-16 10z" fill="currentColor"/></svg> Play</button>
     <button class="btn" data-act="freeroam" id="btnFree">Free Roam</button>
     <button class="btn" data-act="settings"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic"><circle cx="16" cy="16" r="9" fill="none" stroke="currentColor" stroke-width="4.5" stroke-dasharray="3.6 3.47"/><circle cx="16" cy="16" r="7.2" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="16" cy="16" r="2.6" fill="currentColor"/></svg> Settings</button>
-    <div class="hint">Controller: stick move · A action · X punch · Y crouch · B run · RT gas · LT brake/reverse · Start pause</div>
+    <div class="hint">Controller: stick move · A jump/action · X punch · Y crouch · B run · RT gas · LT brake/reverse · Start pause</div>
     <div class="hint" id="rotate">Turn your phone sideways for the best view</div>
   </div>
 </div>
@@ -300,7 +303,6 @@
     <h2 class="display">MISSIONS</h2>
     <button class="btn" data-act="m1" id="mBtn1">1 · The Quiet Job <span class="st"></span></button>
     <button class="btn" data-act="m2" id="mBtn2">2 · House Call <span class="st"></span></button>
-    <button class="btn" data-act="m3" id="mBtn3">3 · Salvage <span class="st"></span></button>
     <button class="btn primary" data-act="back" data-back>Back</button>
   </div>
 </div>
@@ -391,6 +393,7 @@
   <button class="tb" id="tGas"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="10" y="3" width="12" height="24" rx="3"/><path d="M13 8h6M13 12h6M13 16h6M13 20h6"/></svg><span>GAS</span></button>
   <button class="tb" id="tBrake"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="9" width="22" height="14" rx="3"/><path d="M9 13h14M9 17h14"/></svg><span id="tBrakeL">BRAKE</span></button>
   <button class="tb" id="tHand"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="16" cy="16" r="7.5"/><path d="M6 9a12 12 0 0 0 0 14M26 9a12 12 0 0 1 0 14"/><path d="M14 20v-8h3a2.4 2.4 0 0 1 0 4.8h-3" stroke-width="2.2"/></svg><span>HAND</span></button>
+  <button class="tb" id="tJump"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="9" r="2.6" fill="currentColor" stroke="none"/><path d="M16 13v7M16 15l-5-3M16 15l5-3M16 20l-4 5M16 20l4 5"/><path d="M9 6l7-4 7 4" stroke-width="2.2"/></svg><span>JUMP</span></button>
   <button class="tb" id="tAim"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="16" cy="16" r="9"/><path d="M16 3v7M16 22v7M3 16h7M22 16h7" stroke-linecap="round"/><circle cx="16" cy="16" r="1.6" fill="currentColor" stroke="none"/></svg><span>AIM</span></button>
   <button class="tb" id="tReload"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M25 12a10 10 0 1 0 1 7"/><path d="M26 5v7h-7"/></svg><span>RELOAD</span></button>
   <button class="tb" id="tWeapon"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic"><path fill="currentColor" d="M4 9h20l2 2h2v4H17l-1 2h-3l-2 7H5l2.5-8.5L4 15z"/><rect x="12" y="15" width="3" height="3" fill="rgba(0,0,0,.4)"/></svg><span>WEAPON</span></button>
@@ -1716,7 +1719,7 @@ function renderMapCanvas() {
 }
 
 // ============================================================================
-//  MISSION LOCATIONS: 412 Oak St (enterable house) and Hollis Salvage
+//  MISSION LOCATION: 412 Oak St (enterable house)
 // ============================================================================
 const INTERIORS = []; // {x1,z1,x2,z2,ceil}
 const HH = { x1: -135, x2: -121, z1: 98.5, z2: 109.5, h: 2.8, front: { x: -131, z: 98.5 }, back: { x: -124, z: 109.5 } };
@@ -1782,46 +1785,6 @@ function buildHitHouse() {
     const kn = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 6), std({ color: 0xd0c080, metalness: 1, roughness: 0.3 })); kn.position.set(d.w - 0.1, 1.0, d.sgn * 0.04); g.add(kn);
     const col = addCol(d.x - d.w / 2, d.z - 0.08, d.x + d.w / 2, d.z + 0.08, 2.1, 'door');
     HH_DOORS.push({ g, col, x: d.x, z: d.z, sgn: d.sgn, open: 0 });
-  }
-}
-const SY = { x: -470, z: 230, w: 52, d: 40 };
-function buildSalvageYard() {
-  const { x, z, w, d } = SY, x1 = x - w / 2, x2 = x + w / 2, z1 = z - d / 2, z2 = z + d / 2;
-  reserve(x1 - 6, z1 - 6, x2 + 40, z2 + 6);
-  addB('gravel', planeG(w, d, w / 4, d / 4), mat(x, 0.025, z), 0xc0b4a0);
-  addB('gravel', planeG(x2 - (-404) < 0 ? 1 : (-404 - x2), 8, 4, 2), mat((x2 + -404) / 2, 0.026, z), 0xc0b4a0);
-  PAVED.push([x1, z1, x2, z2], [x2, z - 4, -404, z + 4]);
-  // tin fence (sheet metal) with an open gate on the east
-  const fence = (ax, az, bx, bz) => {
-    const len = Math.hypot(bx - ax, bz - az), ry = Math.atan2(bx - ax, bz - az);
-    addB('metal', boxG(0.06, 2.2, len, 2), mat((ax + bx) / 2, 1.1, (az + bz) / 2, ry), 0x8a8478);
-    addCol(Math.min(ax, bx) - 0.06, Math.min(az, bz) - 0.06, Math.max(ax, bx) + 0.06, Math.max(az, bz) + 0.06, 2.2, 'fence');
-  };
-  fence(x1, z1, x2, z1); fence(x1, z2, x2, z2); fence(x1, z1, x1, z2); fence(x2, z1, x2, z - 5); fence(x2, z + 5, x2, z2);
-  const sm = signMat('sign_salv', 512, 96, (g, W, H) => { g.fillStyle = '#e8e0c8'; g.fillRect(0, 0, W, H); g.fillStyle = '#7a1d14'; g.font = 'bold 54px Arial Black, sans-serif'; g.textAlign = 'center'; g.fillText('HOLLIS SALVAGE', W / 2, 66); });
-  const sgn = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.1), sm); sgn.position.set(x2 + 0.1, 2.9, z); sgn.rotation.y = Math.PI / 2; scene.add(sgn);
-  addB('steel', boxG(0.15, 3.3, 0.15), mat(x2 + 0.05, 1.65, z - 3.2), 0x555555); addB('steel', boxG(0.15, 3.3, 0.15), mat(x2 + 0.05, 1.65, z + 3.2), 0x555555);
-  // shipping containers, trailer, drums, tyre stacks (cover)
-  const box = (key, bw, bh, bd, bx, bz, col, ry = 0) => { addB(key, boxG(bw, bh, bd, 2.5), mat(bx, bh / 2, bz, ry), col); const c = Math.abs(Math.cos(ry)), s = Math.abs(Math.sin(ry)); const ex = bw / 2 * c + bd / 2 * s, ez = bw / 2 * s + bd / 2 * c; addCol(bx - ex, bz - ez, bx + ex, bz + ez, bh, 'cover'); };
-  box('metal', 2.4, 2.6, 6.1, x - 14, z - 8, 0x8a3a24); box('metal', 2.4, 2.6, 6.1, x - 14, z + 6, 0x2c5a7a);
-  box('metal', 6.1, 2.6, 2.4, x + 8, z - 14, 0x4a6a3a);
-  box('siding', 3.0, 2.8, 9.0, x - 20, z - 1, 0xd8d0bc); addB('glassLit', boxG(0.05, 0.9, 1.6), mat(x - 18.47, 1.7, z - 3)); addB('door', boxG(0.06, 2.0, 0.9), mat(x - 18.47, 1.1, z + 1.5));
-  for (const [dx, dz] of [[-4, 9], [-3, 10.2], [6, 4], [7.2, 4.4], [-8, -12]]) { addB('paint', new THREE.CylinderGeometry(0.3, 0.3, 0.9, 14), mat(x + dx, 0.45, z + dz), [0x2a4a7a, 0x7a2a1a, 0x3a3a3a][(Math.abs(dx * 3 + dz) | 0) % 3]); addCol(x + dx - 0.3, z + dz - 0.3, x + dx + 0.3, z + dz + 0.3, 0.9, 'cover'); }
-  for (const [dx, dz, n] of [[2, -4, 5], [3.4, -4.2, 4], [-6, 2, 6], [12, 8, 4]]) { for (let i = 0; i < n; i++) addB('rubber', new THREE.TorusGeometry(0.3, 0.12, 8, 16), mat(x + dx, 0.12 + i * 0.22, z + dz, 0, Math.PI / 2), 0x222222); addCol(x + dx - 0.42, z + dz - 0.42, x + dx + 0.42, z + dz + 0.42, 0.12 + n * 0.22, 'cover'); }
-  // floodlight
-  addB('steel', boxG(0.15, 7, 0.15), mat(x - 2, 3.5, z + 16), 0x666666); addB('emit', boxG(0.6, 0.3, 0.3), mat(x - 2, 7, z + 15.8));
-  // junk cars (real bodies, rusty colours, a little sunk)
-  const junk = [[x - 4, z - 9, 0.3, 'sedan', 0x6a4a30], [x + 4, z + 10, 1.9, 'pickup', 0x5a5040], [x + 12, z - 3, -1.2, 'suv', 0x3a4a52], [x - 8, z + 14, 2.6, 'sedan', 0x7a6a50]];
-  SY.junk = junk;
-}
-function placeJunkCars() {
-  for (const [jx, jz, h, kind, col] of SY.junk) {
-    const m = buildCar({ kind, color: col, physical: false, lite: true, plate: 'JUNK' });
-    m.group.position.set(jx, -0.04, jz); m.group.rotation.y = h; m.body.rotation.z = (hash2(jx, jz) - .5) * 0.06; scene.add(m.group);
-    for (const k in m.glass) if (m.glass[k] && hash2(jx + k.length, jz) < 0.6) m.glass[k].visible = false;
-    for (const w of m.wheels) if (hash2(jx, w.pivot.position.z) < 0.35) w.pivot.visible = false;
-    const c = Math.abs(Math.cos(h)), s = Math.abs(Math.sin(h)), ex = m.W / 2 * c + m.L / 2 * s, ez = m.W / 2 * s + m.L / 2 * c;
-    addCol(jx - ex * 0.9, jz - ez * 0.9, jx + ex * 0.9, jz + ez * 0.9, 1.3, 'cover');
   }
 }
 
@@ -2028,6 +1991,15 @@ function makePerson(o) {
         if (st.act.def.leg === 'stomp') { lR[0] = lerp(-0.25, -1.35, up) * (t < 0.48 ? 1 : rec * 0.3); lR[1] = lerp(0.15, 1.9, up) * (t < 0.48 ? 1 : rec * 0.2); lR[2] = 0.2 * up; torsoX += 0.25 * (up + (t > 0.4 ? rec : 0)) * 0.6; hipY -= 0.05 * (t > 0.4 ? rec : 0); pose.L.x = -0.6; pose.R.x = -0.4; pose.L.el = pose.R.el = -1.2; }
         else { const sw = t < 0.3 ? -sm01(t / 0.3) * 0.6 : t < 0.5 ? lerp(-0.6, 1.5, sm01((t - 0.3) / 0.2)) : 1.5 * (1 - sm01((t - 0.5) / 0.5)); lR[0] = -sw * 0.9; lR[1] = t < 0.45 ? 1.2 : lerp(1.2, 0.1, sm01((t - 0.45) / 0.1)) * (1 - sm01((t - 0.6) / 0.4)) + 0.1; torsoX -= sw * 0.12; pose.L.x = -0.5; pose.L.z = 0.5; }
       }
+      // ---- jumping: stride in the air, arms up for balance, squash on landing
+      if (c.air) {
+        const up = clamp((c.vy || 0) / 5, -1, 1);
+        lL[0] = -0.75 - 0.2 * up; lL[1] = 1.15 + 0.2 * up; lL[2] = -0.2;
+        lR[0] = 0.15 + 0.15 * up; lR[1] = 0.55 + 0.4 * Math.max(0, -up); lR[2] = 0.3;
+        if (!c.gun) { pose.L.x = 0.35; pose.R.x = -0.9; pose.L.z = 0.35; pose.R.z = -0.35; pose.L.el = -0.4; pose.R.el = -0.6; }
+        torsoX = 0.12 - 0.08 * up; hipY = 0.97;
+      }
+      if (c.land > 0) { const k = c.land; hipY -= 0.16 * k; lL[0] -= 0.55 * k; lR[0] -= 0.55 * k; lL[1] += 1.0 * k; lR[1] += 1.0 * k; lL[2] -= 0.4 * k; lR[2] -= 0.4 * k; torsoX += 0.3 * k; }
       // ---- sitting
       if (c.sit) { hipY = 0.55; lL[0] = lR[0] = -1.5; lL[1] = lR[1] = 1.5; lL[2] = lR[2] = 0; torsoX = -0.08; pose.L.x = pose.R.x = -0.35; pose.L.el = pose.R.el = -0.6; }
       // ---- wounded: clutching the stomach, hunched
@@ -3094,7 +3066,7 @@ const keys = {};
 addEventListener('keydown', e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const touch = { joy: null, jx: 0, jy: 0, cam: null, act: false, sprint: false, gas: false, brake: false, hand: false, punch: false, crouch: false, left: false, right: false, aim: false, reload: false, weapon: false, stomp: false };
-let punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
+let jumpEdge = false, punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
 let mouseCam = null;
 const camDelta = { x: 0, y: 0 };
 addEventListener('pointerdown', e => {
@@ -3127,9 +3099,9 @@ const endPtr = e => {
   if (e.pointerType === 'mouse' && e.button === 2) mouseAim = false;
 };
 addEventListener('pointerup', endPtr); addEventListener('pointercancel', endPtr);
-for (const [id, k] of [['tAct', 'act'], ['tSprint', 'sprint'], ['tGas', 'gas'], ['tBrake', 'brake'], ['tHand', 'hand'], ['tPunch', 'punch'], ['tCrouch', 'crouch'], ['tLeft', 'left'], ['tRight', 'right'], ['tAim', 'aim'], ['tReload', 'reload'], ['tWeapon', 'weapon'], ['tStomp', 'stomp']]) {
+for (const [id, k] of [['tAct', 'act'], ['tSprint', 'sprint'], ['tGas', 'gas'], ['tBrake', 'brake'], ['tHand', 'hand'], ['tPunch', 'punch'], ['tCrouch', 'crouch'], ['tLeft', 'left'], ['tRight', 'right'], ['tAim', 'aim'], ['tReload', 'reload'], ['tWeapon', 'weapon'], ['tStomp', 'stomp'], ['tJump', 'jump']]) {
   const b = $(id);
-  b.addEventListener('pointerdown', e => { e.preventDefault(); AU.init(); touch[k] = true; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) { } if (k === 'act') actEdge = true; if (k === 'punch') punchEdge = true; if (k === 'crouch') crouchEdge = true; if (k === 'reload') reloadEdge = true; if (k === 'weapon') switchEdge = true; if (k === 'stomp') stompEdge = true; if (k === 'aim') aimAssist(); });
+  b.addEventListener('pointerdown', e => { e.preventDefault(); AU.init(); touch[k] = true; b.classList.add('on'); try { b.setPointerCapture(e.pointerId); } catch (_) { } if (k === 'act') actEdge = true; if (k === 'punch') punchEdge = true; if (k === 'crouch') crouchEdge = true; if (k === 'reload') reloadEdge = true; if (k === 'weapon') switchEdge = true; if (k === 'stomp') stompEdge = true; if (k === 'jump') jumpEdge = true; if (k === 'aim') aimAssist(); });
   const up = () => { touch[k] = false; b.classList.remove('on'); };
   b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up); b.addEventListener('lostpointercapture', up);
 }
@@ -3161,6 +3133,7 @@ function pollInput(dt) {
   inp.sprint = bt(1) || bt(10) || keys.ShiftLeft || keys.ShiftRight || touch.sprint;
   inp.act = bt(0) || keys.KeyE || keys.Enter || touch.act;
   inp.actEdge = edge(0) || actEdge; actEdge = false;
+  inp.jump = jumpEdge || (!P.inCar && keys.Space && !inp.spaceHeld) || (!P.inCar && edge(0) && !(state === 'play' && currentInteraction())); inp.spaceHeld = !!keys.Space; jumpEdge = false;
   const armed = W && W.cur === 'glock' && !P.inCar;
   inp.aim = (armed && (bv(6) > 0.3 || touch.aim || mouseAim || keys.KeyV));
   inp.fire = armed && (edge(7) || fireEdge || (touch.punch && !touch.punchHeld) || keys.KeyK); touch.punchHeld = touch.punch; fireEdge = false;
@@ -3229,7 +3202,7 @@ document.addEventListener('click', e => {
   if (b.dataset.cycle) { cycleSetting(b.dataset.cycle, 1); return; }
   const a = b.dataset.act;
   if (a === 'play') { AU.musicOn(); refreshMissionList(); show('missions'); }
-  else if (a === 'm1' || a === 'm2' || a === 'm3') { const id = +a[1]; if (id > 1 && !(save.missions || {})[id - 1]) { toast('LOCKED', 1); return; } MS.next = id; fillBrief(id); show('brief'); }
+  else if (a === 'm1' || a === 'm2') { const id = +a[1]; if (id > 1 && !(save.missions || {})[id - 1]) { toast('LOCKED', 1); return; } MS.next = id; fillBrief(id); show('brief'); }
   else if (a === 'continue') continueGame();
   else if (a === 'save') { if (MS.free) { saveGame(); resumeGame(); } else toast('SAVE IN FREE ROAM', 1.6); }
   else if (a === 'freeroam') startFreeRoam();
@@ -3296,20 +3269,19 @@ function resetWorld() {
   MS.subs = []; MS.subT = 0; $('subs').innerHTML = ''; MS.holdT = 0; MS.escaped = false; MS.timer = MISSION_TIME; MS.spotted = false;
   document.body.classList.remove('incar');
   for (const n of npcs) resetHuman(n); resetHuman(guard); clearGore();
-  if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.hurtT = 9; player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
+  if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.y = 0; P.vy = 0; P.hurtT = 9; player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
   if (W) { W.reloadT = -1; W.mag = 15; W.reserve = 60; if (W.handMag) { W.handMag.removeFromParent(); W.handMag = null; } W.gun.mag.visible = true; }
   $('timer').classList.add('hidden'); seq = null; car.doorA = 0;
 }
 function startContract(id) {
-  clearMissionEnts(); if (id === 2) setupMission2(); else setupMission3();
+  clearMissionEnts(); setupMission2();
   car.set(HOME.x, HOME.z + 3, Math.PI);
   P.x = HOME.x - 2.4; P.z = HOME.z + 2; P.h = Math.PI; camYaw = 0; camPitch = 0.3;
-  W.has.glock = true; W.infinite = false; W.mag = 15; W.reserve = id === 2 ? 60 : 75; if (W.cur !== 'glock') switchWeapon();
+  W.has.glock = true; W.infinite = false; W.mag = 15; W.reserve = 75; if (W.cur !== 'glock') switchWeapon();
   $('intro').classList.add('hidden'); $('btnRestart').classList.remove('hidden');
-  setObjective(id === 2 ? 'Drive to <b>412 Oak Street</b>' : 'Drive to <b>Hollis Salvage</b> on Mill Road');
+  setObjective('Drive to <b>412 Oak Street</b>');
   show('play'); toast('MISSION ' + id + ': ' + MISSIONS[id].title, 2.6);
-  say(id === 2 ? [['Vance', "Three of them. 412 Oak Street, right in town."], ['Vance', "Glock's yours. Nobody walks out of that house."], ['Travis', 'Understood.']]
-    : [['Vance', 'The Hollis brothers. Salvage yard off Mill Road.'], ['Vance', "They're armed and they know your face. Use cover."], ['Travis', "Then I won't give them a second look."]]);
+  say([['Vance', "Three of them. 412 Oak Street, right in town."], ['Vance', "Two are armed. Glock's yours. Nobody walks out of that house."], ['Travis', 'Understood.']]);
 }
 function fillBrief(id) {
   const B = $('brief'), M = MISSIONS[id];
@@ -3319,7 +3291,7 @@ function fillBrief(id) {
 }
 function refreshMissionList() {
   const ms = save.missions || {};
-  for (const id of [1, 2, 3]) { const b = $('mBtn' + id), open = id === 1 || ms[id - 1]; b.classList.toggle('locked', !open); b.querySelector('.st').textContent = ms[id] ? 'PASSED' : open ? '' : 'LOCKED'; }
+  for (const id of [1, 2]) { const b = $('mBtn' + id), open = id === 1 || ms[id - 1]; b.classList.toggle('locked', !open); b.querySelector('.st').textContent = ms[id] ? 'PASSED' : open ? '' : 'LOCKED'; }
 }
 function continueGame() {
   const s = save.pos; if (!s) return startFreeRoam();
@@ -3385,7 +3357,7 @@ function passMission() {
   store.set('sl.save', save);
   $('passed').querySelector('.sub').textContent = id === 1 ? "You've passed your first mission!" : 'Contract complete. Vance paid in full.';
   $('passed').querySelector('.money').textContent = '+$' + M.pay.toLocaleString('en-US');
-  $('passed').querySelector('.note').textContent = 'Mission ' + id + ' — ' + M.title + (id < 3 ? ' · Next mission unlocked' : ' · More missions coming soon') + ' · Game saved';
+  $('passed').querySelector('.note').textContent = 'Mission ' + id + ' — ' + M.title + (id < 2 ? ' · Next mission unlocked' : ' · More missions coming soon') + ' · Game saved';
   setObjective(''); $('timer').classList.add('hidden');
   state = 'cine'; cine = { t: 0, dur: 3.2, outro: true };
   setTimeout(() => { AU.passed(); show('passed'); }, 1800);
@@ -3617,7 +3589,7 @@ function updateCamera(dt) {
     }
   } else {
     const ins = insideWH(P.x, P.z, 0.5);
-    tx = P.x; ty = P.sprint ? 1.55 : 1.5 - sneakAmt * 0.3; tz = P.z; dist = lerp(ins || INTERIORS.some(I => P.x > I.x1 && P.x < I.x2 && P.z > I.z1 && P.z < I.z2) ? 3.0 : combat.fightT > 0 ? 3.4 : 4.0, 1.7, W ? W.aim : 0);
+    tx = P.x; ty = (P.sprint ? 1.55 : 1.5 - sneakAmt * 0.3) + (P.y || 0) * 0.6; tz = P.z; dist = lerp(ins || INTERIORS.some(I => P.x > I.x1 && P.x < I.x2 && P.z > I.z1 && P.z < I.z2) ? 3.0 : combat.fightT > 0 ? 3.4 : 4.0, 1.7, W ? W.aim : 0);
     if (camIdle > 2.5 && P.spd > 1) { camYaw += wrapA(P.h + Math.PI - camYaw) * Math.min(1, dt * 0.8); }
   }
   camDist = lerp(camDist, dist, Math.min(1, dt * 3));
@@ -3721,6 +3693,11 @@ function updatePlayer(dt) {
   if (inp.crouch) { P.crouch = !P.crouch; AU.hit(0.05, 400, 0.05); }
   if (inp.punch) startPunch();
   if (inp.stomp) startStomp();
+  // ---- jumping (gravity arc, air control, landing squash + dust)
+  if (inp.jump && P.y <= 0 && !player.busy() && (W.aim < 0.5) && !seq) {
+    if (P.crouch) P.crouch = false;
+    P.vy = 4.7 + Math.min(Math.hypot(P.vx, P.vz), 6.5) * 0.12; P.y = 0.001; AU.hit(0.07, 500, 0.05);
+  }
   const armed = W.cur === 'glock';
   W.aim = damp(W.aim, armed && inp.aim && W.reloadT < 0 ? 1 : 0, 14, dt);
   if (!inp.aim) W.lock = null;
@@ -3738,12 +3715,17 @@ function updatePlayer(dt) {
   const top = player.busy() ? 0.6 : W.aim > 0.5 ? 2.0 : P.sprint ? 6.3 : P.crouch ? 1.55 : fighting ? 1.7 : (!MS.free && MS.stage <= 2 && inside ? 2.2 : 2.8);
   const tvx = mx * mag * top, tvz = mz * mag * top;
   const dvx = tvx - P.vx, dvz = tvz - P.vz, dl = Math.hypot(dvx, dvz);
-  const accel = (Math.hypot(tvx, tvz) > P.spd ? (P.sprint ? 7.5 : 6) : 11) * dt;
+  const accel = (Math.hypot(tvx, tvz) > P.spd ? (P.sprint ? 7.5 : 6) : 11) * dt * (P.y > 0 ? 0.22 : 1);
   if (dl > accel) { P.vx += dvx / dl * accel; P.vz += dvz / dl * accel; } else { P.vx = tvx; P.vz = tvz; }
   // punch lunge (step into the punch)
   const act = player.st.act;
   if (act && act.t > 0.25 && act.t < 0.5) { P.vx += Math.sin(P.h) * act.def.lunge * dt * 9; P.vz += Math.cos(P.h) * act.def.lunge * dt * 9; }
   P.x += P.vx * dt; P.z += P.vz * dt;
+  if (P.y > 0 || P.vy > 0) {
+    P.vy -= (P.vy > 0 ? 11 : 16) * dt; P.y += P.vy * dt;
+    if (P.y <= 0) { const imp = -P.vy; P.y = 0; P.vy = 0; P.land = Math.min(1, imp / 6); FX.dust(P.x, P.z, 3 + (imp > 5 ? 3 : 0)); AU.hit(0.1 + imp * 0.02, 300, 0.08); P.noise = Math.max(P.noise, 0.45); if (imp > 6) shakeAmt = Math.max(shakeAmt, 0.08); }
+  }
+  P.land = Math.max(0, (P.land || 0) - dt * 4.5);
   const spd = Math.hypot(P.vx, P.vz);
   const oldH = P.h;
   if (!act && W.aim < 0.5) {
@@ -3754,18 +3736,18 @@ function updatePlayer(dt) {
   P.acc = damp(P.acc, (spd - P.lastSpd) / Math.max(dt, 1e-3), 8, dt); P.lastSpd = spd;
   // hard wall stop
   const before = { x: P.x, z: P.z };
-  if (pushCircle(P, 0.33)) { const lost = Math.hypot(P.x - before.x, P.z - before.z) / Math.max(dt, 1e-3); if (lost > 0.5) { const k = Math.max(0, 1 - lost / Math.max(spd, 0.1)); P.vx *= k; P.vz *= k; } }
+  if (pushCircle(P, 0.33, P.y + 0.3)) { const lost = Math.hypot(P.x - before.x, P.z - before.z) / Math.max(dt, 1e-3); if (lost > 0.5) { const k = Math.max(0, 1 - lost / Math.max(spd, 0.1)); P.vx *= k; P.vz *= k; } }
   for (const a of traffic) { const dx = P.x - a.v.x, dz = P.z - a.v.z, d = Math.hypot(dx, dz); if (d < 2.2 && d > 0) { P.x += dx / d * (2.2 - d); P.z += dz / d * (2.2 - d); } }
   for (const n of npcs) { if (n.rag || n.state === 'down') continue; const dx = P.x - n.x, dz = P.z - n.z, d = Math.hypot(dx, dz); if (d < 0.6 && d > 0) { P.x += dx / d * (0.6 - d) * 0.5; P.z += dz / d * (0.6 - d) * 0.5; n.x -= dx / d * (0.6 - d) * 0.5; n.z -= dz / d * (0.6 - d) * 0.5; } }
   if (!guard.ko && !guard.rag) { const dx = P.x - guard.x, dz = P.z - guard.z, d = Math.hypot(dx, dz); if (d < 0.6 && d > 0) { P.x += dx / d * (0.6 - d); P.z += dz / d * (0.6 - d); } }
   { const [lx, lz] = car.toLocal(P.x, P.z); const hw = car.m.W / 2 + 0.3, hl = car.m.L / 2 + 0.3; if (Math.abs(lx) < hw && Math.abs(lz) < hl) { const px = hw - Math.abs(lx), pz = hl - Math.abs(lz); const [wx, wz] = px < pz ? car.toWorld(Math.sign(lx) * hw, lz) : car.toWorld(lx, Math.sign(lz) * hl); P.x = wx; P.z = wz; } }
   P.spd = spd;
   P.noise = damp(P.noise, P.sprint ? 1 : P.crouch ? 0.01 : spd > 0.3 ? 0.16 : 0.03, 4, dt);
-  const ev = player.update(dt, { spd, crouch: P.crouch, fight: fighting && !armed, turn: P.turn, accel: P.acc, t: gameT, gun: armed, aim: W.aim, aimPitch: -camPitch * 0.9, recoil: W.recoil, reload: W.reloadT });
+  const ev = player.update(dt, { air: P.y > 0.02, vy: P.vy, land: P.land, spd: P.y > 0.02 ? 0 : spd, crouch: P.crouch, fight: fighting && !armed, turn: P.turn, accel: P.acc, t: gameT, gun: armed, aim: W.aim, aimPitch: -camPitch * 0.9, recoil: W.recoil, reload: W.reloadT });
   if (ev === 'impact') { if (player.st.act && player.st.act.def.leg) resolveStomp(); else if (!armed) resolvePunch(); }
-  player.root.position.set(P.x, 0, P.z); player.root.rotation.set(0, P.h, 0);
+  player.root.position.set(P.x, P.y, P.z); player.root.rotation.set(0, P.h, 0);
   sneakAmt = P.crouch ? 1 : 0;
-  P.stepT += spd * dt; if (P.stepT > (P.sprint ? 1.7 : 1.25)) { P.stepT = 0; AU.hit(P.sprint ? 0.16 : P.crouch ? 0.015 : 0.05, inside ? 900 : 500, 0.05); if (P.sprint && !onRoad(P.x, P.z) && !inside) FX.dust(P.x, P.z, 2); }
+  P.stepT += (P.y > 0 ? 0 : spd) * dt; if (P.stepT > (P.sprint ? 1.7 : 1.25)) { P.stepT = 0; AU.hit(P.sprint ? 0.16 : P.crouch ? 0.015 : 0.05, inside ? 900 : 500, 0.05); if (P.sprint && !onRoad(P.x, P.z) && !inside) FX.dust(P.x, P.z, 2); }
 }
 
 function updateMission(dt) {
@@ -4007,8 +3989,8 @@ async function boot() {
   const steps = [
     ['Mixing paint', buildTextures], ['Preparing materials', buildMaterials], ['Painting the Texas sky', buildSky], ['Grading the land', buildGround],
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
-    ['Raising the water tower', buildLandmarks], ['Building 412 Oak Street', () => { buildHitHouse(); buildSalvageYard(); }], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing grass', buildGrass],
-    ['Assembling Calder County', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { spawnActors(); buildMarker(); placeJunkCars(); initCombat(); }],
+    ['Raising the water tower', buildLandmarks], ['Building 412 Oak Street', () => { buildHitHouse(); }], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing grass', buildGrass],
+    ['Assembling Calder County', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { spawnActors(); buildMarker(); initCombat(); }],
     ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
   for (let i = 0; i < steps.length; i++) {
@@ -4462,8 +4444,7 @@ function hurtPlayer(dmg, fx, fz) {
 const MS2 = { ents: [] };
 const MISSIONS = {
   1: { title: 'THE QUIET JOB', pay: 48500 },
-  2: { title: 'HOUSE CALL', pay: 25000, brief: 'A man called Vance has a job for you. Three men who owe him are hiding out at 412 Oak Street in town. Vance wants all three of them dealt with. He left a Glock 19 in your car.', obj: ['Drive from your house to 412 Oak Street.', 'Take out all three targets inside. Do not let anyone get away.', 'Drive back home to get paid.'] },
-  3: { title: 'SALVAGE', pay: 40000, brief: 'Vance again. Two of the men from Oak Street had partners: the Hollis brothers, armed and waiting at Hollis Salvage off Mill Road. You start with your Glock. They will shoot back.', obj: ['Drive from your house to Hollis Salvage on Mill Road.', 'Kill both armed Hollis brothers. Use cover.', 'Drive back home to get paid.'] },
+  2: { title: 'HOUSE CALL', pay: 25000, brief: 'A man called Vance has hired you as a hitman. Three men who owe him are holed up at 412 Oak Street in town. Two of them are armed and will shoot back. You start with a Glock 19.', obj: ['Drive from your house to 412 Oak Street.', 'Kill all three men inside. Two of them have guns. Do not let anyone get away.', 'Drive back home to get paid.'] },
 };
 function makeTarget(x, z, h, o, extra) {
   const m = makePerson(Object.assign({ lo: true }, o)); scene.add(m.root);
@@ -4476,18 +4457,10 @@ function clearMissionEnts() {
 }
 function setupMission2() {
   clearMissionEnts();
-  makeTarget(-133.7, 101.3, Math.PI / 2, { skin: 0xc68642, shirt: 0x2e5a8a, pants: 0x2a3346, denim: true, shoes: 0x222222, hair: 0x15110e, capHat: 0x8a1c1c }, { sit: true, home: [-133.7, 101.3] });
-  makeTarget(-122.4, 100.2, Math.PI / 2, { skin: 0x8d5524, shirt: 0xe8e4da, pants: 0x3a3a3e, shoes: 0xeeeeee, hair: 0x15110e, bulk: 1.15 }, { home: [-122.4, 100.2] });
+  const armed = (e) => { e.kind = 'enemy'; e.armed = true; e.cool = 0.8 + Math.random(); e.gun = buildGlock(); mountGun(e.m, e.gun); };
+  armed(makeTarget(-133.7, 101.3, Math.PI / 2, { skin: 0xc68642, shirt: 0x2e5a8a, pants: 0x2a3346, denim: true, shoes: 0x222222, hair: 0x15110e, capHat: 0x8a1c1c }, { sit: true, home: [-133.7, 101.3] }));
+  armed(makeTarget(-122.4, 100.2, Math.PI / 2, { skin: 0x8d5524, shirt: 0xe8e4da, pants: 0x3a3a3e, shoes: 0xeeeeee, hair: 0x15110e, bulk: 1.15 }, { home: [-122.4, 100.2] }));
   makeTarget(-129.5, 107.2, 0, { skin: 0xe0ac69, shirt: 0x6b4a2e, pants: 0x1c1c1c, shoes: 0x6a4a2a, hair: 0x8a6a3a, longHair: true }, { home: [-129.5, 107.2] });
-}
-function setupMission3() {
-  clearMissionEnts();
-  const x = SY.x, z = SY.z;
-  for (const [ex, ez, h, o] of [[x - 17, z + 2, Math.PI / 2, { skin: 0xd9a47c, shirt: 0x4b5a3a, pants: 0x2b2b2e, denim: true, shoes: 0x3a2a1a, hair: 0x3a2a1a, capHat: 0x2a3a2a, bulk: 1.2 }],
-                               [x + 6, z - 10, -Math.PI / 2, { skin: 0xc68642, shirt: 0x7a2a1a, pants: 0x2a3346, denim: true, shoes: 0x222222, hair: 0x15110e, bulk: 1.1 }]]) {
-    const e = makeTarget(ex, ez, h, o, { kind: 'enemy', armed: true, cool: 1 + Math.random(), home: [ex, ez], hpGun: 1 });
-    e.gun = buildGlock(); mountGun(e.m, e.gun);
-  }
 }
 const HOUSE_GO = { x: -124.5, z: 86 };
 function updateTargets(dt) {
@@ -4510,6 +4483,7 @@ function updateTargets(dt) {
       const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz);
       const sees = !P.dead && d < 45 && !losBlocked(e.x, e.z, P.x, P.z, 1.35);
       if (sees && d < 32) e.alerted = true;
+      if (e.alerted) e.sit = false;
       if (e.alerted && !P.dead) {
         const th = Math.atan2(dx, dz); e.h += wrapA(th - e.h) * Math.min(1, dt * 6);
         // strafe a little between shots
@@ -4551,10 +4525,9 @@ function m2Arrived() { return Math.hypot(P.x - (HH.x1 + HH.x2) / 2, P.z - 100) <
 function updateMission23(dt) {
   const id = MS.id, ents = MS2.ents, alive = ents.filter(e => !e.dead);
   if (MS.stage === 0) { // drive there
-    const tgt = id === 2 ? HOUSE_GO : { x: SY.x + SY.w / 2 + 6, z: SY.z };
-    if (Math.hypot(P.x - tgt.x, P.z - tgt.z) < (id === 2 ? 14 : 22)) { MS.stage = 1; setObjective(id === 2 ? 'Kill the <b>three targets</b> inside 412 Oak St' : 'Kill both <b>Hollis brothers</b>'); say(id === 2 ? [['Vance', "Front door's unlocked. Don't let any of them walk out."]] : [['Vance', "They know you're coming. Stay behind cover."]]); }
+    if (Math.hypot(P.x - HOUSE_GO.x, P.z - HOUSE_GO.z) < 14) { MS.stage = 1; setObjective('Kill the <b>three men</b> inside 412 Oak St'); say([['Vance', "Two of them are carrying. Don't let any of them walk out."]]); }
   } else if (MS.stage === 1) {
-    if (id === 2) for (const e of alive) if (Math.hypot(e.x - (HH.x1 + HH.x2) / 2, e.z - 104) > 48) { failMission('One of the targets got away.'); return; }
+    for (const e of alive) if (Math.hypot(e.x - (HH.x1 + HH.x2) / 2, e.z - 104) > 48) { failMission('One of the targets got away.'); return; }
     if (!alive.length) { MS.stage = 2; setObjective('Get back in your car and <b>drive home</b>'); toast('CONTRACT DONE', 2); say([['Vance', 'Clean work. Money will be at your place.']]); }
     $('timer').classList.remove('hidden'); $('timer').classList.remove('warn'); $('timer').textContent = `TARGETS LEFT: ${alive.length}`;
   } else if (MS.stage === 2) {
@@ -4563,7 +4536,7 @@ function updateMission23(dt) {
   }
 }
 function mission23Target() {
-  if (MS.stage === 0) return MS.id === 2 ? { x: HOUSE_GO.x, z: HOUSE_GO.z } : { x: SY.x + SY.w / 2 + 6, z: SY.z };
+  if (MS.stage === 0) return { x: HOUSE_GO.x, z: HOUSE_GO.z };
   if (MS.stage === 1) { const a = MS2.ents.filter(e => !e.dead); if (a.length) { let b = a[0], bd = 1e9; for (const e of a) { const d = Math.hypot(e.x - P.x, e.z - P.z); if (d < bd) { bd = d; b = e; } } return { x: b.x, z: b.z, person: true }; } }
   if (MS.stage === 2) return { x: HOME.x, z: HOME.z };
   return null;
