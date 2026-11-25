@@ -403,6 +403,7 @@
 </div>
 
 <div id="hurt"></div>
+<div id="glLost" class="panel hidden"><div class="card"><h2 class="display">GRAPHICS RESET</h2><p style="color:#f0e6f7">Your phone paused the 3D graphics to save memory. Your free-roam spot was saved.</p><button class="btn primary" onclick="location.reload()">Reload game</button><div class="hint" style="margin-top:8px">If this keeps happening, set Graphics to Low in Settings.</div></div></div>
 <div id="fade"></div>
 <script type="module">
 // ============================================================================
@@ -1460,6 +1461,7 @@ const HOME = { x: 0, z: 0 };
 const CAR_START = { x: -806.6, z: -192, h: Math.PI };
 const PLAYER_START = { x: -808.7, z: -195 };
 let whDoor, whDoorCol, whLights = [], safeDoor;
+const LIGHT_ANCHORS = []; // interior lamps; only the 2 nearest to the camera get a real light
 function buildWarehouse() {
   const { x1, x2, z1, z2, h } = WH, t = 0.25;
   const W = (ax1, az1, ax2, az2, y0 = 0, y1 = h, key = 'metal', col = 0xb8c2c8) => {
@@ -1542,7 +1544,7 @@ function buildWarehouse() {
     addB('steel', boxG(0.02, 1.4, 0.02), mat(x, 7.4, z), 0x222222);
   }
   for (const [x, y, z, int, dist] of [[-870, 6.2, -262, 18, 30], [-860, 6.2, -240, 10, 20], [-883, 2.7, -281, 6, 9]]) {
-    const L = new THREE.PointLight(0xffc58a, int, dist, 1.6); L.position.set(x, y, z); scene.add(L); whLights.push(L);
+    LIGHT_ANCHORS.push({ x, y, z, int, dist, color: 0xffc58a });
   }
   // side door (animated)
   whDoor = new THREE.Group(); whDoor.position.set(x2 + 0.15, 0, SIDE_DOOR.z - SIDE_DOOR.w / 2);
@@ -1767,7 +1769,7 @@ function buildHitHouse() {
   cf('wood', 1.7, 0.45, 2.1, -131.0, 108.3, 0x5a3e28); addB('paint', boxG(1.6, 0.12, 2.0), mat(-131, 0.51, 108.25), 0xe8e4dc); addB('paint', boxG(1.5, 0.15, 0.45), mat(-131, 0.6, 109.1), 0xffffff);
   cf('wood', 1.2, 0.9, 0.5, -123.0, 109.0, 0x6a4a30); cf('wood', 0.45, 0.55, 0.45, -132.3, 109.1, 0x6a4a30);
   // lights inside
-  for (const [lx, lz] of [[-131.5, 101.3], [-124.5, 101.2], [-128, 107]]) { addB('emitWarm', new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16), mat(lx, h - 0.06, lz)); const L = new THREE.PointLight(0xffd2a0, 7, 9, 1.6); L.position.set(lx, h - 0.3, lz); scene.add(L); }
+  for (const [lx, lz] of [[-131.5, 101.3], [-124.5, 101.2], [-128, 107]]) { addB('emitWarm', new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16), mat(lx, h - 0.06, lz)); LIGHT_ANCHORS.push({ x: lx, y: h - 0.3, z: lz, int: 7, dist: 9, color: 0xffd2a0 }); }
   // yard, driveway, walkway, porch light, mailbox "412"
   addB('lawn', planeG(28, 13.8, 6, 3), mat((x1 + x2) / 2, 0.015, 91.3), 0xffffff); addB('lawn', planeG(28, 6, 6, 2), mat((x1 + x2) / 2, 0.015, 112.8), 0xffffff);
   for (const sx of [x1 - 3.5, x2 + 3.5]) addB('lawn', planeG(6.6, 11.6, 2, 3), mat(sx, 0.015, (z1 + z2) / 2), 0xffffff);
@@ -3280,6 +3282,7 @@ function startContract(id) {
   W.has.glock = true; W.infinite = false; W.mag = 15; W.reserve = 75; if (W.cur !== 'glock') switchWeapon();
   $('intro').classList.add('hidden'); $('btnRestart').classList.remove('hidden');
   setObjective('Drive to <b>412 Oak Street</b>');
+  try { renderer.compile(scene, camera); } catch (e) { }
   show('play'); toast('MISSION ' + id + ': ' + MISSIONS[id].title, 2.6);
   say([['Vance', "Three of them. 412 Oak Street, right in town."], ['Vance', "Two are armed. Glock's yours. Nobody walks out of that house."], ['Travis', 'Understood.']]);
 }
@@ -3376,6 +3379,7 @@ function currentInteraction() {
   if (car.flipped && car.speed < 1.5 && (P.inCar || Math.hypot(P.x - car.x, P.z - car.z) < 4)) return { label: 'Flip the car back over', hold: 1.5, go: () => { car.flipUpright(); AU.hit(0.5, 200, 0.3); } };
   if (P.inCar) {
     if (car.speed < 2 && (MS.free || MS.id > 1 || MS.stage >= 3)) return { label: 'Get out', tap: true, go: beginExit };
+    if (car.speed >= 2 && !car.flipped && (MS.free || MS.id > 1 || MS.stage >= 3)) return { label: 'Bail out', tap: true, go: bailOut };
     return null;
   }
   const dCar = Math.hypot(P.x - (car.x + Math.cos(car.h) * 1.3), P.z - (car.z - Math.sin(car.h) * 1.3));
@@ -3449,6 +3453,16 @@ function enterCar() {
     MS.stage = 3; setObjective('Drive home to <b>Pecan Hollow</b>');
     say([['Travis', 'Now home. Nice and easy.']]);
   }
+}
+function bailOut() { // dive out of a moving car: tumble with the car's momentum, then get back up
+  const sp = car.speed, vx = car.vx, vz = car.vz;
+  exitCar(false);
+  car.input = { steer: car.steer * 0.3, thr: 0, brk: 0, hand: 0 };
+  const sx = Math.cos(car.h), sz = -Math.sin(car.h); // driver side
+  const pe = { m: player, x: P.x, z: P.z, h: P.h, kind: 'player' }; P.ent = pe;
+  startRagdoll(pe, vx * 0.8 + sx * 2.5, 1.6, vz * 0.8 + sz * 2.5, 'ko', sp > 9 ? 1 : 0);
+  P.bail = 1.6 + Math.min(1.2, sp * 0.05); AU.hit(0.5, 260, 0.2); shakeAmt = Math.max(shakeAmt, 0.15);
+  if (sp > 12) { P.hp -= Math.min(45, (sp - 12) * 4); P.hurtT = 0; bloodBurst(P.x, 0.5, P.z, vx / sp, 0, vz / sp, 0.3); }
 }
 function exitCar(anim) {
   P.inCar = false; player.root.visible = true; car.m.driver.visible = false; document.body.classList.remove('incar');
@@ -3582,7 +3596,7 @@ function updateCamera(dt) {
   let tx, ty, tz, dist;
   if (P.inCar) {
     tx = car.x; ty = 1.35; tz = car.z; dist = 7.2 + Math.min(car.speed, 40) * 0.03;
-    if (camIdle > 1.0 && car.speed > 1.5) {
+    if (camIdle > 2.5 && car.speed > 1.5) {
       const want = (car.fwd >= -0.5 ? car.h + Math.PI : car.h + Math.PI);
       camYaw += wrapA(want - camYaw) * Math.min(1, dt * 2.2);
       camPitch = lerp(camPitch, 0.2, Math.min(1, dt * 1.5));
@@ -3599,7 +3613,7 @@ function updateCamera(dt) {
   let d = camDist;
   for (let s = 0.4; s < camDist; s += 0.2) {
     const x = tx + sx + ox * s, y = ty + oy * s, z = tz + sz + oz * s;
-    if (pointBlocked(x, z, y) || y < 0.25 || (insideWH(tx, tz) && y > WH.h - 0.6) || INTERIORS.some(I => tx > I.x1 && tx < I.x2 && tz > I.z1 && tz < I.z2 && y > I.ceil)) { d = Math.max(0.5, s - 0.25); break; }
+    if ((pointBlocked(x, z, y) && !(P.inCar && s > 3.2)) || y < 0.25 || (insideWH(tx, tz) && y > WH.h - 0.6) || INTERIORS.some(I => tx > I.x1 && tx < I.x2 && tz > I.z1 && tz < I.z2 && y > I.ceil)) { d = Math.max(0.5, s - 0.25); break; }
   }
   camPos.set(tx + sx + ox * d, Math.max(0.35, ty + oy * d), tz + sz + oz * d);
   camLook.set(tx + sx, ty + (P.inCar ? 0.2 : 0), tz + sz);
@@ -3658,6 +3672,18 @@ function updatePlayer(dt) {
   { const hv = $('hurt'); const cur = parseFloat(hv.style.opacity || 0); hv.style.opacity = Math.max(P.hp < 30 && !P.dead ? 0.3 : 0, cur - dt * 0.8); }
   updateWeapon(dt);
   if (P.dead) { if (P.ent && P.ent.rag) { P.x = P.ent.rag.p[0].x; P.z = P.ent.rag.p[0].z; } return; }
+  if (P.bail > 0) { // tumbling after bailing out
+    P.bail -= dt; const r = P.ent && P.ent.rag;
+    if (r) { P.x = r.p[0].x; P.z = r.p[0].z; }
+    if (car.speed > 0.05 && !P.inCar) car.update(dt);
+    if (P.bail <= 0 || !r) {
+      if (r) { const f = r.bodyFacing(); P.h = Math.atan2(-f.headX, -f.headZ); }
+      P.ent = null; P.bail = 0; P.vx = P.vz = 0; P.y = 0; P.land = 1;
+      player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
+      if (P.hp <= 0) { P.hp = 1; }
+    }
+    return;
+  }
   if (seq) { updateSeq(dt); return; }
   if (inp.switchW && !P.inCar) switchWeapon();
   if (P.inCar) {
@@ -3933,6 +3959,11 @@ function update(dt) {
   const sx = Math.round(fx / snap) * snap, sz = Math.round(fz / snap) * snap;
   sun.target.position.set(sx, 0, sz); sun.position.set(sx + SUN_DIR.x * 200, SUN_DIR.y * 200, sz + SUN_DIR.z * 200);
   sky.position.copy(camera.position); sky.material.uniforms.time.value = gameT;
+  if (W && W.pool) {
+    const cx = camera.position.x, cz = camera.position.z;
+    const near = LIGHT_ANCHORS.map(a => [a, (a.x - cx) ** 2 + (a.z - cz) ** 2]).filter(v => v[1] < 45 * 45).sort((a, b) => a[1] - b[1]);
+    W.pool.forEach((L, i) => { const a = near[i] && near[i][0]; if (a) { L.position.set(a.x, a.y, a.z); L.intensity = a.int; L.distance = a.dist; L.color.setHex(a.color); } else L.intensity = 0; });
+  }
   GRASS_BLOCK.length = 0; GRASS_BLOCK.push([car.x, car.z]); for (const a of traffic) if (a.mode === 'phys') GRASS_BLOCK.push([a.v.x, a.v.z]);
   updateGrass(camera.position.x, camera.position.z, q.grass);
   // engine audio
@@ -3951,6 +3982,13 @@ function resize() {
   baseFov = w < h ? 78 : 60; camera.fov = baseFov; camera.updateProjectionMatrix();
 }
 addEventListener('resize', resize);
+let glLost = false;
+canvas.addEventListener('webglcontextlost', e => {
+  e.preventDefault(); glLost = true;
+  try { if (MS.free && state === 'play') { save.pos = { x: P.inCar ? car.x : P.x, z: P.inCar ? car.z : P.z, h: P.h, inCar: P.inCar, cx: car.x, cz: car.z, ch: car.h, carHp: car.health }; store.set('sl.save', save); } } catch (_) { }
+  $('glLost').classList.remove('hidden');
+}, false);
+canvas.addEventListener('webglcontextrestored', () => { glLost = false; $('glLost').classList.add('hidden'); try { applyQuality(); } catch (_) { } }, false);
 
 function loop(now) {
   requestAnimationFrame(loop);
@@ -3960,7 +3998,7 @@ function loop(now) {
   if (state === 'play' || state === 'cine') {
     let gdt = dt; if (hitStop > 0) { hitStop -= dt; gdt = dt * 0.06; }
     const _t0 = performance.now(); for (let r = 0; r < (window.__reps || 1); r++) update(gdt); updateHUD(dt); const _t1 = performance.now();
-    renderer.render(scene, camera); window.__perf = { upd: _t1 - _t0, ren: performance.now() - _t1, calls: renderer.info.render.calls, tris: renderer.info.render.triangles };
+    if (!glLost) { try { renderer.render(scene, camera); } catch (err) { console.error(err); } } window.__perf = { upd: _t1 - _t0, ren: performance.now() - _t1, calls: renderer.info.render.calls, tris: renderer.info.render.triangles };
   }
   if (settings.fps) { fpsAcc += rawDt; fpsN++; if (fpsAcc > 0.5) { $('fps').textContent = Math.round(fpsN / fpsAcc) + ' FPS'; fpsAcc = 0; fpsN = 0; } }
 }
@@ -4244,7 +4282,7 @@ function updateBodies(dt) {
       if (e.pool.scale.x < target) e.pool.scale.setScalar(e.pool.scale.x + dt * 0.2);
     }
     // knocked-out (not shot) people get back up
-    if (!e.dead && !e.bleeding && e.rag.mode === 'ko' && e.rag.t > 5 && e.kind !== 'guard') {
+    if (!e.dead && !e.bleeding && e.rag.mode === 'ko' && e.rag.t > 5 && e.kind !== 'guard' && e.kind !== 'player') {
       const f = e.rag.bodyFacing(); const fallX = f.faceUp ? -1.5 : 1.5;
       e.h = f.faceUp ? Math.atan2(-f.headX, -f.headZ) : Math.atan2(f.headX, f.headZ);
       e.rag = null; e.state = 'getup'; e.t = 0; e.fall = fallX; e.y = 0; e.hp = 3; e.m.shadow.visible = true;
@@ -4292,7 +4330,8 @@ function initCombat() {
   W.flash = new THREE.Sprite(new THREE.SpriteMaterial({ map: ft, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); W.flash.visible = false; W.flash.scale.setScalar(0.35); scene.add(W.flash);
   W.light = new THREE.PointLight(0xffb060, 0, 9, 1.6); scene.add(W.light);
   W.eflash = new THREE.Sprite(W.flash.material); W.eflash.visible = false; W.eflash.scale.setScalar(0.4); scene.add(W.eflash);
-  W.elight = new THREE.PointLight(0xffb060, 0, 9, 1.6); scene.add(W.elight);
+  W.elight = W.light; // one shared muzzle light keeps shaders light on phones
+  W.pool = [0, 1].map(() => { const L = new THREE.PointLight(0xffc58a, 0, 9, 1.6); scene.add(L); return L; });
   // tracers
   W.tracer = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: 0xffe6a0, transparent: true, opacity: 0.0, blending: THREE.AdditiveBlending, depthWrite: false })); W.tracer.frustumCulled = false; scene.add(W.tracer);
   // brass casings
