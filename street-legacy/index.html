@@ -2897,21 +2897,46 @@ const AU = {
   },
   click(p = 1) { this.beep(1800 * p, 0.03, 'square', 0.08); this.hit(0.15, 3000 * p, 0.03); },
   tink() { this.beep(3200 + Math.random() * 1200, 0.08, 'triangle', 0.05); },
-  scream(x, z, female) {
+  // human-sounding scream: a glottal pulse source (rich harmonics) with jitter + vocal-fry roughness,
+  // shaped by three vowel formants ("AAH" sliding to "AY") plus breath noise, with a natural pitch contour
+  scream(x, z, female, kind = 'pain') {
     if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
-    const dist = Math.hypot(x - camera.position.x, z - camera.position.z), vol = 0.32 * clamp(1 - dist / 70, 0, 1); if (vol <= 0.01) return;
-    const f0 = (female ? 420 : 240) * (0.9 + Math.random() * 0.25), dur = 0.8 + Math.random() * 0.6;
-    const out = c.createGain(); out.gain.setValueAtTime(0.0001, t); out.gain.linearRampToValueAtTime(vol, t + 0.06); out.gain.setValueAtTime(vol, t + dur * 0.6); out.gain.exponentialRampToValueAtTime(0.001, t + dur); out.connect(this.master);
-    const f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(); f1.type = f2.type = 'bandpass'; f1.frequency.value = female ? 950 : 750; f2.frequency.value = female ? 1500 : 1200; f1.Q.value = 5; f2.Q.value = 6; f1.connect(out); f2.connect(out);
-    for (const det of [1, 1.006]) {
-      const o = c.createOscillator(); o.type = 'sawtooth';
-      o.frequency.setValueAtTime(f0 * det, t); o.frequency.linearRampToValueAtTime(f0 * 1.45 * det, t + dur * 0.25); o.frequency.linearRampToValueAtTime(f0 * 0.8 * det, t + dur);
-      const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 6 + Math.random() * 3; lg.gain.value = f0 * 0.04; lfo.connect(lg); lg.connect(o.frequency); lfo.start(t); lfo.stop(t + dur);
-      o.connect(f1); o.connect(f2); o.start(t); o.stop(t + dur + 0.05);
+    const dist = Math.hypot(x - camera.position.x, z - camera.position.z), vol = 0.5 * clamp(1 - dist / 80, 0, 1); if (vol <= 0.01) return;
+    if (!this.glottal) { // glottal flow derivative ≈ harmonics falling ~12 dB/oct with a little odd emphasis
+      const n = 48, re = new Float32Array(n), im = new Float32Array(n);
+      for (let k = 1; k < n; k++) im[k] = Math.pow(k, -1.25) * (k % 2 ? 1 : 0.7);
+      this.glottal = c.createPeriodicWave(re, im);
     }
-    const n = c.createBufferSource(), ng = c.createGain(); n.buffer = this.noise; ng.gain.value = 0.25; n.connect(ng); ng.connect(f2); n.start(t); n.stop(t + dur);
+    const dur = (kind === 'shout' ? 0.55 : 0.9) + Math.random() * 0.7;
+    const base = (female ? 520 : 300) * (0.85 + Math.random() * 0.3) * (kind === 'shout' ? 0.75 : 1);
+    const out = c.createGain(); out.gain.value = 0;
+    out.gain.setValueAtTime(0.0001, t); out.gain.exponentialRampToValueAtTime(vol, t + 0.05); out.gain.setValueAtTime(vol, t + dur * 0.55); out.gain.exponentialRampToValueAtTime(vol * 0.5, t + dur * 0.8); out.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+    // small room / street reflection
+    const dl = c.createDelay(); dl.delayTime.value = 0.06 + Math.random() * 0.04; const fb = c.createGain(); fb.gain.value = 0.18; out.connect(dl); dl.connect(fb); fb.connect(this.master);
+    out.connect(this.master);
+    // formant bank (vowel "AA" → "AY"), scaled for female voices
+    const fs = female ? 1.17 : 1;
+    const F = [[850, 1150, 9, 1.0], [1220, 1750, 10, 0.75], [2700, 2850, 12, 0.4], [3500, 3700, 14, 0.18]].map(([a, b, q, g]) => {
+      const f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
+      f.frequency.setValueAtTime(a * fs, t); f.frequency.linearRampToValueAtTime(b * fs, t + dur);
+      const gg = c.createGain(); gg.gain.value = g * 2.2; f.connect(gg); gg.connect(out); return f;
+    });
+    const src = c.createGain(); src.gain.value = 1; for (const f of F) src.connect(f);
+    // voice: glottal oscillator; pitch rises fast, wavers, then breaks downward
+    const o = c.createOscillator(); o.setPeriodicWave(this.glottal);
+    const f0 = o.frequency; f0.setValueAtTime(base * 0.8, t); f0.exponentialRampToValueAtTime(base * 1.35, t + 0.09); f0.setValueAtTime(base * 1.35, t + dur * 0.5);
+    f0.exponentialRampToValueAtTime(base * (kind === 'shout' ? 0.9 : 1.1), t + dur * 0.8); f0.exponentialRampToValueAtTime(base * 0.6, t + dur);
+    const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = 5.5 + Math.random() * 2.5; vg.gain.value = base * 0.035; vib.connect(vg); vg.connect(f0);
+    // jitter: noisy pitch wobble
+    const jit = c.createBufferSource(); jit.buffer = this.noise; jit.loop = true; const jf = c.createBiquadFilter(); jf.type = 'lowpass'; jf.frequency.value = 30; const jg = c.createGain(); jg.gain.value = base * 0.06; jit.connect(jf); jf.connect(jg); jg.connect(f0);
+    // roughness / vocal strain: fast amplitude modulation
+    const am = c.createGain(); am.gain.value = 0.75; const rough = c.createOscillator(), rg = c.createGain(); rough.frequency.value = 55 + Math.random() * 40; rg.gain.value = 0.25; rough.connect(rg); rg.connect(am.gain);
+    o.connect(am); am.connect(src);
+    // breath / rasp
+    const br = c.createBufferSource(); br.buffer = this.noise; br.loop = true; const bg = c.createGain(); bg.gain.value = 0.22; br.connect(bg); bg.connect(src);
+    for (const n of [o, vib, jit, rough, br]) { n.start(t); n.stop(t + dur + 0.05); }
   },
-  shout(x, z) { this.scream(x, z, false); },
+  shout(x, z) { this.scream(x, z, false, 'shout'); },
   gunS() { if (!this.ctx) return; this.hit(0.35, 1400, 0.06); this.hit(0.25, 400, 0.09); this.beep(2200, 0.03, 'square', 0.05); },
   horn() { this.beep(415, 0.5, 'sawtooth', 0.09); this.beep(349, 0.5, 'sawtooth', 0.09); },
   musicOn() {
@@ -3356,7 +3381,7 @@ function resetHuman(e) {
   if (e.rag) e.rag = null;
   const m = e.m; m.root.quaternion.identity(); m.hips.quaternion.identity(); m.torso.quaternion.identity(); m.shadow.visible = true;
   if (e.wounds) { for (const w of e.wounds) w.removeFromParent(); e.wounds = null; }
-  e.dead = false; e.bleeding = false; e.pool = null; e.torsoHits = 0; e.limbHits = 0; e.stomps = 0; e.clutch = 0; e.limp = false; e.hitT = 0; e.fall = 0; e.y = 0;
+  e.dead = false; e.bleeding = false; e.pool = null; e.torsoHits = 0; e.limbHits = 0; e.legHits = 0; e.armHits = 0; e.dmg = 0; e.stomps = 0; e.pendingFall = null; e.clutch = 0; e.limp = false; e.hitT = 0; e.fall = 0; e.y = 0;
 }
 function clearGore() {
   if (DEC) { for (const d of DEC.list) scene.remove(d); DEC.list.length = 0; }
@@ -4242,7 +4267,7 @@ function updateGore(dt) {
 const RJ = ['pelvis', 'chest', 'head', 'lSh', 'lEl', 'lHand', 'rSh', 'rEl', 'rHand', 'lHip', 'lKnee', 'lFoot', 'rHip', 'rKnee', 'rFoot'];
 const RLINKS = [[0, 1], [1, 2], [1, 3], [1, 6], [3, 6], [2, 3], [2, 6], [0, 9], [0, 12], [9, 12], [3, 9], [6, 12], [3, 12], [6, 9], [1, 9], [1, 12],
   [3, 4], [4, 5], [6, 7], [7, 8], [9, 10], [10, 11], [12, 13], [13, 14]];
-const RLIMB = [[3, 5, 0.3], [6, 8, 0.3], [9, 11, 0.62], [12, 14, 0.62], [0, 2, 0.88]]; // min-distance "joint limits"
+const RLIMB = [[3, 5, 0.3], [6, 8, 0.3], [9, 11, 0.62], [12, 14, 0.62], [0, 2, 0.62]]; // min-distance "joint limits"
 class Ragdoll {
   constructor(m, vx, vy, vz, spin = 0) {
     this.m = m; const A = m.arms, Lg = m.legs;
@@ -4258,14 +4283,15 @@ class Ragdoll {
     this.im = [1 / 3.2, 1 / 2.8, 1 / 1.4, 1 / 1.3, 1, 1.25, 1 / 1.3, 1, 1.25, 1 / 2, 1 / 1.1, 1.2, 1 / 2, 1 / 1.1, 1.2];
     m.shadow.visible = false;
   }
-  impulse(i, x, y, z) { this.q[i].x -= x / 60; this.q[i].y -= y / 60; this.q[i].z -= z / 60; }
+  impulse(i, x, y, z) { this.q[i].x -= x / 60; this.q[i].y -= y / 60; this.q[i].z -= z / 60; this.sleep = 0; this.applied = false; }
   step(dt, alive) {
     dt = Math.min(dt, 1 / 30); this.t += dt;
     const P = this.p, Q = this.q, g = 9.8 * dt * dt;
+    const drag = alive ? 0.985 : this.t > 1.5 ? 0.93 : 0.975; // the dead settle quickly
     let motion = 0;
     for (let i = 0; i < P.length; i++) {
       const p = P[i], q = Q[i];
-      const vx = (p.x - q.x) * 0.985, vy = (p.y - q.y) * 0.985, vz = (p.z - q.z) * 0.985;
+      const vx = (p.x - q.x) * drag, vy = (p.y - q.y) * drag, vz = (p.z - q.z) * drag;
       q.copy(p); p.x += vx; p.y += vy - g; p.z += vz;
       motion += Math.abs(vx) + Math.abs(vy) + Math.abs(vz);
     }
@@ -4273,18 +4299,20 @@ class Ragdoll {
     if (alive) {
       const k = dt * dt;
       const ch = P[1], pel = P[0];
-      if (this.t < 0.9) { // reach toward the ground in the fall direction
+      // every muscle pull is paired with an equal push on the body it pulls against, so the body never drifts or lifts itself
+      const pull = (i, j, fx, fy, fz) => { P[i].x += fx; P[i].y += fy; P[i].z += fz; const r = this.im[j] / (this.im[i] + this.im[j]); P[j].x -= fx * r; P[j].y -= fy * r; P[j].z -= fz * r; };
+      if (this.t < 0.7) { // brace: arms reach out in the direction of the fall
         const fx = (ch.x - pel.x), fz = (ch.z - pel.z);
-        for (const h of [5, 8]) { P[h].x += fx * 18 * k; P[h].y -= 8 * k; P[h].z += fz * 18 * k; }
+        for (const h of [5, 8]) pull(h, 1, fx * 10 * k, -4 * k, fz * 10 * k);
       } else if (this.mode === 'writhe') {
-        const w = this.woundIdx ?? 0, tgt = P[w];
-        for (const h of [5, 8]) { P[h].x += (tgt.x - P[h].x) * 30 * k; P[h].y += (tgt.y + 0.05 - P[h].y) * 30 * k; P[h].z += (tgt.z - P[h].z) * 30 * k; }
-        const curl = 0.5 + 0.5 * Math.sin(this.t * 1.7);
-        for (const kn of [10, 13]) { P[kn].x += (ch.x - P[kn].x) * 6 * curl * k; P[kn].z += (ch.z - P[kn].z) * 6 * curl * k; P[kn].y += 14 * curl * k; }
-        P[2].y += (6 + Math.sin(this.t * 5) * 6) * k; // lifting the head
-        if (Math.random() < dt * 1.2) { const i = 3 + (Math.random() * 12 | 0); P[i].x += (Math.random() - .5) * 0.02; P[i].y += Math.random() * 0.02; P[i].z += (Math.random() - .5) * 0.02; }
+        const w = this.woundIdx ?? 0, tgt = P[w], s = Math.min(1, (this.t - 0.7) * 0.8);
+        for (const h of [5, 8]) pull(h, w, (tgt.x - P[h].x) * 14 * s * k, (tgt.y + 0.04 - P[h].y) * 14 * s * k, (tgt.z - P[h].z) * 14 * s * k);
+        const curl = (0.5 + 0.5 * Math.sin(this.t * 1.3)) * s;
+        for (const kn of [10, 13]) pull(kn, 0, (ch.x - P[kn].x) * 3 * curl * k, 0, (ch.z - P[kn].z) * 3 * curl * k);
+        if (P[2].y < 0.3) pull(2, 1, 0, (2 + Math.sin(this.t * 4) * 2) * s * k, 0);
       }
     }
+    const contact = this.contact || (this.contact = new Uint8Array(15)); contact.fill(0);
     for (let it = 0; it < 5; it++) {
       RLINKS.forEach(([a, b], k) => {
         const A = P[a], B = P[b], dx = B.x - A.x, dy = B.y - A.y, dz = B.z - A.z, d = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1e-6, f = (d - this.len[k]) / d;
@@ -4297,16 +4325,26 @@ class Ragdoll {
         for (const [a, b, c, sgn] of [[9, 10, 11, 1], [12, 13, 14, 1], [3, 4, 5, -1], [6, 7, 8, -1]]) {
           const mx = (P[a].x + P[c].x) / 2, my = (P[a].y + P[c].y) / 2, mz = (P[a].z + P[c].z) / 2;
           const o = ((P[b].x - mx) * fw.x + (P[b].y - my) * fw.y + (P[b].z - mz) * fw.z) * sgn;
-          if (o < 0) { P[b].x -= fw.x * o * sgn; P[b].y -= fw.y * o * sgn; P[b].z -= fw.z * o * sgn; }
+          if (o < 0) { // move the joint and the two ends apart equally: no net push on the body
+            const cx = -fw.x * o * sgn, cy = -fw.y * o * sgn, cz = -fw.z * o * sgn;
+            P[b].x += cx * 0.5; P[b].y += cy * 0.5; P[b].z += cz * 0.5;
+            for (const q of [a, c]) { P[q].x -= cx * 0.25; P[q].y -= cy * 0.25; P[q].z -= cz * 0.25; }
+          }
         }
       }
       for (let i = 0; i < P.length; i++) {
         const p = P[i], r = i === 2 ? 0.11 : i < 2 ? 0.13 : 0.07;
-        if (p.y < r) { p.y = r; const q = Q[i]; q.x = p.x - (p.x - q.x) * 0.55; q.z = p.z - (p.z - q.z) * 0.55; }
+        if (p.y < r + 0.005) { p.y = Math.max(p.y, r); contact[i] = 1; }
         if (it === 4) { const c = { x: p.x, z: p.z }; if (pushCircle(c, r, p.y + 0.05)) { p.x = c.x; p.z = c.z; } }
       }
     }
-    this.sleep = motion < 0.004 * P.length && !alive ? this.sleep + dt : 0;
+    // friction on the final movement of every point touching the ground (kills sliding / creeping)
+    for (let i = 0; i < P.length; i++) if (contact[i]) {
+      const p = P[i], q = Q[i], dx = p.x - q.x, dz = p.z - q.z, v = Math.hypot(dx, dz);
+      const k = v < 0.012 ? 0 : alive ? 0.6 : 0.45;
+      p.x = q.x + dx * k; p.z = q.z + dz * k; if (p.y - q.y > 0 && !alive) q.y = p.y;
+    }
+    this.sleep = motion < 0.01 * P.length && !alive && this.t > 1 ? this.sleep + dt : 0;
   }
   apply() {
     const m = this.m, P = this.p;
@@ -4360,6 +4398,7 @@ const humans = () => { const l = npcs.slice(); if (guard) l.push(guard); for (co
 function startRagdoll(e, vx, vy, vz, mode = 'fall', spin = 0) {
   if (e.rag) { e.rag.impulse(1, vx, vy, vz); return; }
   e.m.st.act = null; e.pendingFall = null;
+  if (e.kind !== 'player' && e.x != null) { e.m.root.visible = true; placeBody(e, e.m); }
   e.rag = new Ragdoll(e.m, vx, vy, vz, spin); e.rag.mode = mode; e.state = 'down'; e.t = 0;
   if (e.m.hair) e.m.hair.ok = false;
 }
@@ -4377,23 +4416,24 @@ function hitPerson(e, part, point, dx, dy, dz, src = 'gun', power = 1) {
   if (e.m && !e.screamT) { AU.scream(e.x, e.z, e.female); e.screamT = 1; } else if (Math.random() < 0.4) AU.scream(e.x, e.z, e.female);
   shout(e);
   if (part === 'head' && src === 'gun') { kill(e, dx * 4, 1.5, dz * 4, 2); if (e === guard) guard.ko = true; return; }
-  if (e.rag) { // already down: every hit costs them blood
-    e.bleed = Math.max(0, (e.bleed ?? 8) - (part === 'chest' || part === 'stomach' ? 3.5 : 1.2));
-    const idx = part === 'chest' ? 1 : part === 'stomach' ? 0 : part === 'legL' ? 10 : part === 'legR' ? 13 : part === 'armL' ? 4 : part === 'armR' ? 7 : 1;
-    e.rag.impulse(idx, dx * 3, 0.3, dz * 3); return;
-  }
+  const idx = part === 'chest' ? 1 : part === 'stomach' ? 0 : part === 'legL' ? 10 : part === 'legR' ? 13 : part === 'armL' ? 4 : part === 'armR' ? 7 : 1;
+  if (src === 'gun') {
+    // damage by where it lands: chest 1.5, stomach 1.2, leg 0.9, arm 0.7 — 3 points is fatal (so 2-3 body shots), 2 points drops them
+    e.dmg = (e.dmg || 0) + ({ chest: 1.5, stomach: 1.2, legL: 0.9, legR: 0.9, armL: 0.7, armR: 0.7 })[part];
+    if (e.rag || e.pendingFall || e.dmg >= 3) { if (e.rag) e.rag.impulse(idx, dx * 3, 0.3, dz * 3); kill(e, dx * 3, 0.6, dz * 3, idx); return; }
+    if (e.dmg >= 2) { buckle(e, dx, dz, idx, part.startsWith('leg')); return; }
+  } else if (e.rag) { e.bleed = Math.max(0, (e.bleed ?? 8) - 2); e.rag.impulse(idx, dx * 3, 0.3, dz * 3); return; }
   if (part === 'chest' || part === 'stomach') {
     e.torsoHits = (e.torsoHits || 0) + 1;
-    if (e.torsoHits >= 2 || src !== 'gun') { buckle(e, dx, dz, part === 'chest' ? 1 : 0); }
+    if (src !== 'gun') { buckle(e, dx, dz, part === 'chest' ? 1 : 0); }
     else { e.clutch = 1; e.m.flinch(1, (Math.random() - .5) * 2); e.stagger = 0.6; e.vx = dx * 1.7; e.vz = dz * 1.7; e.panic = true; }
     return;
   }
   const leg = part.startsWith('leg');
   e.limbHits = (e.limbHits || 0) + 1; e.m.flinch(0.8, (Math.random() - .5) * 2);
-  if (leg) { e.legHits = (e.legHits || 0) + 1; e.limp = true; if (e.legHits >= 2) { buckle(e, dx, dz, part === 'legL' ? 10 : 13, true); return; } e.stagger = 0.55; e.vx = dx * 1.2; e.vz = dz * 1.2; }
+  if (leg) { e.legHits = (e.legHits || 0) + 1; e.limp = true; e.stagger = 0.55; e.vx = dx * 1.2; e.vz = dz * 1.2; }
   else { e.armHits = (e.armHits || 0) + 1; e.stagger = 0.35; e.vx = dx * 0.8; e.vz = dz * 0.8; e.cool = Math.max(e.cool || 0, 1.4); if (e.armed && e.armHits >= 2) dropGun(e); }
   e.panic = true;
-  if (e.limbHits >= 4) buckle(e, dx, dz, 0);
 }
 // knees buckle for a moment, then the body goes down and they bleed out
 function buckle(e, dx, dz, idx, legShot = false) {
@@ -4407,7 +4447,7 @@ function updatePendingFall(e, dt) {
   e.m.update(dt, { spd: 0.4, crouch: true, clutch: 1, t: gameT }); placeBody(e, e.m);
   if (f.t <= 0) {
     startRagdoll(e, f.dx * 2.2 + Math.sin(e.h) * 0.6, 0.2, f.dz * 2.2 + Math.cos(e.h) * 0.6, 'fall');
-    e.bleeding = true; e.bleed = 9 + Math.random() * 6; e.rag.mode = 'writhe'; e.rag.woundIdx = f.idx; e.poolT = 0;
+    e.bleeding = true; e.bleed = 6 + Math.random() * 4; e.rag.mode = 'writhe'; e.rag.woundIdx = f.idx; e.poolT = 0;
   }
   return true;
 }
@@ -4431,7 +4471,8 @@ function updateBodies(dt) {
     if (!e.rag) continue;
     const alive = !e.dead;
     const near = Math.hypot(e.rag.p[0].x - camera.position.x, e.rag.p[0].z - camera.position.z) < 120;
-    if (near && e.rag.sleep < 1.5) { e.rag.step(dt, alive && e.rag.mode !== 'ko'); e.rag.apply(); }
+    if (e.rag.sleep < 1.5) { e.rag.step(dt, alive && e.rag.mode !== 'ko'); if (near) e.rag.apply(); }
+    else if (near && !e.rag.applied) { e.rag.apply(); e.rag.applied = true; }
     e.x = e.rag.p[0].x; e.z = e.rag.p[0].z;
     if (e.bleeding) { e.bleed -= dt; if (e.bleed <= 0) kill(e, 0, 0, 0); if (Math.random() < dt * 2 * (gore().spray / 20)) FXS.norm.spawn(e.rag.p[0].x, 0.2, e.rag.p[0].z, 0, 0.1, 0, 1, 0.05, 0x5a0608, 0.9, 2, 0, 0); }
     if ((e.bleeding || e.dead) && e.hitT && e.rag.t > 0.5) {
@@ -4545,7 +4586,7 @@ function playerShoot() {
   W.flash.scale.setScalar(W.suppressed ? 0.14 : 0.35);
   // ray from the camera through the crosshair, start beyond the player
   camera.getWorldDirection(aimRay.d);
-  const spread = (W.aim > 0.6 ? 0.006 : 0.04) + Math.min(0.04, P.spd * 0.006) + W.spread;
+  const spread = W.lock ? 0.002 : (W.aim > 0.6 ? 0.006 : 0.04) + Math.min(0.04, P.spd * 0.006) + W.spread;
   aimRay.d.x += (Math.random() - .5) * spread; aimRay.d.y += (Math.random() - .5) * spread; aimRay.d.z += (Math.random() - .5) * spread; aimRay.d.normalize();
   const camToP = Math.hypot(camera.position.x - P.x, camera.position.z - P.z);
   aimRay.o.copy(camera.position).addScaledVector(aimRay.d, camToP + 0.4);
