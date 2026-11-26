@@ -314,7 +314,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0427</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0433</div>
   </div>
 </div>
 
@@ -392,6 +392,7 @@
     <button class="bmBtn" id="bmMe" aria-label="Center on me"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4" stroke="currentColor" stroke-width="2.2" fill="none"/></svg></button>
     <button class="bmBtn" id="bmOut" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14" stroke="currentColor" stroke-width="3"/></svg></button>
     <button class="bmBtn" id="bmIn" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5v14" stroke="currentColor" stroke-width="3"/></svg></button>
+    <button class="bmBtn" id="bmStyle">ART</button>
     <button class="bmBtn" id="bmClear">CLEAR</button>
     <button class="bmBtn" id="bmClose" aria-label="Close map"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg></button>
   </div>
@@ -1642,6 +1643,63 @@ function buildTowns() {
   roadSign(812, 620, 'OIL FIELDS', 'BLACK GOLD COUNTRY', 1);
 }
 
+// ---------------------------------------------------------------- clean map colours (shared by minimap & full map)
+function blurGrid(src, passes) {
+  let a = Float32Array.from(src), b = new Float32Array(a.length);
+  for (let p = 0; p < passes; p++) {
+    for (let y = 0; y < MAP_H; y++) for (let x = 0; x < MAP_W; x++) { let s = 0, n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx < 0 || yy < 0 || xx >= MAP_W || yy >= MAP_H) continue; s += a[yy * MAP_W + xx]; n++; } b[y * MAP_W + x] = s / n; }
+    [a, b] = [b, a];
+  }
+  return a;
+}
+const MAPF_SM = blurGrid(SDF_M, 3), MAPF_SW = blurGrid(SDF_W, 2);
+const MAPF_BEND = blurGrid(Array.from(MAPCLS, c => c === 3 ? 1 : 0), 2), MAPF_BEACH = blurGrid(Array.from(MAPCLS, c => c === 5 ? 1 : 0), 1);
+const MC = {
+  land: [222, 213, 186], landN: [196, 206, 168], bend: [214, 160, 118], beach: [240, 226, 184],
+  rockLo: [190, 172, 150], rockHi: [134, 118, 132], shallow: [86, 158, 196], deep: [34, 86, 132], lake: [70, 140, 190],
+};
+// writes an RGB colour for world point (x,z) into out; light = hillshade term
+function mapColorAt(x, z, out) {
+  const sm = sampleGrid(MAPF_SM, x, z), sw = sampleGrid(MAPF_SW, x, z);
+  const north = clamp((z - WB.z1) / (WB.z2 - WB.z1), 0, 1);
+  let r = lerp(MC.landN[0], MC.land[0], north), g = lerp(MC.landN[1], MC.land[1], north), b = lerp(MC.landN[2], MC.land[2], north);
+  const bend = clamp(sampleGrid(MAPF_BEND, x, z) * 1.6 - 0.3, 0, 1), beach = clamp(sampleGrid(MAPF_BEACH, x, z) * 2.2 - 0.4, 0, 1);
+  r = lerp(r, MC.bend[0], bend); g = lerp(g, MC.bend[1], bend); b = lerp(b, MC.bend[2], bend);
+  r = lerp(r, MC.beach[0], beach); g = lerp(g, MC.beach[1], beach); b = lerp(b, MC.beach[2], beach);
+  let h = 0;
+  if (sm < 0) {
+    const d = -sm, k = clamp(d / 900, 0, 1), m = clamp(d / 25, 0, 1);
+    const ridge = 1 - Math.abs(vnoise(x / 420, z / 420) * 2 - 1), ridge2 = 1 - Math.abs(vnoise(x / 150 + 9, z / 150) * 2 - 1);
+    h = d * 0.55 + (ridge * 180 + ridge2 * 60) * Math.min(1, d / 250);
+    r = lerp(r, lerp(MC.rockLo[0], MC.rockHi[0], k), m); g = lerp(g, lerp(MC.rockLo[1], MC.rockHi[1], k), m); b = lerp(b, lerp(MC.rockLo[2], MC.rockHi[2], k), m);
+  }
+  const wet = clamp((-sw - 1.5) / 2.5, 0, 1);
+  if (wet > 0) {
+    const depth = clamp(-sw / 500, 0, 1), lake = mapCls(x, z) === 4;
+    const wr = lake ? MC.lake[0] : lerp(MC.shallow[0], MC.deep[0], depth), wg = lake ? MC.lake[1] : lerp(MC.shallow[1], MC.deep[1], depth), wb = lake ? MC.lake[2] : lerp(MC.shallow[2], MC.deep[2], depth);
+    r = lerp(r, wr, wet); g = lerp(g, wg, wet); b = lerp(b, wb, wet); h = 0;
+  }
+  out[0] = r; out[1] = g; out[2] = b; return h;
+}
+// paints a smooth, hill-shaded image of the area [x0,x0+w]x[z0,z0+d] into an ImageData of size W x H
+function paintTerrain(img, x0, z0, w, d) {
+  const W = img.width, H = img.height, data = img.data, col = [0, 0, 0], sx = w / W, sz = d / H;
+  const hs = new Float32Array((W + 1) * 2);
+  let prev = new Float32Array(W), cur = new Float32Array(W);
+  for (let j = 0; j < H; j++) {
+    for (let i = 0; i < W; i++) {
+      const x = x0 + (i + 0.5) * sx, z = z0 + (j + 0.5) * sz, h = mapColorAt(x, z, col);
+      cur[i] = h;
+      const dx = i > 0 ? h - cur[i - 1] : 0, dz = j > 0 ? h - prev[i] : 0;
+      const shade = clamp(1 + (-dx / sx * 0.55 - dz / sz * 0.35) * 0.9, 0.55, 1.35);
+      const k = (j * W + i) * 4;
+      data[k] = clamp(col[0] * shade, 0, 255); data[k + 1] = clamp(col[1] * shade, 0, 255); data[k + 2] = clamp(col[2] * shade, 0, 255); data[k + 3] = 255;
+    }
+    [prev, cur] = [cur, prev];
+  }
+}
+const ROAD_STYLE = { hwy: ['#b0762a', '#f6c453'], road: ['#9a9488', '#ffffff'], street: ['#b8b2a6', '#fbfaf6'] };
+
 // ============================================================================
 //  WORLD: Calder County, Texas
 // ============================================================================
@@ -2363,29 +2421,24 @@ function updateGrass(px, pz, want) {
 
 // ---------------------------------------------------------------- minimap: tiles drawn on demand (1 px = 1 m)
 const MTILE = 512, mapTiles = new Map();
-const MAPCOL = { land: [111, 107, 76], beach: [203, 185, 138], bend: [138, 90, 64], water: [42, 86, 116] };
 function mapTile(tx, tz) {
   const k = tx + ',' + tz; let t = mapTiles.get(k);
   if (t) { t.used = performance.now(); return t.c; }
   if (mapTiles.size > 24) { let old = null; for (const [kk, v] of mapTiles) if (!old || v.used < old[1].used) old = [kk, v]; mapTiles.delete(old[0]); }
-  const c = mkCanvas(MTILE, MTILE), g = c.getContext('2d'), x0 = tx * MTILE, z0 = tz * MTILE, S = 8;
-  for (let j = 0; j < MTILE; j += S) for (let i = 0; i < MTILE; i += S) {
-    const x = x0 + i + S / 2, z = z0 + j + S / 2, h = terrH(x, z), cl = mapCls(x, z);
-    let col;
-    if (h < WATER_Y) col = MAPCOL.water;
-    else if (h > 0.5) { const k = clamp(h / 500, 0, 1); col = [92 + k * 60, 78 + k * 50, 96 + k * 50]; }
-    else col = cl === 5 ? MAPCOL.beach : cl === 3 ? MAPCOL.bend : MAPCOL.land;
-    const n = 0.92 + hash2(x | 0, z | 0) * 0.1;
-    g.fillStyle = `rgb(${col[0] * n | 0},${col[1] * n | 0},${col[2] * n | 0})`; g.fillRect(i, j, S, S);
-  }
+  const c = mkCanvas(MTILE, MTILE), g = c.getContext('2d'), x0 = tx * MTILE, z0 = tz * MTILE;
+  // smooth terrain: 2 m per sample, drawn with bilinear filtering
+  const tc = mkCanvas(MTILE / 2, MTILE / 2), tg = tc.getContext('2d'), img = tg.createImageData(MTILE / 2, MTILE / 2);
+  paintTerrain(img, x0, z0, MTILE, MTILE); tg.putImageData(img, 0, 0);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(tc, 0, 0, MTILE, MTILE);
   g.translate(-x0, -z0);
-  g.fillStyle = '#8b8a80'; for (const p of PAVED) if (p && p[2] > x0 && p[0] < x0 + MTILE && p[3] > z0 && p[1] < z0 + MTILE) g.fillRect(p[0], p[1], p[2] - p[0], p[3] - p[1]);
-  g.fillStyle = '#3d3b38';
+  g.fillStyle = 'rgba(200,196,188,0.95)'; for (const p of PAVED) if (p && p[2] > x0 && p[0] < x0 + MTILE && p[3] > z0 && p[1] < z0 + MTILE) g.fillRect(p[0], p[1], p[2] - p[0], p[3] - p[1]);
+  g.fillStyle = '#9d978e';
   for (const cc of queryCols(x0 + MTILE / 2, z0 + MTILE / 2, MTILE * 0.71)) if (cc.tag === 'house' || cc.tag === 'bldg' || cc.tag === 'wall') g.fillRect(cc.x1, cc.z1, Math.max(1, cc.x2 - cc.x1), Math.max(1, cc.z2 - cc.z1));
-  g.lineCap = 'round';
-  for (const pass of [0, 1]) for (const r of roadsNear(x0 - 20, z0 - 20, x0 + MTILE + 20, z0 + MTILE + 20)) {
-    g.strokeStyle = pass ? (r.type === 'hwy' ? '#f0e6cc' : r.type === 'road' ? '#ddd6c4' : '#cdc8ba') : '#2b2a26';
-    g.lineWidth = r.w * (r.type === 'hwy' ? 1.6 : 1.3) + (pass ? 0 : 3);
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const near = [...roadsNear(x0 - 20, z0 - 20, x0 + MTILE + 20, z0 + MTILE + 20)].sort((a, b) => (a.type === 'hwy') - (b.type === 'hwy'));
+  for (const pass of [0, 1]) for (const r of near) {
+    const st = ROAD_STYLE[r.type]; g.strokeStyle = st[pass];
+    g.lineWidth = r.w * (r.type === 'hwy' ? 1.7 : 1.35) + (pass ? 0 : 3.5);
     g.beginPath(); g.moveTo(r.x1, r.z1); g.lineTo(r.x2, r.z2); g.stroke();
   }
   mapTiles.set(k, { c, used: performance.now() });
@@ -2395,11 +2448,11 @@ function mapTile(tx, tz) {
 function drawMapTiles(g, px, pz, rad) {
   for (let tx = Math.floor((px - rad) / MTILE); tx <= Math.floor((px + rad) / MTILE); tx++)
     for (let tz = Math.floor((pz - rad) / MTILE); tz <= Math.floor((pz + rad) / MTILE); tz++) {
-      if (tx * MTILE > WB.x2 + MTILE || (tx + 1) * MTILE < WB.x1 - MTILE || tz * MTILE > WB.z2 + MTILE || (tz + 1) * MTILE < WB.z1 - MTILE) { g.fillStyle = 'rgb(42,86,116)'; g.fillRect(tx * MTILE - px, tz * MTILE - pz, MTILE, MTILE); continue; }
+      if (tx * MTILE > WB.x2 + MTILE || (tx + 1) * MTILE < WB.x1 - MTILE || tz * MTILE > WB.z2 + MTILE || (tz + 1) * MTILE < WB.z1 - MTILE) { g.fillStyle = 'rgb(34,86,132)'; g.fillRect(tx * MTILE - px, tz * MTILE - pz, MTILE, MTILE); continue; }
       g.drawImage(mapTile(tx, tz), tx * MTILE - px, tz * MTILE - pz, MTILE + 0.5, MTILE + 0.5);
     }
 }
-function renderMapCanvas() { mapTile(Math.floor(HOME.x / MTILE), Math.floor(HOME.z / MTILE)); }
+function renderMapCanvas() { mapTile(Math.floor(HOME.x / MTILE), Math.floor(HOME.z / MTILE)); buildBigMapBase(); }
 
 // ============================================================================
 //  MISSION LOCATION: 412 Oak St (enterable house)
@@ -4815,7 +4868,7 @@ function drawMinimap() {
   const S = mm.width, c = S / 2, zoom = P.inCar ? 1.2 + Math.min(car.speed, 40) * 0.01 : 2.6; // px per world meter... scaled
   const px = P.inCar ? car.x : P.x, pz = P.inCar ? car.z : P.z;
   const k = (S / 256) * (P.inCar ? 1.1 : 2.2) / (1 + (P.inCar ? Math.min(car.speed, 40) * 0.015 : 0));
-  mg.save(); mg.fillStyle = '#4c4a38'; mg.fillRect(0, 0, S, S);
+  mg.save(); mg.fillStyle = '#22568a'; mg.fillRect(0, 0, S, S); mg.imageSmoothingEnabled = true;
   mg.translate(c, c); mg.rotate(camYaw); mg.scale(k, k);
   drawMapTiles(mg, px, pz, S * 0.75 / k);
   // route
@@ -6111,6 +6164,7 @@ bmC.addEventListener('wheel', e => { e.preventDefault(); bmZoomAt(e.deltaY < 0 ?
 $('bmIn').addEventListener('click', () => bmZoomAt(1.5, BM.W / 2, BM.H / 2));
 $('bmOut').addEventListener('click', () => bmZoomAt(1 / 1.5, BM.W / 2, BM.H / 2));
 $('bmClear').addEventListener('click', () => clearWaypoint());
+$('bmStyle').addEventListener('click', () => { BM.art = !BM.art; $('bmStyle').textContent = BM.art ? 'CLEAN' : 'ART'; });
 $('bmClose').addEventListener('click', () => closeMap());
 $('bmMe').addEventListener('click', () => { const me = playerPos(); [BM.cx, BM.cy] = toMapPx(me.x, me.z); bmClampView(); });
 $('mapWrap').addEventListener('click', e => { e.stopPropagation(); AU.init(); openMap(); });
@@ -6156,7 +6210,8 @@ function drawBigMap(dt) {
   const g = bmG; g.setTransform(BM.dpr, 0, 0, BM.dpr, 0, 0);
   g.fillStyle = '#160c26'; g.fillRect(0, 0, BM.W, BM.H);
   const [ox, oy] = bmToScreen(0, 0);
-  if (bmImg.complete) g.drawImage(bmImg, ox, oy, 1376 * BM.z, 768 * BM.z);
+  if (BM.art || !BM.base) { if (bmImg.complete) g.drawImage(bmImg, ox, oy, 1376 * BM.z, 768 * BM.z); }
+  else drawCleanMap(g, ox, oy);
   const S = (x, z) => bmToScreen(...toMapPx(x, z));
   // GPS route
   if (MS.route && (WAYPT || missionTarget())) {
@@ -6217,6 +6272,62 @@ function cityAmbience(dt) {
   }
   CITY.sirenT -= dt;
   if (CITY.sirenT <= 0) { CITY.sirenT = 25 + Math.random() * 40; for (let i = 0; i < 6; i++) AU.beep(700, 0.55, 'sine', 0.018, i * 0.6, 1300); }
+}
+
+// ---- the clean map: a smooth hill-shaded base image + roads, blocks and labels drawn sharp at any zoom
+const BASE_K = 1.5; // base pixels per map pixel (6 m)
+function buildBigMapBase() {
+  const W = Math.round(1376 * BASE_K), H = Math.round(768 * BASE_K), c = mkCanvas(W, H), g = c.getContext('2d'), img = g.createImageData(W, H);
+  paintTerrain(img, WB.x1, WB.z1, WB.x2 - WB.x1, WB.z2 - WB.z1); g.putImageData(img, 0, 0);
+  const s = W / (WB.x2 - WB.x1);
+  g.fillStyle = 'rgba(178,174,168,0.9)';
+  for (const p of PAVED) if (p) g.fillRect((p[0] - WB.x1) * s, (p[1] - WB.z1) * s, Math.max(0.6, (p[2] - p[0]) * s), Math.max(0.6, (p[3] - p[1]) * s));
+  BM.base = c;
+}
+const MAP_LABELS = [
+  [1090, 300, 'SAN FELIPE', 3], [905, 192, 'FORT WORTH', 2], [850, 296, 'AUSTIN', 2], [878, 478, 'SAN ANTONIO', 2], [735, 540, 'REDNECK COUNTY', 2], [830, 612, 'OIL FIELDS', 1],
+  [640, 425, 'REPUBLIC OF TEJAS', 2], [420, 600, 'BIG BEND', 2], [178, 385, 'EL PASO', 2], [520, 222, 'WESTLAKE', 2], [398, 252, 'LAKE MEAD', 1], [540, 110, 'SIERRA MADRE', 2],
+  [1182, 445, 'PORT OF GALVESTON', 1], [655, 222, 'GOLF COURSE', 0], [648, 284, 'MARINA', 0],
+];
+function drawCleanMap(g, ox, oy) {
+  const z = BM.z, mpp = z / MPX; // screen px per world metre
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(BM.base, ox, oy, 1376 * z, 768 * z);
+  const S = (x, wz) => bmToScreen(x / MPX + MOX, wz / MPX + MOY);
+  const [vx0, vz0] = PX(...bmToMap(-40, -40)), [vx1, vz1] = PX(...bmToMap(BM.W + 40, BM.H + 40));
+  // buildings when zoomed in
+  if (mpp > 0.3) {
+    g.fillStyle = 'rgba(120,114,106,0.85)';
+    const cx = (vx0 + vx1) / 2, cz = (vz0 + vz1) / 2, rad = Math.min(1600, Math.hypot(vx1 - vx0, vz1 - vz0) / 2);
+    for (const c of queryCols(cx, cz, rad)) if (c.tag === 'house' || c.tag === 'bldg') { const [a, b] = S(c.x1, c.z1); g.fillRect(a, b, Math.max(1, (c.x2 - c.x1) * mpp), Math.max(1, (c.z2 - c.z1) * mpp)); }
+  }
+  // roads
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  const list = [...roadsNear(vx0, vz0, vx1, vz1)].filter(r => r.type !== 'street' || mpp > 0.09).sort((a, b) => (a.type === 'hwy') - (b.type === 'hwy'));
+  for (const pass of [0, 1]) for (const r of list) {
+    const base = r.type === 'hwy' ? Math.max(2.4, r.w * 1.8 * mpp) : r.type === 'road' ? Math.max(1.6, r.w * 1.5 * mpp) : Math.max(1, r.w * 1.3 * mpp);
+    g.strokeStyle = ROAD_STYLE[r.type][pass]; g.lineWidth = base + (pass ? 0 : Math.max(1.2, base * 0.35));
+    const [a, b] = S(r.x1, r.z1), [c, d] = S(r.x2, r.z2); g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
+  }
+  // highway shields
+  g.font = '800 10px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  const seen = new Set();
+  for (const r of ROADS) {
+    if (r.type !== 'hwy' || !r.name || r.len < 500) continue;
+    const key = r.name + Math.round(r.x1 / 4500) + Math.round(r.z1 / 4500); if (seen.has(key)) continue; seen.add(key);
+    const [a, b] = S((r.x1 + r.x2) / 2, (r.z1 + r.z2) / 2); if (a < -30 || b < -30 || a > BM.W + 30 || b > BM.H + 30) continue;
+    const tw = g.measureText(r.name).width + 10;
+    g.fillStyle = r.name.startsWith('I-') ? '#1d4fa8' : '#2e7a3e'; g.strokeStyle = '#fff'; g.lineWidth = 1.5;
+    g.beginPath(); g.roundRect ? g.roundRect(a - tw / 2, b - 8, tw, 16, 4) : g.rect(a - tw / 2, b - 8, tw, 16); g.fill(); g.stroke();
+    g.fillStyle = '#fff'; g.fillText(r.name, a, b + 0.5);
+  }
+  // place names
+  for (const [px, py, name, lvl] of MAP_LABELS) {
+    if (lvl === 0 && z < bmFit() * 2) continue;
+    const [a, b] = bmToScreen(px, py), fs = Math.round([10, 11, 14, 18][lvl] * clamp(Math.sqrt(z / bmFit()), 1, 1.8));
+    g.font = `900 ${fs}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.lineWidth = 3.5; g.strokeStyle = 'rgba(20,14,30,0.8)'; g.strokeText(name, a, b); g.fillStyle = lvl === 3 ? '#fff4c8' : '#ffffff'; g.fillText(name, a, b);
+  }
 }
 
 </script>
