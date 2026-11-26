@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2131</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2151</div>
   </div>
 </div>
 
@@ -488,6 +488,9 @@ const TAU = Math.PI * 2;
 const wrapA = a => { while (a > Math.PI) a -= TAU; while (a < -Math.PI) a += TAU; return a; };
 const isTouch = matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
 if (isTouch) document.body.classList.add('touch');
+// phones & tablets get a lighter world so they stay inside the browser's memory limit
+const LITE = isTouch || (navigator.deviceMemory && navigator.deviceMemory <= 4);
+const freeArray = function () { this.array = null; }; // drop the CPU copy once the GPU has it
 
 function rng(seed) {
   let a = seed >>> 0 || 1;
@@ -877,10 +880,12 @@ const worldMeshes = [];
 function flushBatches() {
   for (const { key, list } of batches.values()) {
     const material = M[key] || M.signs[key];
-    const mesh = new THREE.Mesh(mergeGeos(list), material);
+    const geo = mergeGeos(list); for (const k in geo.attributes) geo.attributes[k].onUpload(freeArray);
+    const mesh = new THREE.Mesh(geo, material);
     const flat = /^(road_|asphalt|lawn|gravel|concrete$|glowPool|fairway|signAtlas|adScreen)/.test(key);
     mesh.castShadow = !flat; mesh.receiveShadow = true;
     mesh.matrixAutoUpdate = false; mesh.updateMatrix();
+    mesh.userData.key = key; mesh.userData.bytes = Object.values(geo.attributes).reduce((s, a) => s + a.array.byteLength, 0);
     scene.add(mesh); worldMeshes.push(mesh);
   }
   batches.clear();
@@ -1427,7 +1432,7 @@ function signQuad(w, h, cell, cols, rows) { const g = new THREE.PlaneGeometry(w,
 function cityDress(x, z, w, d, h, R, big) {
   const faces = [[0, d / 2 + 0.08, 0, w], [Math.PI, -d / 2 - 0.08, 0, w], [Math.PI / 2, 0, w / 2 + 0.08, d], [-Math.PI / 2, 0, -w / 2 - 0.08, d]];
   for (const [rot, oz, ox, fw] of faces) {
-    if (fw > 6) { // glowing shop windows along the sidewalk
+    if (fw > 6 && !(LITE && R() < 0.5)) { // glowing shop windows along the sidewalk
       addB('glassLit', boxG(fw * 0.86, 2.5, 0.06), mat(x + ox * 1.001, 1.55, z + oz * 1.001, rot));
       addB('paint', boxG(fw * 0.9, 0.35, 1.4), mat(x + ox + Math.sin(rot) * 0.7, 3.05, z + oz + Math.cos(rot) * 0.7, rot), [0xc8283c, 0x1c5ac8, 0x1e8a4a, 0xe0a020, 0x8a2ac8, 0x222222][(R() * 6) | 0]);
     }
@@ -1577,7 +1582,7 @@ function streetLife(R) {
 function cityLights(R) {
   for (const r of ROADS) {
     if (r.type !== 'street' || !r.town) continue;
-    const sp = r.town === 'San Felipe' || r.town === 'Westlake' ? 34 : 46, nx = r.uz, nz = -r.ux;
+    const sp = (r.town === 'San Felipe' || r.town === 'Westlake' ? 34 : 46) * (LITE ? 1.8 : 1), nx = r.uz, nz = -r.ux;
     for (let t = 12, k = 0; t < r.len - 6; t += sp, k++) {
       const side = k % 2 ? 1 : -1, off = r.w / 2 + 2.0, x = r.x1 + r.ux * t + nx * off * side, z = r.z1 + r.uz * t + nz * off * side;
       let cross = false; for (const o of roadsNear(x - 9, z - 9, x + 9, z + 9)) if (o !== r && roadDist(o, x, z) < o.w / 2 + 4) { cross = true; break; }
@@ -2009,7 +2014,7 @@ function enterableStore(cx, cz, rot, brand, R) {
   else signPlane(C.sSky, 11, 2, lx, ceil + 0.9, lz, rot);
   // staff & a couple of customers
   FIXED_PEOPLE.push({ x: W(0, -d / 2 + 2.5)[0], z: W(0, -d / 2 + 2.5)[1], h: rot, o: { shirt: pear ? 0x1c5ab8 : 0x2a8a3a, pants: 0x2a2c30 } });
-  FIXED_PEOPLE.push({ x: W(-6, 4.5)[0], z: W(-6, 4.5)[1], h: rot + Math.PI, o: {} });
+  if (!LITE) FIXED_PEOPLE.push({ x: W(-6, 4.5)[0], z: W(-6, 4.5)[1], h: rot + Math.PI, o: {} });
   const a = W(-w / 2, -d / 2), b = W(w / 2, d / 2);
   INTERIORS.push({ x1: Math.min(a[0], b[0]) + 0.4, z1: Math.min(a[1], b[1]) + 0.4, x2: Math.max(a[0], b[0]) - 0.4, z2: Math.max(a[1], b[1]) - 0.4, ceil: ceil - 0.2 });
   const [ix, iz] = W(0, 0); LIGHT_ANCHORS.push({ x: ix, y: ceil - 0.6, z: iz, int: 26, dist: 24, color: 0xfff2e0 });
@@ -2732,7 +2737,7 @@ function buildTrees() {
   const R = rng(1234);
   const free = (x, z, m = 9) => terrSDF(x, z) > 6 && !nearRoad(x - 1, z - 1, x + 1, z + 1, m) && !reserved(x - 2, z - 2, x + 2, z + 2) && !onRoad(x, z);
   let tries = 0;
-  while (pts.mesquite.length + pts.cedar.length < 16000 && tries++ < 300000) {
+  while (pts.mesquite.length + pts.cedar.length < (LITE ? 9000 : 16000) && tries++ < 300000) {
     const x = lerp(WB.x1, WB.x2, R()), z = lerp(WB.z1, WB.z2, R());
     const c = mapCls(x, z); if (c !== 1 && !(c === 3 && R() < 0.12)) continue;
     // clustered: thin out using noise (greener in the north, sparse in the desert)
@@ -2781,9 +2786,9 @@ function buildScrub() {
   const rockG = (() => { const s = new THREE.DodecahedronGeometry(0.6, 0); const p = s.attributes.position; for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) * (0.8 + hash2(i, 1) * 0.5), p.getY(i) * (0.5 + hash2(i, 2) * 0.3), p.getZ(i) * (0.8 + hash2(i, 3) * 0.5)); s.computeVertexNormals(); return prep(s, mat(0, 0.15, 0), 0xffffff); })();
   const flowerG = (() => { const parts = []; for (let i = 0; i < 7; i++) parts.push(prep(new THREE.OctahedronGeometry(0.09, 0), mat((R() - .5) * 0.8, 0.25 + R() * 0.15, (R() - .5) * 0.8), 0xffffff)); return mergeGeos(parts); })();
   const kinds = {
-    bush: { geo: bushG, mat: std({ vertexColors: true, roughness: 0.95, flatShading: true }), n: 12000, pts: [] },
-    rock: { geo: rockG, mat: std({ vertexColors: true, roughness: 1, flatShading: true }), n: 5000, pts: [] },
-    flower: { geo: flowerG, mat: std({ vertexColors: true, roughness: 0.8, emissive: 0x221100 }), n: 5000, pts: [] },
+    bush: { geo: bushG, mat: std({ vertexColors: true, roughness: 0.95, flatShading: true }), n: LITE ? 5000 : 12000, pts: [] },
+    rock: { geo: rockG, mat: std({ vertexColors: true, roughness: 1, flatShading: true }), n: LITE ? 2000 : 5000, pts: [] },
+    flower: { geo: flowerG, mat: std({ vertexColors: true, roughness: 0.8, emissive: 0x221100 }), n: LITE ? 2000 : 5000, pts: [] },
   };
   const free = (x, z) => terrSDF(x, z) > 4 && !onRoad(x, z) && !nearRoad(x - 1, z - 1, x + 1, z + 1, 5) && !reserved(x - 1.5, z - 1.5, x + 1.5, z + 1.5) && !pointBlocked(x, z, 0.1);
   let tries = 0;
@@ -2861,7 +2866,7 @@ const MTILE = 512, mapTiles = new Map();
 function mapTile(tx, tz) {
   const k = tx + ',' + tz; let t = mapTiles.get(k);
   if (t) { t.used = performance.now(); return t.c; }
-  if (mapTiles.size > 24) { let old = null; for (const [kk, v] of mapTiles) if (!old || v.used < old[1].used) old = [kk, v]; mapTiles.delete(old[0]); }
+  if (mapTiles.size > (LITE ? 10 : 20)) { let old = null; for (const [kk, v] of mapTiles) if (!old || v.used < old[1].used) old = [kk, v]; mapTiles.delete(old[0]); }
   const c = mkCanvas(MTILE, MTILE), g = c.getContext('2d'), x0 = tx * MTILE, z0 = tz * MTILE;
   // smooth terrain: 2 m per sample, drawn with bilinear filtering
   const tc = mkCanvas(MTILE / 2, MTILE / 2), tg = tc.getContext('2d'), img = tg.createImageData(MTILE / 2, MTILE / 2);
@@ -2890,7 +2895,7 @@ function drawMapTiles(g, px, pz, rad) {
     }
 }
 function renderMapCanvas() { mapTile(Math.floor(HOME.x / MTILE), Math.floor(HOME.z / MTILE)); buildBigMapBase(); }
-function renderSatMap() { try { buildSatBase(); } catch (e) { console.warn('satellite map failed', e); } }
+function renderSatMap() { if (LITE) return; try { buildSatBase(); } catch (e) { console.warn('satellite map failed', e); } }
 
 // mission-location helpers (no enterable mission house any more)
 const INTERIORS = []; // {x1,z1,x2,z2,ceil}
@@ -4293,7 +4298,7 @@ const PANTS = [0x2a3346, 0x2b2b2e, 0x6b5a44, 0x3a4a5a, 0x1c1c1c, 0x8a7a5a];
 function spawnNPCs() {
   const R = rng(808);
   const streets = ROADS.filter(r => r.type === 'street');
-  for (let i = 0; i < 72; i++) {
+  for (let i = 0; i < (LITE ? 26 : 60); i++) {
     const r = streets[(R() * streets.length) | 0];
     const len = r.horiz ? Math.abs(r.x2 - r.x1) : Math.abs(r.z2 - r.z1);
     const along = (r.horiz ? Math.min(r.x1, r.x2) : Math.min(r.z1, r.z2)) + 12 + R() * Math.max(1, len - 60);
@@ -4382,13 +4387,14 @@ function snapWalk(n) {
 // staff who stay at their post: store clerks, paramedics, vendors
 function spawnFixedPeople() {
   const R = rng(99);
-  for (const f of FIXED_PEOPLE) {
+  FIXED_PEOPLE.forEach((f, fi) => {
+    if (LITE && fi % 2) return;
     const po = Object.assign({ skin: SKIN[(R() * SKIN.length) | 0], shirt: SHIRT[(R() * SHIRT.length) | 0], pants: PANTS[(R() * PANTS.length) | 0], shoes: 0x222222, hair: [0x15110e, 0x3a2a1a, 0x8a6a3a][(R() * 3) | 0], capHat: 0, longHair: R() < 0.4, bulk: 0.95 + R() * 0.2, lo: true }, f.o);
     po.female = R() < 0.45; if (po.female) { po.beard = 0; po.longHair = R() < 0.8; po.bulk = Math.min(po.bulk, 1.0); }
     const m = makePerson(po); scene.add(m.root);
     const n = { m, female: po.female, x: f.x, z: f.z, h: f.h, a: [f.x, f.z], b: [f.x, f.z], tgt: [f.x, f.z], state: 'idle', t: 1e9, hp: PED_HP, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [f.x, f.z], b: [f.x, f.z] }, ws: 1.3, fixed: true, recT: 1e9 };
     n.proxy = personProxy(m.root, po); npcs.push(n);
-  }
+  });
 }
 // pedestrians can't walk through cars: push them out of every nearby car's footprint
 function pushFromCars(p, r) {
@@ -4409,7 +4415,7 @@ function updateNpcBudget(dt) {
   budgetT -= dt; if (budgetT > 0) return; budgetT = 1;
   const px = P.inCar ? car.x : P.x, pz = P.inCar ? car.z : P.z;
   let city = false; for (const r of roadsNear(px - 160, pz - 160, px + 160, pz + 160)) if (r.type === 'street' && r.town && roadDist(r, px, pz) < 160) { city = true; break; }
-  npcBudget = city ? 72 : 8;
+  npcBudget = city ? (LITE ? 26 : 60) : (LITE ? 5 : 8);
 }
 function spawnActors() {
   FXS = { add: new Particles(900, true), norm: new Particles(900, false), skids: new Skids(900) };
@@ -4444,6 +4450,7 @@ function spawnActors() {
   const usedT = {};
   let nCity = 0;
   for (const r of streets) { if (nCity >= 48) break; const k = r.town || (r.old ? 'old' : r.zone); usedT[k] = (usedT[k] || 0) + 1; if (usedT[k] > (k === 'San Felipe' ? 30 : k === 'Westlake' ? 6 : 4)) continue; for (let c = 0; c < (r.len > 900 ? 2 : 1); c++, nCity++) routes.push([kinds[(routes.length * 7) % kinds.length], polyLoop([[r.x1, r.z1], [r.x2, r.z2]], 1.7), 10 + (routes.length % 4), k === 'San Felipe' && routes.length % 4 === 0 ? 0xf2c21a : null, true]); }
+  { const cap = LITE ? 24 : 56; if (routes.length > cap) { const keep = []; for (let i = 0; i < cap; i++) keep.push(routes[Math.floor(i * routes.length / cap)]); routes.length = 0; routes.push(...keep); } }
   routes.forEach((r, i) => { const a = makeAI(r[3] ? 'sedan' : r[0], r[3] || cols[(i * 7 + 3) % cols.length], r[1], r[2]); a.id = i; a.city = !!r[4]; a.s = (i * 0.37 % 1) * a.total; a.recT = Math.random() * 1.5; a.proxy = carProxy(a.v, r[3] || cols[(i * 7 + 3) % cols.length]); traffic.push(a); });
 }
 function roadChains(name) {
@@ -4955,6 +4962,16 @@ function adaptResolution(rawDt) {
   if (resT < (settling ? 2.5 : 6)) return; resT = 0; slowT = 0;
   let s = resScale; if (ftAvg > 40 && s > 0.75) s = Math.max(0.75, s * 0.9); else if (settling && ftAvg < 20 && s < 1) s = Math.min(1, s * 1.08);
   if (Math.abs(s - resScale) > 0.01) { resScale = s; renderer.setPixelRatio(basePixelRatio() * resScale); resize(); }
+}
+// draw the whole state once from far above into a tiny target so every static mesh is on the GPU, then free the CPU copies
+function uploadWorld() {
+  const cam = new THREE.OrthographicCamera(WB.x1, WB.x2, -WB.z1, -WB.z2, 1, 9000); cam.position.set(0, 4000, 0); cam.up.set(0, 0, -1); cam.lookAt(0, 0, 0); cam.updateMatrixWorld();
+  const rt = new THREE.WebGLRenderTarget(16, 16), fog = scene.fog.far; scene.fog.far = 1e7;
+  const hidden = []; for (const m of worldMeshes) if (!m.visible) { m.visible = true; hidden.push(m); }
+  const cull = []; for (const m of worldMeshes) if (m.frustumCulled) { m.frustumCulled = false; cull.push(m); }
+  try { renderer.setRenderTarget(rt); renderer.render(scene, cam); } catch (e) { console.warn(e); }
+  renderer.setRenderTarget(null); rt.dispose(); scene.fog.far = fog;
+  for (const m of cull) m.frustumCulled = true; for (const m of hidden) m.visible = false;
 }
 function applyQuality() {
   if (!sun) return;
@@ -5743,7 +5760,7 @@ canvas.addEventListener('webglcontextlost', e => {
   try { if (MS.free && state === 'play') { save.pos = { x: P.inCar ? car.x : P.x, z: P.inCar ? car.z : P.z, h: P.h, inCar: P.inCar, cx: car.x, cz: car.z, ch: car.h, carHp: car.health }; store.set('sl.save', save); } } catch (_) { }
   $('glLost').classList.remove('hidden');
 }, false);
-canvas.addEventListener('webglcontextrestored', () => { glLost = false; $('glLost').classList.add('hidden'); try { applyQuality(); } catch (_) { } }, false);
+canvas.addEventListener('webglcontextrestored', () => { try { if (MS.free && state === 'play') saveGame(); } catch (_) { } location.reload(); }, false); // static world data lives only on the GPU, so rebuild
 
 function loop(now) {
   requestAnimationFrame(loop);
@@ -5787,7 +5804,7 @@ async function boot() {
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
     ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing brush and wildflowers', buildScrub], ['Growing grass', buildGrass],
     ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { initSkyLife(); spawnActors(); buildMarker(); initCombat(); }],
-    ['Photographing the state from above', renderSatMap], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
+    ['Photographing the state from above', renderSatMap], ['Loading the world into the graphics chip', uploadWorld], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
   for (let i = 0; i < steps.length; i++) {
     $('loadLabel').textContent = steps[i][0] + '…';
