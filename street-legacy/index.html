@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2122</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2131</div>
   </div>
 </div>
 
@@ -3068,9 +3068,9 @@ function makePerson(o) {
     const shG = new THREE.Group(); shG.position.set(s * 0.235, 0.47, 0); torso.add(shG);
     if (!o.longSleeve) { const sl = mesh(new THREE.CylinderGeometry(0.078 * bulk, 0.074 * bulk, 0.09, o.lo ? 10 : 18, 3, true), shirtC, 0, -0.14, 0, shG); sl.userData.keep = true; cloth.push({ m: sl, base: sl.geometry.attributes.position.array.slice(), top: 0.045, h: 0.09, rad: true, sleeve: s }); }
     // upper arm: deltoid -> biceps -> elbow; short sleeves leave the lower arm bare
-    const UA = [[0.055, 0.03, 0.04, 0, -0.025], [0.035, 0.058, 0.062, 0, -0.012], [0.0, 0.072, 0.072, 0, -0.004], [-0.05, 0.069, 0.07, 0.004], [-0.13, 0.058, 0.064, 0.012], [-0.2, 0.052, 0.058, 0.01], [-0.27, 0.045, 0.047], [-0.31, 0.042, 0.043]].map(r => [r[0], r[1], r[2], r[3] || 0, (r[4] || 0) * s]);
+    const UA = [[0.066, 0.004, 0.005, 0, -0.03], [0.058, 0.026, 0.034, 0, -0.026], [0.045, 0.045, 0.052, 0, -0.02], [0.035, 0.058, 0.062, 0, -0.012], [0.0, 0.072, 0.072, 0, -0.004], [-0.05, 0.069, 0.07, 0.004], [-0.13, 0.058, 0.064, 0.012], [-0.2, 0.052, 0.058, 0.01], [-0.27, 0.045, 0.047], [-0.31, 0.042, 0.043]].map(r => [r[0], r[1], r[2], r[3] || 0, (r[4] || 0) * s]);
     mesh(loftGeo(scaleRings(UA, bulk * (fem ? 0.85 : 1), bulk * (fem ? 0.85 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, shG);
-    if (!o.longSleeve) mesh(loftGeo(scaleRings(UA.slice(0, 5).map(r => [r[0], r[1] + 0.006, r[2] + 0.006, r[3], r[4] || 0]), bulk, bulk), LS - 4, 2.2), shirt, 0, 0, 0, shG);
+    if (!o.longSleeve) mesh(loftGeo(scaleRings(UA.slice(0, 7).map(r => [r[0], r[1] + 0.006, r[2] + 0.006, r[3], r[4] || 0]), bulk, bulk), LS - 4, 2.2), shirt, 0, 0, 0, shG);
     const el = new THREE.Group(); el.position.y = -0.3; shG.add(el);
     // forearm: brachioradialis bulge, tapering to the wrist
     mesh(loftGeo(scaleRings([[0.02, 0.042, 0.043], [-0.04, 0.05, 0.047, 0.003, 0.004], [-0.1, 0.047, 0.042, 0.002], [-0.18, 0.036, 0.031], [-0.25, 0.029, 0.023], [-0.28, 0.028, 0.022]], bulk * (fem ? 0.86 : 1), bulk * (fem ? 0.86 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, el);
@@ -5864,6 +5864,33 @@ function initDecals() {
   });
   const drop = signTex(64, 64, (g, W, H) => { g.clearRect(0, 0, W, H); for (let i = 0; i < 6; i++) { g.fillStyle = red(0.9); g.beginPath(); g.arc(32 + (R() - .5) * 26, 32 + (R() - .5) * 26, 2 + R() * 7, 0, TAU); g.fill(); } });
   const hole = signTex(64, 64, (g, W, H) => { const gr = g.createRadialGradient(32, 32, 1, 32, 32, 30); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.25, 'rgba(20,18,16,.9)'); gr.addColorStop(0.5, 'rgba(60,55,50,.4)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); });
+  // bullet wound: dark-red splat with a black hole in the middle, spiky spray, tendrils and droplets (4 variants)
+  const entry = [0, 1, 2, 3].map(v => signTex(256, 256, (g, W, H) => {
+    g.clearRect(0, 0, W, H); const cx = W / 2, cy = H / 2, R0 = 52 + R() * 10;
+    const col = () => `rgba(${112 + R() * 18 | 0},${12 + R() * 8 | 0},${10 + R() * 6 | 0},1)`;
+    g.fillStyle = col();
+    // irregular main blob
+    g.beginPath(); const n = 40; for (let i = 0; i <= n; i++) { const a = i / n * TAU, r = R0 * (0.86 + 0.18 * Math.sin(a * 3 + v) + 0.1 * Math.sin(a * 7 + v * 2) + (R() - .5) * 0.12); g.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); } g.closePath(); g.fill();
+    // lobes
+    for (let i = 0; i < 5 + v; i++) { const a = R() * TAU, r = R0 * (0.7 + R() * 0.35), s = 10 + R() * 18; g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, s, 0, TAU); g.fill(); }
+    // spiky spray lines with droplets at the tips
+    g.strokeStyle = g.fillStyle; g.lineCap = 'round';
+    for (let i = 0; i < 26 + v * 6; i++) {
+      const a = R() * TAU, r1 = R0 * 0.8, len = 18 + Math.pow(R(), 1.5) * 70, w = 1 + R() * 3.5;
+      const x1 = cx + Math.cos(a) * r1, y1 = cy + Math.sin(a) * r1, x2 = cx + Math.cos(a) * (r1 + len), y2 = cy + Math.sin(a) * (r1 + len);
+      g.lineWidth = w; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      if (R() < 0.6) { g.beginPath(); g.arc(x2, y2, w * (1 + R() * 1.4), 0, TAU); g.fill(); }
+    }
+    // a curling tendril sometimes
+    if (v % 2) { g.lineWidth = 2.5; g.beginPath(); let a = R() * TAU, x = cx + Math.cos(a) * R0, y = cy + Math.sin(a) * R0; g.moveTo(x, y); for (let k = 0; k < 14; k++) { a += 0.25; x += Math.cos(a) * 6; y += Math.sin(a) * 6; g.lineTo(x, y); } g.stroke(); g.beginPath(); g.arc(x, y, 4, 0, TAU); g.fill(); }
+    // scattered droplets
+    for (let i = 0; i < 70 + v * 20; i++) { const a = R() * TAU, r = R0 * (1.05 + Math.pow(R(), 0.8) * 1.4), s = 0.8 + Math.pow(R(), 2) * 6; if (cx + Math.cos(a) * r < 2 || cx + Math.cos(a) * r > W - 2 || cy + Math.sin(a) * r < 2 || cy + Math.sin(a) * r > H - 2) continue; g.beginPath(); g.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, s, 0, TAU); g.fill(); }
+    // the hole: black centre fading out into the blood
+    const gr = g.createRadialGradient(cx, cy, 0, cx, cy, R0 * 0.62); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(0.3, 'rgba(8,0,0,.95)'); gr.addColorStop(0.65, 'rgba(50,4,4,.6)'); gr.addColorStop(1, 'rgba(100,10,10,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(cx, cy, R0 * 0.62, 0, TAU); g.fill();
+    // wet sheen
+    g.fillStyle = 'rgba(255,200,200,.12)'; g.beginPath(); g.ellipse(cx - R0 * 0.35, cy - R0 * 0.4, R0 * 0.2, R0 * 0.09, -0.6, 0, TAU); g.fill();
+  }));
   // blood soaking into a shirt around a bullet hole
   const stain = signTex(128, 128, (g, W, H) => {
     g.clearRect(0, 0, W, H);
@@ -5876,7 +5903,8 @@ function initDecals() {
   const foot = signTex(64, 128, (g, W, H) => { g.clearRect(0, 0, W, H); g.fillStyle = 'rgba(80,4,6,.9)'; g.beginPath(); g.ellipse(32, 40, 18, 30, 0, 0, TAU); g.fill(); g.beginPath(); g.ellipse(32, 100, 14, 18, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(0,0,0,0)'; });
   const footM = [0.85, 0.6, 0.38, 0.2].map(o => new THREE.MeshStandardMaterial({ map: foot, transparent: true, opacity: o, depthWrite: false, roughness: 0.3, polygonOffset: true, polygonOffsetFactor: -9, polygonOffsetUnits: -9 }));
   DEC_FOOT = footM;
-  DEC = { splat: mk(splat, 1), streak: mk(streak, 1), pool: mk(pool, 0.95), drop: mk(drop, 1), hole: mk(hole, 1), stain: mk(stain, 1, THREE.DoubleSide), run: mk(run, 1, THREE.DoubleSide), list: [], max: 220, geo: new THREE.PlaneGeometry(1, 1), geo2: new THREE.PlaneGeometry(2, 1) };
+  const entryM = entry.map(t => { const m = mk(t, 1, THREE.DoubleSide); m.roughness = 0.18; return m; });
+  DEC = { entry: entryM, splat: mk(splat, 1), streak: mk(streak, 1), pool: mk(pool, 0.95), drop: mk(drop, 1), hole: mk(hole, 1), stain: mk(stain, 1, THREE.DoubleSide), run: mk(run, 1, THREE.DoubleSide), list: [], max: 220, geo: new THREE.PlaneGeometry(1, 1), geo2: new THREE.PlaneGeometry(2, 1) };
 }
 function decal(kind, x, y, z, nx, ny, nz, size, dirx = null, diry = 0, dirz = 0) {
   const m = new THREE.Mesh(kind === 'streak' ? DEC.geo2 : DEC.geo, DEC[kind]);
@@ -5933,7 +5961,8 @@ function woundMark(e, part, point, dx = 0, dz = 0) {
   m.root.updateMatrixWorld(true);
   const out = new THREE.Vector3(-dx, 0, -dz); if (out.lengthSq() < 1e-6) out.set(0, 0, 1); out.normalize();
   const mkPlane = (mat, w, h) => { const me = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); grp.add(me); me.position.copy(grp.worldToLocal(point.clone().addScaledVector(out, 0.012))); me.lookAt(point.clone().addScaledVector(out, 1)); return me; };
-  const hole = mkPlane(DEC.hole, 0.03, 0.03);
+  const ws = (part === 'head' ? 0.1 : part.startsWith('arm') || part.startsWith('leg') ? 0.12 : 0.17) * (0.85 + Math.random() * 0.35) * (gore().stain / 0.18 * 0.5 + 0.5);
+  const hole = mkPlane(DEC.entry[(Math.random() * DEC.entry.length) | 0], ws, ws); hole.rotateZ(Math.random() * TAU); hole.translateZ(0.002);
   const stain = mkPlane(DEC.stain, 1, 1); stain.scale.setScalar(0.04);
   const run = mkPlane(DEC.run, 0.035, 1); run.scale.y = 0.01; run.translateY(-0.005);
   e.wounds.push(hole, stain, run);
@@ -6658,21 +6687,45 @@ Object.assign(AU, {
   },
   ring(t, f, q, vol, dur, wet = 0.2) { this.burst(t, dur, 'bandpass', f, q, vol, wet); },
   // ---------------------------------------------------------------- guns
+  // distorted noise blast: a hard-clipped transient that sounds like real pressure, not a hiss
+  blast(t, dur, f, vol, wet, drive = 8) {
+    const c = this.ctx, s = c.createBufferSource(), lp = c.createBiquadFilter(), sh = c.createWaveShaper(), g = c.createGain();
+    if (!this._clip) { const n = 1024, cu = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; cu[i] = Math.tanh(x * drive) / Math.tanh(drive); } this._clip = cu; }
+    sh.curve = this._clip; s.buffer = this.noise; s.playbackRate.value = 0.7 + Math.random() * 0.3;
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(f, t); lp.frequency.exponentialRampToValueAtTime(Math.max(120, f * 0.12), t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(vol * 0.3, t + dur * 0.15); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(sh); sh.connect(lp); lp.connect(g); this.out(g, wet); s.start(t, Math.random() * 1.5); s.stop(t + dur + 0.05);
+  },
+  // spent 9mm casing bouncing on the ground
+  casing(t, a) {
+    const hard = 1; for (let i = 0; i < 3; i++) { const tt = t + 0.38 + i * (0.11 - i * 0.025) + Math.random() * 0.02; this.ring(tt, 5200 + Math.random() * 1800, 22, 0.1 * a / (i + 1) * hard, 0.07, 0.1); this.ring(tt, 8200 + Math.random() * 1500, 30, 0.05 * a / (i + 1), 0.05, 0.1); }
+  },
   gun(v = 1, x, z) {
-    if (!this.ctx) return; const t = this.ctx.currentTime, a = v * attn(x, z, 140), wet = isIndoor() ? 0.55 : 0.45;
+    if (!this.ctx) return; const t = this.ctx.currentTime, d = x == null ? 0 : Math.hypot(x - camera.position.x, z - camera.position.z), a = v * attn(x, z, 220), indoor = isIndoor(), wet = indoor ? 0.6 : 0.4;
     if (a <= 0.01) return;
-    this.burst(t, 0.035, 'highpass', 1800, 0.7, 1.0 * a, wet);          // supersonic crack
-    this.burst(t, 0.16, 'lowpass', 650, 0.8, 0.85 * a, wet);            // muzzle blast body
-    this.tone(t, 0.2, 'sine', 95, 0.75 * a, 38, wet);                   // chest thump
-    this.burst(t + 0.018, 0.05, 'bandpass', 3600, 8, 0.22 * a, 0.1);    // slide cycling
-    this.burst(t + 0.05, 0.035, 'bandpass', 2400, 10, 0.15 * a, 0.1);
+    const near = clamp(1 - d / 60, 0, 1), far = 1 - near;
+    this.blast(t, 0.012, 9000, 1.0 * a * (0.5 + near * 0.5), 0.05, 14);                 // instantaneous pressure snap
+    this.burst(t, 0.03, 'highpass', 2600, 0.7, 0.9 * a * (0.4 + near * 0.6), 0.1);      // supersonic crack
+    this.blast(t + 0.002, indoor ? 0.32 : 0.22, 2400 - far * 1600, 0.95 * a, wet, 6);    // muzzle blast body
+    this.tone(t, 0.26, 'sine', 120, 0.9 * a, 34, wet * 0.6);                             // deep chest thump
+    this.tone(t, 0.12, 'triangle', 240, 0.25 * a, 80, 0.1);
+    if (near > 0.2) {                                                                    // the slide racking a fresh round in
+      this.burst(t + 0.016, 0.035, 'bandpass', 3800, 9, 0.24 * a, 0.05);
+      this.burst(t + 0.048, 0.03, 'bandpass', 2500, 11, 0.2 * a, 0.05);
+      this.ring(t + 0.05, 4600, 18, 0.08 * a, 0.08, 0.05);
+      this.casing(t, a * near);
+    }
+    // outdoors the shot rolls off buildings and hills: a few low, delayed slaps
+    if (!indoor) for (let k = 0; k < 3; k++) { const dt = 0.14 + k * (0.18 + Math.random() * 0.12); this.blast(t + dt, 0.35 + k * 0.1, 900 - k * 200, 0.32 * a / (k + 1.2), 0.5, 4); }
   },
   gunS(x, z) {
-    if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 40);
-    this.burst(t, 0.07, 'lowpass', 900, 0.9, 0.45 * a, 0.12);           // suppressed "thup"
-    this.tone(t, 0.08, 'sine', 140, 0.25 * a, 60, 0.05);
-    this.burst(t + 0.012, 0.045, 'bandpass', 3400, 7, 0.38 * a, 0.08);  // the slide is the loudest part
-    this.burst(t + 0.045, 0.03, 'bandpass', 2200, 10, 0.25 * a, 0.05);
+    if (!this.ctx) return; const t = this.ctx.currentTime, a = attn(x, z, 45);
+    this.blast(t, 0.06, 1400, 0.45 * a, 0.12, 3);                        // suppressed "thwip"
+    this.burst(t, 0.025, 'bandpass', 5200, 3, 0.18 * a, 0.05);
+    this.tone(t, 0.09, 'sine', 160, 0.3 * a, 70, 0.05);
+    this.burst(t + 0.012, 0.045, 'bandpass', 3400, 7, 0.42 * a, 0.08);   // the slide is the loudest part
+    this.burst(t + 0.045, 0.03, 'bandpass', 2200, 10, 0.28 * a, 0.05);
+    this.casing(t, a);
   },
   reload(step) {
     if (!this.ctx) return; const t = this.ctx.currentTime;
