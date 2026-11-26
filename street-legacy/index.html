@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2216</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2246</div>
   </div>
 </div>
 
@@ -970,6 +970,29 @@ const toMapPx = (x, z) => [x / MPX + MOX, z / MPX + MOY];
 const WATER_Y = -0.35;
 const MAPCLS = new Uint8Array(MAP_W * MAP_H); // 0 ocean, 1 land, 2 mountain, 3 Big Bend, 4 lake, 5 beach
 { const b = atob('AP8A/wD/AP8A/wD/AP8A/wCfAgEA/wBGAhYA/wBAAh0A/wA5AiMA/wA0AikA/wAtAi8A/wAnAjYA/wAgAj4A/wAZAkQA/wASAkwA/wALAlAA/wAGAlYA/wABAloBAgD5AmABAwDzAmQBAwDuAmoBAgDrAmwBAwDnAnABBADjAnIBBwDdAnUBCwDXAngBDwDPAnsBEwDJAn0BFgDDAoEBFwAuAQoAhwKDARwAIwEWAH4ChgEfABoBIAB4AocBXQByAooBXwBuAowBYABrAo4BYABpAo8BYQBnApEBYQBmApABYwBkApABZQBiAo8BZwBhAo8BaQBfAo8BawBdAo8BbQBbAkYBBwI7AXUAWgJEAQ4CMAF9AFkCQAEVAgsBCAIYAX8AWAI+ARwCAQERAhMBggBWAj4BMQIOAYYAVAI/ATMCCgGIAFMCPwE3AgUBiwBQAQECPgHKAE0BAwI8Ac0ASwEDAjwBzgBJAQUCOwHPAEcBBgI7AdEARAEHAjsB0wBBAQkCNQQHAdMAPwEJAjQECwHSAD0BCgIzBA0B0gA7AQoCMwQPAdIAOgEJAjMEEQHTADcBCgIzBBEB0wA2AQoCNAQRAdQANAELAjQEEQHVADMBCgI2BA8B1wAxAQoCOAQNAdkALwELAjkECwHaAC0BDAI8BAcCAQE2BAgBngAsAQwCRAE1BAoBnQArAQwCRQE1BAoBnQAqAQ0CRQE1BAoBngAoAQ0CRQE2BAoBngAnAQ4CRQE3BAgBnwAnAQ0CRgHeACYBDgJGAd4AJgENAkUB4AAmAQ0CQwHiACUBDQJCAeQAJQENAj8B5wAlAQwCPgHpACQBDQI8AeoAJQEMAjsB7AAkAQ0CNgHxACQBDAIyAfYAJAEMAi0B+wAkAQsCKQH/AQEAIwEgAgEB/wEVACMB/wE1ACQB/wE1ACQB/wE1ACQB/wE1ACQB/wE1ACQB/wE0ACUB/wE0ACUB/wEzACcB/wErBQYAKAH/ASoFBwAoAf8BKQUGACoB/wEnBQcALAH/ASUFBwAtAf8BJAUHAC8B/wEiBQYAMQH/ASEFBgAyAf8BIQUFADQB/wEXBQcAPAH/AR0APQH/ARwAPgH/ARsAPwH/ARoAQAH/ARkAQQH/ARgAQgH/ARcAQwH/ARYARQH/ARQARgH/BQEBEgBIAfsFAwESAEkB+AUHAFoB9AUHAF4B8wUHAF8B8gUGAGIBOAMOAaoFAwBmAS8DHgGfBQcAZgEpAykBlwUHAGoBIwMwAZMFBwBsAR8DNQGQBQcAbwEaAzcBkAUGAHIBFwM4AZAFBgB0ARQDOgGPBQYAdgERAzwBjgUGAHkBDQM+AY0FBgB7AQsDPwGMBQYAfQEIA0EBiwUGAH8BBgNDAYkFBgCBAQQDRQGHBQYAggEDA0YBhgUGAIQBAQNJAYMFBgCFA0sBggUFAIYDTQGABQQAiANPAQoDBAFuBQQAiQNdAW0FBQCJA14BawUGAIoDXQFrBQUAiwNeAWkFBQCMA14BaQUEAI0DXgFoBQUAjgNdAWgFBACPA10BaAUEAI8DXQFoBQMAkQNcAWgFAwCRA1wBaAUDAJEDXAFoBQMAkgNaAWkFAwCSA1oBaQUEAJIDWAFqBQQAkgNYAWoFBACSA1cBbAUEAJEDVgFtBQQAkQNWAW0FBQCQA1UBbwUFAI8DVAFwBQUAkANSAXIFBACQA1ABdQUEAJADTgF2BQQAkANMAXgFBACRAQEDSQEiAAQBVAUDAJIBAgNFAR8ADAFRBQMAkwEDA0EBHgARAU8FAwCUAQQDPAEfABUBTQUEAJMBBwM3ASAAGAFLBQQAlAEJAzABIgAbAUoFAwCWAQwDKQEkAB4BSAUDAJgBDwMeASgAIgFFBQQAmQEWAw4BLwAkAUMFBQCaAVAAKAFABQYAmwFOACsBPQUGAJ4BSgAuAToFBwCiAUUAMwE2BQcApgFAADcBMwUHAKkBOwA9AS8FBgCtATcAQwErBQUAsAEzAEsBJQUEALMBLQBUASAFAgC4AScAXQENAAIBBAACAQQAvwEfAP8APQEXAP8ARgENAP8A/wD/AP8A/wD/AP8Aog=='); let i = 0; for (let k = 0; k < b.length; k += 2) { const v = b.charCodeAt(k), n = b.charCodeAt(k + 1); MAPCLS.fill(v, i, i + n); i += n; } }
+// ---- rivers (map pixels): carved into the class grid as water (class 6) and run on to the sea
+const RIVERS = [
+  { name: 'Brazos River', pts: [[722, 196], [740, 236], [752, 282], [758, 330], [766, 372], [770, 420], [766, 456], [760, 492], [766, 540], [778, 590], [790, 640]] },
+  { name: 'Rio Bravo', pts: [[292, 330], [306, 372], [318, 412], [338, 452], [368, 492], [392, 534], [414, 580], [436, 628], [452, 676]] },
+];
+const smoothstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const RIVER_SEGS = [];
+(function carveRivers() {
+  const cell = (px, py) => [Math.floor(px / 4), Math.floor(py / 4)];
+  for (const rv of RIVERS) {
+    // keep flowing in the last direction until the river reaches the ocean
+    for (let k = 0; k < 80; k++) {
+      const a = rv.pts[rv.pts.length - 2], b = rv.pts[rv.pts.length - 1], [cx, cy] = cell(...b);
+      if (cx < 0 || cy < 0 || cx >= MAP_W || cy >= MAP_H || MAPCLS[cy * MAP_W + cx] === 0) break;
+      const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy); rv.pts.push([b[0] + dx / l * 12, b[1] + dy / l * 12]);
+    }
+  }
+  // smooth channel: world-space segments with a half width that grows downstream
+  for (const rv of RIVERS) for (let i = 1; i < rv.pts.length; i++) {
+    const [ax, az] = PX(...rv.pts[i - 1]), [bx, bz] = PX(...rv.pts[i]), w0 = 13 + (i - 1) * 0.7, w1 = 13 + i * 0.7;
+    RIVER_SEGS.push({ ax, az, bx, bz, w0, w1, len: Math.hypot(bx - ax, bz - az) });
+  }
+})();
 function chamferSDF(inside) { // signed distance in metres to the edge of the 'inside' set (negative inside)
   const N = MAP_W * MAP_H, W = MAP_W, D = 1.4142;
   const run = d => {
@@ -990,6 +1013,15 @@ function chamferSDF(inside) { // signed distance in metres to the edge of the 'i
   return s;
 }
 const SDF_M = chamferSDF(c => c === 2), SDF_W = chamferSDF(c => c === 0 || c === 4);
+// signed distance to the nearest river bank (negative = in the water); a coarse grid keeps it fast
+const RIVER_GRID = new Map(), RGC = 200;
+for (const sg of RIVER_SEGS) for (let gx = Math.floor((Math.min(sg.ax, sg.bx) - 60) / RGC); gx <= Math.floor((Math.max(sg.ax, sg.bx) + 60) / RGC); gx++) for (let gz = Math.floor((Math.min(sg.az, sg.bz) - 60) / RGC); gz <= Math.floor((Math.max(sg.az, sg.bz) + 60) / RGC); gz++) { const k = gx + ',' + gz; if (!RIVER_GRID.has(k)) RIVER_GRID.set(k, []); RIVER_GRID.get(k).push(sg); }
+function riverSDF(x, z) {
+  const l = RIVER_GRID.get(Math.floor(x / RGC) + ',' + Math.floor(z / RGC)); if (!l) return 1e4;
+  let best = 1e4;
+  for (const sg of l) { const dx = sg.bx - sg.ax, dz = sg.bz - sg.az, t = clamp(((x - sg.ax) * dx + (z - sg.az) * dz) / (sg.len * sg.len), 0, 1); const d = Math.hypot(x - sg.ax - dx * t, z - sg.az - dz * t) - lerp(sg.w0, sg.w1, t); if (d < best) best = d; }
+  return best;
+}
 function sampleGrid(arr, x, z) {
   let fx = (x - WB.x1) / MCELL - 0.5, fz = (z - WB.z1) / MCELL - 0.5;
   fx = clamp(fx, 0, MAP_W - 1.001); fz = clamp(fz, 0, MAP_H - 1.001);
@@ -1003,7 +1035,7 @@ function mapCls(x, z) {
 }
 const PIERS = []; // walkable decks over water [x1,z1,x2,z2]
 // > 0 where you can stand; mountains block at their foot, water about 6 m out from the shore
-function terrSDF(x, z) { return Math.min(sampleGrid(SDF_M, x, z), sampleGrid(SDF_W, x, z) + 6); }
+function terrSDF(x, z) { return Math.min(sampleGrid(SDF_M, x, z), sampleGrid(SDF_W, x, z) + 6, riverSDF(x, z) + 3); }
 function terrPush(p, r) {
   const f = terrSDF(p.x, p.z); if (f >= r) return null;
   for (const q of PIERS) if (p.x > q[0] && p.x < q[2] && p.z > q[1] && p.z < q[3]) return null;
@@ -1018,11 +1050,12 @@ function terrH(x, z) {
   let h = 0;
   if (sm < 0) {
     const d = -sm;
-    h = d < 40 ? 0.012 * d * d : 19.2 + Math.min(720, (d - 40) * 0.72) * (0.5 + 0.75 * fbm2(x / 700, z / 700));
+    h = Math.min(d, 6) * 0.9 + (d < 40 ? 0.012 * d * d : 19.2 + Math.min(720, (d - 40) * 0.72) * (0.5 + 0.75 * fbm2(x / 700, z / 700)));
     h += Math.min(1, d / 160) * 46 * (vnoise(x / 85, z / 85) - 0.5) + Math.min(1, d / 420) * 150 * (Math.abs(vnoise(x / 260 + 7, z / 260) - 0.5) * 2 - 0.4);
     h = Math.max(h, 0.012 * Math.min(d, 40) ** 2 * 0.6);
   }
   if (sw < 0) { const d = -sw; h -= Math.min(30, 0.06 * d + 0.012 * d * d); }
+  const rs = riverSDF(x, z); if (rs < 10) h -= 3.2 * (1 - smoothstep(-6, 10, rs)) + (rs < 0 ? Math.min(2.5, -rs * 0.15) : 0);
   return h;
 }
 
@@ -1357,7 +1390,7 @@ function buildGround() {
     let flat = true, deep = true;
     for (let j = 0; j <= 16; j++) for (let i = 0; i <= 16; i++) {
       const x = cx + w * i / 16, z = cz + d * j / 16, sm = sampleGrid(SDF_M, x, z), sw = sampleGrid(SDF_W, x, z);
-      if (sm < 45 || sw < 45) flat = false; if (sw > -110) deep = false;
+      if (sm < 45 || sw < 45 || riverSDF(x, z) < 45) flat = false; if (sw > -110) deep = false;
     }
     const n = deep ? 2 : flat ? 24 : 64;
     const g = new THREE.PlaneGeometry(w, d, n, n); g.rotateX(-Math.PI / 2); g.translate(cx + w / 2, 0, cz + d / 2);
@@ -1618,6 +1651,7 @@ function buildTowns() {
   for (const t of TOWNS) cityBlocks(t, R);
   cityLights(R);
   streetLife(R);
+  buildServices();
   // ---- Westlake: golf course in the valley
   {
     const greens = [[612, 222], [632, 210], [652, 232], [676, 220], [690, 238], [640, 246]];
@@ -1793,6 +1827,7 @@ function atlasSample(x, z, out) {
     mix(AT.snow, clamp((mh - 560) / 120, 0, 1));
   }
   // water: depth gradient, lakes, a touch of surface texture
+  { const rs = riverSDF(x, z); if (rs < 2) { const k = clamp((2 - rs) / 4, 0, 1); mix(AT.lake, k); out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; if (rs < 0) return 0; } }
   const wet = clamp((-sw - 1.5) / 2.5, 0, 1);
   if (wet > 0) {
     const lake = mapCls(x, z) === 4, dep = clamp(-sw / 600, 0, 1), wn = 0.96 + vnoise(x / 120, z / 60) * 0.08;
@@ -2039,32 +2074,137 @@ function hospital(cx, cz, rot, bw, bd, R) {
   propVehicle(...W(w * 0.22 - 3, fz + 5), rot, 'ambulance'); propVehicle(...W(w * 0.22 + 3.5, fz + 5), rot, 'ambulance');
   FIXED_PEOPLE.push({ x: W(w * 0.22, fz + 2.5)[0], z: W(w * 0.22, fz + 2.5)[1], h: rot, o: { shirt: 0x6ac8c0, pants: 0x6ac8c0 } });
 }
+// ---- a building you can walk into: walls with doorways, roof, lit interior (front = local +z)
+function hollowShell(L, o) {
+  const { P, col, W } = L, t = 0.35, { w, d, h, z0 } = o, key = o.key || 'concreteBox', tint = o.tint ?? 0xffffff, ceil = o.ceil ?? Math.min(h - 0.6, 4.2);
+  const zf = z0 + d, zc = z0 + d / 2;
+  const wall = (lx1, lz1, lx2, lz2, y0, y1) => { const ww = Math.max(t, lx2 - lx1), dd = Math.max(t, lz2 - lz1); P(key, boxG(ww, y1 - y0, dd, 2), (lx1 + lx2) / 2, (y0 + y1) / 2, (lz1 + lz2) / 2, tint); if (y0 < 1.5) col(lx1, lz1, lx1 + ww, lz1 + dd, y1, 'wall'); };
+  wall(-w / 2, z0, w / 2, z0 + t, 0, h);
+  wall(-w / 2, z0, -w / 2 + t, zf, 0, h); wall(w / 2 - t, z0, w / 2, zf, 0, h);
+  // front wall with doorways
+  const doors = (o.doors || [{ x: 0, w: 2.4, h: 2.7 }]).slice().sort((a, b) => a.x - b.x);
+  let x = -w / 2;
+  for (const dr of doors) {
+    if (dr.x - dr.w / 2 > x + 0.05) wall(x, zf - t, dr.x - dr.w / 2, zf, 0, h);
+    wall(dr.x - dr.w / 2, zf - t, dr.x + dr.w / 2, zf, dr.h, h);
+    x = dr.x + dr.w / 2;
+  }
+  if (x < w / 2 - 0.05) wall(x, zf - t, w / 2, zf, 0, h);
+  if (o.windows) for (const s of [-1, 1]) P('glassLit', boxG(w * 0.22, 1.6, 0.06), s * w * 0.3, 1.9, zf + 0.02);
+  P('concreteBox', boxG(w + 0.5, 0.5, d + 0.5, 4), 0, h + 0.25, zc, o.roof ?? 0x5a5e64);
+  P('dark', boxG(w - 0.7, 0.08, d - 0.7), 0, ceil, zc, 0xe8e6e2);
+  P('concrete', planeG(w - 0.7, d - 0.7, (w - 0.7) / 2, (d - 0.7) / 2), 0, 0.06, zc, o.floor ?? 0xcfc8bc);
+  for (let lx = -w / 2 + 3; lx < w / 2 - 2; lx += 5) for (let lz = z0 + 3; lz < zf - 1.5; lz += 5) P('emit', boxG(1.6, 0.05, 0.6), lx, ceil - 0.06, lz);
+  const a = W(-w / 2, z0), b = W(w / 2, zf);
+  INTERIORS.push({ x1: Math.min(a[0], b[0]) + 0.4, z1: Math.min(a[1], b[1]) + 0.4, x2: Math.max(a[0], b[0]) - 0.4, z2: Math.max(a[1], b[1]) - 0.4, ceil: ceil - 0.15 });
+  const [ix, iz] = W(0, zc); LIGHT_ANCHORS.push({ x: ix, y: ceil - 0.5, z: iz, int: 22, dist: Math.max(w, d) + 4, color: 0xfff4e4 });
+  return { zf, zc, ceil };
+}
+function desk(L, lx, lz, ry = 0) { const { P, col } = L; P('wood', boxG(1.6, 0.06, 0.8), lx, 0.76, lz, 0x6a4a32, ry); for (const s of [-0.7, 0.7]) P('steel', boxG(0.06, 0.74, 0.7), lx + s, 0.37, lz, 0x3a3d42, ry); P('dark', boxG(0.55, 0.35, 0.04), lx, 1.0, lz - 0.2, 0x111111, ry); P('emit', boxG(0.5, 0.3, 0.01), lx, 1.0, lz - 0.17, 0xffffff, ry); P('paint', boxG(0.5, 0.06, 0.5), lx, 0.45, lz + 0.7, 0x1c1c1e); P('paint', boxG(0.5, 0.55, 0.06), lx, 0.75, lz + 0.95, 0x1c1c1e); col(lx - 0.8, lz - 0.4, lx + 0.8, lz + 0.4, 0.8); }
 function policeStation(cx, cz, rot, bw, bd, R) {
-  const C = cityMaterials(), { P, col, W } = localPlacer(cx, cz, rot);
-  const w = Math.min(46, bw - 10), d = 22, h = 13, z0 = -bd / 2 + 6;
-  P('c_concrete', boxG(w, h, d, 24), 0, h / 2, z0 + d / 2, 0xb8c0cc); col(-w / 2, z0, w / 2, z0 + d, h, 'bldg');
-  P('paint', boxG(w + 0.2, 1.2, d + 0.2), 0, h - 2, z0 + d / 2, 0x123a8a); flatTop(P, w, d, h, 0x4a4e54, z0 + d / 2);
-  P('glassLit', boxG(8, 3.5, 0.1), 0, 1.75, z0 + d + 0.02); P('concreteBox', boxG(12, 0.4, 4), 0, 3.8, z0 + d + 2, 0x9aa0a8);
-  signPlane(C.sPolice, 14, 2.6, ...[W(0, z0 + d + 0.08)].flat().flatMap((v, i) => i ? [v] : [v, h - 4.5]), rot);
-  for (const s of [-1, 1]) { P('tlBlue', boxG(0.4, 0.4, 0.2), s * 3.6, 4.4, z0 + d + 0.1); }
-  P('steel', boxG(0.15, 12, 0.15), w / 2 - 3, 6, z0 + d + 6, 0xdddddd); col(w / 2 - 3.1, z0 + d + 5.9, w / 2 - 2.9, z0 + d + 6.1, 12);
-  P('asphalt', planeG(bw - 6, bd - d - 12, (bw - 6) / 6, (bd - d - 12) / 6), 0, 0.03, z0 + d + (bd - d - 12) / 2 + 2);
-  for (let k = 0; k < 5; k++) if (R() < 0.85) propVehicle(...W(-w / 2 + 4 + k * 4, z0 + d + 12), rot + Math.PI, 'police');
+  const C = cityMaterials(), L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  const w = Math.min(34, bw - 10), d = 18, h = 7, z0 = -bd / 2 + 6;
+  const { zf } = hollowShell(L, { w, d, h, z0, key: 'concreteBox', tint: 0xc8ced8, doors: [{ x: 0, w: 2.8, h: 2.8 }], windows: true, floor: 0xc8ccd4, roof: 0x3a3e44 });
+  P('paint', boxG(w + 0.2, 1.0, 0.25), 0, h - 1.2, zf + 0.08, 0x123a8a);
+  signPlane(C.sPolice, 12, 2.2, ...[W(0, zf + 0.25)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.2]), rot);
+  for (const s of [-1, 1]) P('tlBlue', boxG(0.4, 0.4, 0.2), s * 2.1, 3.2, zf + 0.15);
+  P('concreteBox', boxG(8, 0.3, 3.4), 0, 3.4, zf + 1.6, 0x9aa0a8);
+  // inside: front desk, bullpen of desks, lockers, a holding cell
+  P('wood', boxG(6, 1.1, 0.8), 0, 0.55, zf - 3.5, 0x4a3a2a); col(-3, zf - 3.9, 3, zf - 3.1, 1.1);
+  for (let i = 0; i < 4; i++) desk(L, -w / 2 + 4 + (i % 2) * 4, z0 + 4 + Math.floor(i / 2) * 3.5);
+  for (let i = 0; i < 6; i++) P('steel', boxG(0.6, 1.9, 0.5), w / 2 - 1.2, 0.95, z0 + 2 + i * 0.65, 0x5a6a7a); col(w / 2 - 1.5, z0 + 1.6, w / 2 - 0.4, z0 + 5.8, 2);
+  const cx0 = w / 2 - 6; for (let k = 0; k <= 10; k++) P('steel', boxG(0.06, 2.6, 0.06), cx0 + k * 0.45, 1.3, z0 + 9, 0x888c90); col(cx0, z0 + 8.9, cx0 + 4.5, z0 + 9.1, 2.6);
+  P('paint', boxG(2, 0.4, 0.8), cx0 + 2.5, 0.35, z0 + 7, 0x6a6e74);
+  P('steel', boxG(0.12, 9, 0.12), w / 2 - 2, 4.5, zf + 5, 0xdddddd); col(w / 2 - 2.1, zf + 4.9, w / 2 - 1.9, zf + 5.1, 9);
+  P('asphalt', planeG(bw - 6, bd - d - 10, (bw - 6) / 6, (bd - d - 10) / 6), 0, 0.03, zf + (bd - d - 10) / 2 + 2);
+  for (let k = 0; k < 5; k++) if (R() < 0.9) propVehicle(...W(-w / 2 + 4 + k * 5, zf + 11), rot + Math.PI, 'police');
+  SPECIAL_LOG.push({ sp: 'police-in', x: W(0, zf - 6)[0], z: W(0, zf - 6)[1], rot });
 }
 function fireStation(cx, cz, rot, bw, bd, R) {
-  const C = cityMaterials(), { P, col, W } = localPlacer(cx, cz, rot);
-  const w = Math.min(40, bw - 10), d = 24, h = 11, z0 = -bd / 2 + 8, bayW = 5.5, bays = 3;
-  P('c_brickRed', boxG(w, h, d, 24), 0, h / 2, z0 + d / 2); col(-w / 2, z0, w / 2, z0 + d - 3, h, 'bldg');
-  flatTop(P, w, d, h, 0x5a2a22, z0 + d / 2);
-  for (let k = 0; k < bays; k++) { const bx = -w / 2 + 5 + k * (bayW + 2) + bayW / 2; P('dark', boxG(bayW, 5, 0.2), bx, 2.5, z0 + d + 0.02); P('trim', boxG(bayW + 0.6, 0.4, 0.3), bx, 5.2, z0 + d + 0.05); }
-  signPlane(C.sFire, 16, 2.6, ...[W(0, z0 + d + 0.08)].flat().flatMap((v, i) => i ? [v] : [v, h - 2.8]), rot);
-  P('concrete', planeG(w + 4, 16, (w + 4) / 3, 16 / 3), 0, 0.035, z0 + d + 8, 0xd0ccc4);
-  const b0 = -w / 2 + 5 + bayW / 2, b1 = b0 + bayW + 2, b2 = b1 + bayW + 2;
-  propVehicle(...W(b0, z0 + d + 4.5), rot, 'fire'); propVehicle(...W(b1, z0 + d + 3.5), rot, 'ambulance'); propVehicle(...W(b2, z0 + d + 4.5), rot, 'fire');
-  // paramedics at the ambulance, a firefighter by the trucks
-  for (const [lx, lz, hh, o] of [[b1 - 2.2, z0 + d + 8.2, 0.4, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [b1 + 2.2, z0 + d + 8.6, -0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a }]]) {
+  const C = cityMaterials(), L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  const w = Math.min(36, bw - 10), d = 22, h = 9, z0 = -bd / 2 + 8, bayW = 5.6;
+  const bx = k => -w / 2 + 4 + k * (bayW + 2.2) + bayW / 2;
+  const { zf } = hollowShell(L, { w, d, h, z0, key: 'brick', tint: 0xb05040, doors: [0, 1, 2].map(k => ({ x: bx(k), w: bayW, h: 5.2 })).concat([{ x: w / 2 - 3, w: 1.6, h: 2.6 }]), ceil: 6.4, floor: 0xb8b4ac, roof: 0x5a2a22 });
+  for (let k = 0; k < 3; k++) P('trim', boxG(bayW + 0.6, 0.4, 0.3), bx(k), 5.4, zf + 0.12);
+  signPlane(C.sFire, 14, 2.2, ...[W(0, zf + 0.25)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.5]), rot);
+  P('concrete', planeG(w + 4, 14, (w + 4) / 3, 14 / 3), 0, 0.035, zf + 7, 0xd0ccc4);
+  // trucks and the ambulance parked inside the bays, paramedics by the ambulance
+  propVehicle(...W(bx(0), zf - 7), rot, 'fire'); propVehicle(...W(bx(1), zf - 6), rot, 'ambulance'); propVehicle(...W(bx(2), zf - 7), rot, 'fire');
+  for (let i = 0; i < 8; i++) P('paint', boxG(0.6, 1.8, 0.5), -w / 2 + 2 + i * 0.7, 0.9, z0 + 0.8, 0xd8b02a); col(-w / 2 + 1.6, z0 + 0.4, -w / 2 + 7.6, z0 + 1.2, 1.9);
+  P('steel', new THREE.CylinderGeometry(0.06, 0.06, 6.4, 8), w / 2 - 2, 3.2, z0 + 3, 0xd0d4d8);
+  for (const [lx, lz, hh, o] of [[bx(1) - 2.0, zf - 3.2, 0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [bx(1) + 2.0, zf - 4, -0.6, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [w / 2 - 4, z0 + 4, 3.0, { shirt: 0xd8b02a, pants: 0x3a3020, capHat: 0xc8102e }]]) {
     const [x, z] = W(lx, lz); FIXED_PEOPLE.push({ x, z, h: rot + hh, o });
   }
+  SPECIAL_LOG.push({ sp: 'fire-in', x: W(bx(1), zf - 2)[0], z: W(bx(1), zf - 2)[1], rot });
+}
+// ---- fast food: counter, menu boards, booths, a drive-thru window and a tall sign out front
+const FF_BRANDS = [['BURGER BARN', '#ffd23f', '#c8102e'], ['TACO TOWN', '#ffffff', '#6a2ac8'], ['CLUCK SHACK', '#ffffff', '#e86a10'], ['PIZZA PALACE', '#ffffff', '#1e8a3a'], ['DONUT DEPOT', '#ff4fb0', '#2a1a10']];
+let FF_MATS = null;
+function fastFood(cx, cz, rot, R, bi) {
+  if (!FF_MATS) FF_MATS = FF_BRANDS.map(([t, fg, bg], i) => signMat('ff_' + i, 1024, 256, (g, W, H) => { g.fillStyle = bg; g.fillRect(0, 0, W, H); g.font = '900 150px Arial Black, Impact, sans-serif'; let fs = 150; while (g.measureText(t).width > W - 50) { fs -= 8; g.font = `900 ${fs}px Arial Black, Impact, sans-serif`; } g.textAlign = 'center'; g.textBaseline = 'middle'; g.shadowColor = fg; g.shadowBlur = 16; g.fillStyle = fg; g.fillText(t, W / 2, H / 2 + 8); }, 1.4));
+  const [name, , bgc] = FF_BRANDS[bi % FF_BRANDS.length], brandC = parseInt(bgc.slice(1), 16), L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  const w = 18, d = 13, h = 5, z0 = -9;
+  const { zf } = hollowShell(L, { w, d, h, z0, key: 'brick', tint: 0xf4e8d8, doors: [{ x: -4, w: 2.2, h: 2.6 }], windows: true, floor: 0xe8d8c4, roof: brandC });
+  P('paint', boxG(w + 0.4, 0.9, d + 0.4), 0, h - 0.4, z0 + d / 2, brandC);
+  signPlane(FF_MATS[bi % FF_BRANDS.length], 10, 2.5, ...[W(0, zf + 0.5)].flat().flatMap((v, i) => i ? [v] : [v, h - 0.4]), rot);
+  // inside
+  P('steel', boxG(9, 1.05, 0.9), 2, 0.52, z0 + 3.2, 0xd8dade); col(-2.5, z0 + 2.75, 6.5, z0 + 3.65, 1.1);
+  for (let k = 0; k < 3; k++) { P('dark', boxG(0.4, 0.3, 0.3), -1 + k * 3, 1.25, z0 + 3.2); P('emit', boxG(2.6, 1.0, 0.05), -1 + k * 3, 3.2, z0 + 0.5, 0xffd8a0); }
+  P('steel', boxG(8, 0.9, 1.4), 2, 0.45, z0 + 1.0, 0x9aa0a6); col(-2, z0 + 0.3, 6, z0 + 1.7, 1);
+  for (let k = 0; k < 4; k++) { const tx = -6.5 + (k % 2) * 4, tz = z0 + 7 + Math.floor(k / 2) * 3; P('paint', boxG(1.6, 0.06, 0.9), tx, 0.75, tz, 0xf2f2ee); P('steel', boxG(0.1, 0.72, 0.1), tx, 0.37, tz, 0x666666); for (const s of [-1, 1]) P('paint', boxG(1.6, 0.9, 0.5), tx, 0.45, tz + s * 0.85, brandC); col(tx - 0.8, tz - 1.1, tx + 0.8, tz + 1.1, 0.9); }
+  // drive-thru window on the side and a tall pole sign by the road
+  P('glassLit', boxG(0.06, 1.2, 1.6), w / 2 + 0.03, 1.4, z0 + 4);
+  P('steel', boxG(0.5, 10, 0.5), -w / 2 - 3, 5, zf + 8, 0x777b80); col(-w / 2 - 3.3, zf + 7.7, -w / 2 - 2.7, zf + 8.3, 10);
+  const pole = signPlane(FF_MATS[bi % FF_BRANDS.length], 7, 1.75, ...[W(-w / 2 - 3, zf + 8.3)].flat().flatMap((v, i) => i ? [v] : [v, 10.5]), rot);
+  P('asphalt', planeG(34, 32, 34 / 6, 32 / 6), 0, 0.03, 2);
+  for (const [lx, lz, hh, o] of [[2, z0 + 2.2, 0, { shirt: brandC, pants: 0x1c1c1e, capHat: brandC }], [5, z0 + 2.2, 0, { shirt: brandC, pants: 0x1c1c1e, capHat: brandC }], [-6.5, z0 + 7.9, Math.PI, {}]]) { const [x, z] = W(lx, lz); FIXED_PEOPLE.push({ x, z, h: rot + hh, o }); }
+  const a = W(-18, -18), b = W(18, 16); reserve(Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1]));
+  PAVED.push([Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]);
+  SPECIAL_LOG.push({ sp: 'food:' + name, x: W(0, zf + 4)[0], z: W(0, zf + 4)[1], rot });
+}
+// ---- gas station: canopy with pumps, price sign and a convenience store you can walk into
+let GAS_SIGN = null;
+function gasStation(cx, cz, rot, R) {
+  const L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  if (!GAS_SIGN) GAS_SIGN = signMat('gas2', 256, 320, (g, w, h) => { g.fillStyle = '#1c4aa8'; g.fillRect(0, 0, w, h); g.fillStyle = '#fff'; g.fillRect(10, 70, w - 20, h - 80); g.font = 'bold 50px Arial Black, sans-serif'; g.textAlign = 'center'; g.fillStyle = '#ffd23f'; g.fillText('FUEL', w / 2, 55); g.fillStyle = '#111'; g.font = 'bold 30px sans-serif'; [['REG', '3.09'], ['PLUS', '3.39'], ['DSL', '3.79']].forEach(([a, b], i) => { g.textAlign = 'left'; g.fillText(a, 22, 125 + i * 70); g.textAlign = 'right'; g.fillStyle = '#c21'; g.fillText(b, w - 22, 125 + i * 70); g.fillStyle = '#111'; }); }, 0.9);
+  P('asphalt', planeG(46, 40, 46 / 6, 40 / 6), 0, 0.03, 0);
+  // canopy & pumps near the road
+  P('paint', boxG(22, 0.9, 10), 0, 5.2, 8, 0x1c4aa8); P('trim', boxG(22.2, 0.15, 10.2), 0, 4.72, 8, 0xffffff);
+  P('emit', boxG(20, 0.04, 0.4), 0, 4.65, 6); P('emit', boxG(20, 0.04, 0.4), 0, 4.65, 10);
+  for (const px of [-7, 0, 7]) { P('trim', boxG(0.4, 4.8, 0.4), px, 2.4, 8, 0xeeeeee); P('paint', boxG(1.2, 1.7, 0.6), px + 1.6, 0.85, 8, 0xdddddd); P('dark', boxG(0.8, 0.5, 0.62), px + 1.6, 1.3, 8); col(px - 0.3, 7.6, px + 2.3, 8.4, 2); }
+  // the store
+  const { zf } = hollowShell(L, { w: 16, d: 10, h: 4.4, z0: -16, key: 'brick', tint: 0xf4efe6, doors: [{ x: -3, w: 2.2, h: 2.6 }], windows: true, floor: 0xe8e4dc, roof: 0x1c4aa8 });
+  P('paint', boxG(16.4, 0.6, 0.3), 0, 4.0, zf + 0.1, 0x1c4aa8);
+  for (let k = 0; k < 3; k++) { P('steel', boxG(4.2, 1.6, 0.6), -4 + k * 4.4 - 1.5, 0.8, -12, 0x8a8e94); for (let y = 0; y < 3; y++) P('paint', boxG(4, 0.25, 0.5), -4 + k * 4.4 - 1.5, 0.35 + y * 0.5, -12, [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a][(k + y) % 4]); col(-4 + k * 4.4 - 3.6, -12.3, -4 + k * 4.4 + 0.6, -11.7, 1.6); }
+  P('glassLit', boxG(10, 2.2, 0.1), 0, 1.3, -15.6, 0xc8f0ff);
+  P('wood', boxG(3.2, 1.05, 0.8), 4.5, 0.52, -9, 0x6a4a32); col(2.9, -9.4, 6.1, -8.6, 1.1);
+  { const [x, z] = W(4.5, -10); FIXED_PEOPLE.push({ x, z, h: rot, o: { shirt: 0x1c4aa8, pants: 0x2a2c30 } }); }
+  const [sx, sz] = W(19, 17); const sg = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3, 0.25), GAS_SIGN); sg.position.set(sx, 7, sz); sg.rotation.y = rot; scene.add(sg);
+  P('steel', boxG(0.3, 6, 0.3), 19, 3, 17, 0x888888); col(18.8, 16.8, 19.2, 17.2, 6);
+  const a = W(-23, -20), b = W(23, 20); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])];
+  reserve(...bx); PAVED.push(bx);
+  SPECIAL_LOG.push({ sp: 'gas', x: W(0, 0)[0], z: W(0, 0)[1], rot });
+}
+// spread gas stations and fast food along the highways and roads, far apart from each other
+function buildServices() {
+  const R = rng(1717), cands = [];
+  for (const r of ROADS) {
+    if (r.type === 'street' && !r.town) continue;
+    for (let t = 50; t < r.len - 50; t += 70) {
+      for (const side of [-1, 1]) {
+        const off = r.w / 2 + 22, nx = r.uz * side, nz = -r.ux * side;
+        const x = r.x1 + r.ux * t + nx * off, z = r.z1 + r.uz * t + nz * off;
+        cands.push({ x, z, rot: Math.atan2(-nx, -nz), r, town: !!r.town || TOWNS.some(T => x > T.X1 - 400 && x < T.X2 + 400 && z > T.Z1 - 400 && z < T.Z2 + 400), k: R() });
+      }
+    }
+  }
+  cands.sort((a, b) => a.k - b.k);
+  const ok = (c, half) => { const c1 = mapCls(c.x, c.z); if ((c1 !== 1 && c1 !== 3) || terrSDF(c.x, c.z) < half + 10) return false; if (reserved(c.x - half, c.z - half, c.x + half, c.z + half)) return false;
+    for (const o of roadsNear(c.x - half - 10, c.z - half - 10, c.x + half + 10, c.z + half + 10)) if (o !== c.r && roadDist(o, c.x, c.z) < half + o.w / 2 + 2) return false; return true; };
+  const gas = [[40, -30]], food = [];
+  for (const c of cands) { if (gas.length >= 21) break; if (gas.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 1150)) continue; if (!ok(c, 24)) continue; gasStation(c.x, c.z, c.rot, R); gas.push([c.x, c.z]); }
+  let bi = 0;
+  for (const c of cands) { if (food.length >= (LITE ? 10 : 14)) break; if (!c.town) continue; if (food.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 600) || gas.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 120)) continue; if (!ok(c, 20)) continue; fastFood(c.x, c.z, c.rot, R, bi++); food.push([c.x, c.z]); }
 }
 function officeTower(cx, cz, rot, bw, bd, R) {
   const C = cityMaterials(), h = 90 + R() * 80, w = Math.min(bw - 14, 48), d = Math.min(bd - 14, 38);
@@ -2102,6 +2242,140 @@ function colorLight(x, z, rot, color, wallUp = true) {
   if (wallUp) { const g = new THREE.PlaneGeometry(7, 14); g.translate(0, 7, 0); addB('glowPool', g, mat(x - Math.sin(rot) * 0.5, 0, z - Math.cos(rot) * 0.5, rot), color); }
 }
 const NEON_COLORS = [0xff3fb0, 0x3fd8ff, 0x9a5aff, 0x3fff9a, 0xffb43a, 0xff4a4a, 0xffffff];
+
+// ============================================================================
+//  WATER LIFE — rolling ocean waves with surf on the beaches, calm lakes,
+//  flowing rivers with bridges where the roads cross
+// ============================================================================
+const WATERX = { patch: null, rivers: [], uni: null };
+function buildWaterLife() {
+  // ---- mask texture: R = open ocean (waves), G = water depth (0 at the shore)
+  const data = new Uint8Array(MAP_W * MAP_H * 4);
+  for (let j = 0; j < MAP_H; j++) for (let i = 0; i < MAP_W; i++) {
+    const k = j * MAP_W + i, c = MAPCLS[k], d = SDF_W[k];
+    data[k * 4] = c === 0 ? 255 : 0; data[k * 4 + 1] = clamp(-d / 160, 0, 1) * 255; data[k * 4 + 2] = 0; data[k * 4 + 3] = 255;
+  }
+  const mask = new THREE.DataTexture(data, MAP_W, MAP_H, THREE.RGBAFormat); mask.magFilter = mask.minFilter = THREE.LinearFilter; mask.needsUpdate = true;
+  const uni = WATERX.uni = { uTime: { value: 0 }, uMask: { value: mask }, uB: { value: new THREE.Vector4(WB.x1, WB.z1, WB.x2 - WB.x1, WB.z2 - WB.z1) } };
+  const m = std({ color: 0x1d6a8c, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.94, envMapIntensity: 1.5 });
+  m.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, uni);
+    const WAVES = `
+      uniform float uTime; uniform sampler2D uMask; uniform vec4 uB; varying float vDepth; varying float vCrest; varying float vOcean;
+      float wv(vec2 p, vec2 d, float k, float w, float a, inout vec2 g) { float ph = dot(d, p) * k + uTime * w; g += d * k * a * cos(ph); return a * sin(ph); }`;
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + WAVES)
+      .replace('#include <beginnormal_vertex>', `
+        vec4 wp0 = modelMatrix * vec4(position, 1.0);
+        vec4 mk = texture2D(uMask, (wp0.xz - uB.xy) / uB.zw);
+        float ef = 1.0 - smoothstep(280.0, 390.0, max(abs(position.x), abs(position.z)));
+        float amp = mk.r * (0.35 + 0.65 * smoothstep(0.0, 0.25, mk.g)) * ef;
+        vec2 g = vec2(0.0); float h = 0.0;
+        h += wv(wp0.xz, normalize(vec2(-0.6, -0.8)), 0.075, 1.1, 0.55, g);
+        h += wv(wp0.xz, normalize(vec2(-0.9, -0.3)), 0.13, 1.6, 0.28, g);
+        h += wv(wp0.xz, normalize(vec2(-0.2, -1.0)), 0.21, 2.1, 0.16, g);
+        h += wv(wp0.xz, normalize(vec2(0.7, -0.7)), 0.37, 2.9, 0.07, g);
+        vDepth = mk.g; vOcean = mk.r; vCrest = h * amp;
+        vec3 objectNormal = normalize(vec3(-g.x * amp, 1.0, -g.y * amp));`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n        transformed.y += h * amp;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uTime; varying float vDepth; varying float vCrest; varying float vOcean;')
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        // turquoise shallows, deep blue offshore; surf lines rolling up the beach and foam on the crests
+        diffuseColor.rgb = mix(vec3(0.16, 0.62, 0.66), diffuseColor.rgb, smoothstep(0.0, 0.22, vDepth));
+        float shore = 1.0 - smoothstep(0.0, 0.07, vDepth);
+        float surf = shore * smoothstep(0.55, 1.0, 0.5 + 0.5 * sin(vDepth * 240.0 + uTime * 2.2)) * vOcean;
+        float crest = smoothstep(0.55, 0.95, vCrest) * vOcean;
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 0.97), clamp(surf + crest * 0.6 + shore * 0.25 * vOcean, 0.0, 0.9));`);
+  };
+  const g = new THREE.PlaneGeometry(800, 800, LITE ? 100 : 160, LITE ? 100 : 160); g.rotateX(-Math.PI / 2);
+  const patch = new THREE.Mesh(g, m); patch.position.y = WATER_Y + 0.06; patch.frustumCulled = false; patch.receiveShadow = true; patch.renderOrder = 1;
+  scene.add(patch); WATERX.patch = patch;
+  // ---- river current: ribbons with flow streaks that scroll downstream
+  const flow = tex(64, 256, (c, w, h) => {
+    c.clearRect(0, 0, w, h); const R = rng(9);
+    for (let i = 0; i < 60; i++) { const x = R() * w, y = R() * h, l = 12 + R() * 40; c.strokeStyle = `rgba(255,255,255,${0.08 + R() * 0.22})`; c.lineWidth = 1 + R() * 2; c.beginPath(); c.moveTo(x, y); c.bezierCurveTo(x + (R() - .5) * 6, y + l * 0.3, x + (R() - .5) * 6, y + l * 0.7, x + (R() - .5) * 4, y + l); c.stroke(); }
+  });
+  flow.wrapS = flow.wrapT = THREE.RepeatWrapping;
+  for (const rv of RIVERS) {
+    const pts = rv.pts.map(p => new THREE.Vector3(...[PX(...p)[0], 0, PX(...p)[1]]));
+    const pos = [], uv = [], idx = []; let L = 0;
+    for (let i = 0; i < pts.length; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(pts.length - 1, i + 1)], dx = b.x - a.x, dz = b.z - a.z, l = Math.hypot(dx, dz) || 1, nx = -dz / l, nz = dx / l, w = 13 + i * 0.7 + 3.5;
+      if (i) L += pts[i].distanceTo(pts[i - 1]);
+      pos.push(pts[i].x + nx * w, 0, pts[i].z + nz * w, pts[i].x - nx * w, 0, pts[i].z - nz * w); uv.push(0, L / 60, 1, L / 60);
+      if (i) { const k = i * 2; idx.push(k - 2, k, k - 1, k - 1, k, k + 1); }
+    }
+    const rg = new THREE.BufferGeometry(); rg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rg.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); rg.setIndex(idx); rg.computeVertexNormals();
+    const base = new THREE.Mesh(rg, std({ color: 0x2f6a78, roughness: 0.1, metalness: 0.15, envMapIntensity: 1.4 })); base.position.y = -1.55; base.receiveShadow = true; scene.add(base);
+    const fm = new THREE.MeshBasicMaterial({ map: flow.clone(), transparent: true, depthWrite: false, opacity: 0.6, color: 0xd8eef4 }); fm.map.needsUpdate = true; fm.map.repeat.set(1, 1);
+    const rm = new THREE.Mesh(rg, fm); rm.position.y = -1.5; rm.renderOrder = 2; scene.add(rm);
+    WATERX.rivers.push(fm.map);
+  }
+  buildBridges();
+}
+// a bridge wherever a road crosses water: deck, railings, piers, and a walkable/drivable span
+function buildBridges() {
+  for (const r of ROADS) {
+    let run = null; const step = 3;
+    const flush = t1 => {
+      if (!run) return; const t0 = run, len = t1 - t0; run = null;
+      if (len > 260 || len < 4) return;
+      const a = t0 - 8, b = t1 + 8, mx = r.x1 + r.ux * (a + b) / 2, mz = r.z1 + r.uz * (a + b) / 2, L = b - a, rot = Math.atan2(r.ux, r.uz), nx = r.uz, nz = -r.ux, hw = r.w / 2 + 1.2;
+      addB('concreteBox', boxG(r.w + 2.4, 1.2, L, 3), mat(mx, -0.58, mz, rot), 0xb8b4ac);
+      for (const s of [-1, 1]) {
+        addB('concreteBox', boxG(0.35, 1.0, L, 2), mat(mx + nx * hw * s, 0.5, mz + nz * hw * s, rot), 0xc8c4bc);
+        for (let t = 0; t <= L; t += 2.2) { const x = r.x1 + r.ux * (a + t) + nx * hw * s, z = r.z1 + r.uz * (a + t) + nz * hw * s; addCol(x - 0.25, z - 0.25, x + 0.25, z + 0.25, 1.0, 'rail'); }
+      }
+      for (let t = 12; t < L - 6; t += 22) { const x = r.x1 + r.ux * (a + t), z = r.z1 + r.uz * (a + t); addB('concreteBox', new THREE.CylinderGeometry(1.1, 1.3, 8, 10), mat(x, -4.6, z), 0xa8a49c); }
+      // the span itself is solid ground for you and your car
+      const ex = Math.abs(r.ux) * L / 2 + Math.abs(nx) * hw, ez = Math.abs(r.uz) * L / 2 + Math.abs(nz) * hw;
+      if (Math.abs(r.ux) < 0.05 || Math.abs(r.uz) < 0.05) PIERS.push([mx - ex, mz - ez, mx + ex, mz + ez]);
+      else for (let t = 0; t < L; t += 6) { const x = r.x1 + r.ux * (a + t + 3), z = r.z1 + r.uz * (a + t + 3); PIERS.push([x - hw, z - hw, x + hw, z + hw]); }
+    };
+    for (let t = 0; t <= r.len; t += step) {
+      const x = r.x1 + r.ux * t, z = r.z1 + r.uz * t, wet = sampleGrid(SDF_W, x, z) < 4;
+      if (wet && run === null) run = t; else if (!wet && run !== null) flush(t);
+    }
+    flush(r.len);
+  }
+}
+function updateWaterLife(dt) {
+  if (!WATERX.patch) return;
+  WATERX.uni.uTime.value += dt;
+  const cx = camera.position.x, cz = camera.position.z;
+  WATERX.patch.position.x = Math.round(cx / 10) * 10; WATERX.patch.position.z = Math.round(cz / 10) * 10;
+  for (const t of WATERX.rivers) t.offset.y -= dt * 0.18;
+}
+// ---------------------------------------------------------------- beaches: umbrellas, towels, chairs, lifeguard towers
+const BEACH_PTS = [];
+function buildBeaches() {
+  const R = rng(321);
+  for (let j = 0; j < MAP_H; j++) for (let i = 0; i < MAP_W; i++) if (MAPCLS[j * MAP_W + i] === 5) {
+    const x = WB.x1 + (i + 0.5) * MCELL, z = WB.z1 + (j + 0.5) * MCELL;
+    if (terrSDF(x, z) > 2 && !onRoad(x, z) && !nearRoad(x - 3, z - 3, x + 3, z + 3, 3)) BEACH_PTS.push([x, z]);
+  }
+  const UMB = [0xe83a3a, 0x2a8ae8, 0xf2c21a, 0x2ac87a, 0xf27aa8, 0xff8a2a, 0xffffff];
+  let n = 0;
+  for (const [bx, bz] of BEACH_PTS) {
+    if (n > (LITE ? 60 : 150) || R() < 0.55) continue;
+    for (let k = 0; k < 2; k++) {
+      const x = bx + (R() - .5) * 26, z = bz + (R() - .5) * 26; if (terrSDF(x, z) < 3 || reserved(x - 2, z - 2, x + 2, z + 2)) continue;
+      const c = UMB[(R() * UMB.length) | 0], rot = R() * TAU;
+      addB('steel', boxG(0.06, 2.3, 0.06), mat(x, 1.15, z), 0xdddddd);
+      addB('paint', new THREE.ConeGeometry(1.4, 0.55, 10, 1, true).translate(0, 0, 0), mat(x, 2.35, z, rot), c);
+      addB('paint', new THREE.ConeGeometry(1.42, 0.56, 10, 1, true), mat(x, 2.34, z, rot + 0.31), 0xffffff);
+      const tx = x + Math.cos(rot) * 1.6, tz = z + Math.sin(rot) * 1.6;
+      addB('lawn', planeG(0.9, 1.9, 1, 1), mat(tx, 0.04, tz, rot), UMB[(R() * UMB.length) | 0]);
+      if (R() < 0.5) { addB('paint', boxG(0.6, 0.08, 1.5), mat(x - Math.cos(rot) * 1.5, 0.35, z - Math.sin(rot) * 1.5, rot, -0.35), 0xf2f2ee); }
+      GRASS_BLOCK.push([x, z]); n++;
+    }
+  }
+  for (let k = 0; k < (LITE ? 3 : 7) && BEACH_PTS.length; k++) {
+    const [x, z] = BEACH_PTS[(k * 7919) % BEACH_PTS.length];
+    for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) addB('wood', boxG(0.15, 2.6, 0.15), mat(x + a, 1.3, z + b), 0xf2f2ee);
+    addB('wood', boxG(2.4, 0.15, 2.4), mat(x, 2.6, z), 0xf2f2ee); addB('paint', boxG(2.2, 1.4, 2.2), mat(x, 3.4, z), 0xe83a3a); addB('paint', boxG(2.6, 0.12, 2.6), mat(x, 4.15, z), 0xffffff);
+    addCol(x - 1.2, z - 1.2, x + 1.2, z + 1.2, 4.2, 'bldg');
+  }
+}
 
 // ============================================================================
 //  WORLD: Calder County, Texas
@@ -2768,13 +3042,14 @@ function buildTrees() {
     for (const [key, list] of groups) {
       const v = vs[+key.split('|')[0]];
       const tm = new THREE.InstancedMesh(v.trunk, M.bark, list.length), lm = new THREE.InstancedMesh(v.leaves, M.leaf, list.length);
+      const cols = [];
       list.forEach((p, i) => {
         const s = 0.75 + hash2(p[0] * 10, p[1] * 10) * 0.6, m = mat(p[0], 0, p[1], hash2(p[1], p[0]) * TAU, 0, 0, s, s * (0.9 + hash2(p[0], 3) * 0.25), s);
         tm.setMatrixAt(i, m); lm.setMatrixAt(i, m);
-        if (kind !== 'oak' || true) addCol(p[0] - 0.25 * s, p[1] - 0.25 * s, p[0] + 0.25 * s, p[1] + 0.25 * s, 3, 'tree');
+        cols.push(addCol(p[0] - 0.25 * s, p[1] - 0.25 * s, p[0] + 0.25 * s, p[1] + 0.25 * s, 3, 'tree'));
       });
       for (const o of [tm, lm]) { o.castShadow = true; o.receiveShadow = true; o.computeBoundingSphere(); scene.add(o); }
-      treeSets.push({ tm, lm, n: list.length, oak: kind === 'oak' });
+      treeSets.push({ tm, lm, n: list.length, oak: kind === 'oak', cols });
     }
   }
 }
@@ -2816,7 +3091,7 @@ function buildScrub() {
   }
 }
 function setTreeDensity(f) { for (const s of scrubSets) s.im.count = Math.max(0, Math.round(s.n * Math.min(1, f + 0.1))); setTreeDensity0(f); }
-function setTreeDensity0(f) { for (const s of treeSets) { const n = s.oak ? s.n : Math.max(0, Math.round(s.n * f)); s.tm.count = n; s.lm.count = n; } }
+function setTreeDensity0(f) { for (const s of treeSets) { const n = s.oak ? s.n : Math.max(0, Math.round(s.n * f)); s.tm.count = n; s.lm.count = n; s.cols.forEach((c, i) => { c.on = i < n; }); } } // hidden trees must not block you
 
 // ---------------------------------------------------------------- grass tufts near the camera
 let grass = null, grassMax = 0, grassAt = { x: 1e9, z: 1e9 };
@@ -2987,9 +3262,9 @@ function makePerson(o) {
   const pt = personTextures();
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const SPH = (r, w, h, ...a) => new THREE.SphereGeometry(r, o.lo ? Math.max(6, w >> 1) : w, o.lo ? Math.max(4, h >> 1) : h, ...a);
-  const skin = o.lo ? std({ color: o.skin, map: pt.skinT, roughness: 0.58 }) : new THREE.MeshPhysicalMaterial({ color: o.skin, map: pt.skinT, roughness: 0.5, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x8a3a2a), clearcoat: 0.08, clearcoatRoughness: 0.6 });
+  let skin = o.lo ? std({ color: o.skin, map: pt.skinT, roughness: 0.58 }) : new THREE.MeshPhysicalMaterial({ color: o.skin, map: pt.skinT, roughness: 0.5, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x8a3a2a), clearcoat: 0.08, clearcoatRoughness: 0.6 });
   const stub = std({ color: new THREE.Color(o.skin).lerp(new THREE.Color(0x1a1410), o.beard ?? 0.35), roughness: 0.8 });
-  const shirt = std({ color: o.shirt, map: pt.fabric, normalMap: pt.knit, normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.92 });
+  const shirt = o.shirtless ? skin : std({ color: o.shirt, map: pt.fabric, normalMap: pt.knit, normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.92 });
   const pants = std({ color: o.pants, map: o.denim ? T.denim : null, roughness: 0.9 });
   const shoes = std({ color: o.shoes, roughness: 0.55 });
   const sole = std({ color: o.sole ?? 0xf2f2f2, roughness: 0.7 });
@@ -3019,8 +3294,13 @@ function makePerson(o) {
     const bl = mesh(SPH(0.08, 12, 8), shirt, s * 0.09 * tw, 0.4, -0.07 * td, torso); bl.scale.set(1.0, 1.1, 0.45);
   }
   const shirtC = shirt.clone(); shirtC.side = THREE.DoubleSide;
-  const hem = mesh(new THREE.CylinderGeometry(0.168, 0.188, 0.2, o.lo ? 14 : 28, o.lo ? 3 : 5, true), shirtC, 0, 0.02, 0, torso); hem.scale.set(1.13 * bulk, 1, 0.8 * bulk); hem.userData.keep = true;
-  const cloth = [{ m: hem, base: hem.geometry.attributes.position.array.slice(), top: 0.1, h: 0.2, rad: true }];
+  const cloth = [];
+  if (!o.shirtless) { const hem = mesh(new THREE.CylinderGeometry(0.168, 0.188, 0.2, o.lo ? 14 : 28, o.lo ? 3 : 5, true), shirtC, 0, 0.02, 0, torso); hem.scale.set(1.13 * bulk, 1, 0.8 * bulk); hem.userData.keep = true;
+    cloth.push({ m: hem, base: hem.geometry.attributes.position.array.slice(), top: 0.1, h: 0.2, rad: true }); }
+  if (o.shirtless) { // swim trunks waistband & a few abs/navel details on the bare torso
+    const wb = mesh(new THREE.CylinderGeometry(0.158, 0.162, 0.05, 20, 1, true), pants, 0, -0.03, 0, torso); wb.scale.set(1.0 * bulk, 1, 0.72 * bulk);
+    mesh(new THREE.SphereGeometry(0.006, 6, 4), dark, 0, 0.1, 0.1 * bulk, torso);
+  }
   if (o.jacket) { // open jacket: two front panels and a back panel that swing with movement
     const jm = std({ color: o.jacket, map: o.leather ? null : pt.fabric, normalMap: o.leather ? null : pt.knit, normalScale: new THREE.Vector2(0.5, 0.5), roughness: o.leather ? 0.45 : 0.9, side: THREE.DoubleSide });
     mesh(cap(0.18, 0.2), jm, 0, 0.38, -0.01, torso).scale.set(1.36, 1.02, 0.86);
@@ -3050,6 +3330,7 @@ function makePerson(o) {
     const cheek = mesh(SPH(0.022, 10, 8), skin, s * 0.046, -0.018, 0.07, head); cheek.scale.set(1, 0.75, 0.55);
     const brow = mesh(new THREE.BoxGeometry(0.032, 0.006, 0.01), hair, s * 0.034, 0.031, 0.097, head); brow.rotation.z = -s * 0.12;
   }
+  if (o.shades) { const gm = std({ color: 0x0a0c10, roughness: 0.1, metalness: 0.6 }); for (const s of [-1, 1]) { const ln = mesh(new THREE.BoxGeometry(0.036, 0.022, 0.006), gm, s * 0.034, 0.013, 0.104, head); ln.userData.keep = true; const tp = mesh(new THREE.BoxGeometry(0.004, 0.006, 0.09), gm, s * 0.053, 0.018, 0.06, head); tp.userData.keep = true; } const br = mesh(new THREE.BoxGeometry(0.016, 0.004, 0.006), gm, 0, 0.018, 0.105, head); br.userData.keep = true; }
   const nose = mesh(new THREE.ConeGeometry(0.0125, 0.04, 8), skin, 0, -0.006, 0.104, head); nose.rotation.x = Math.PI / 2 + 0.3;
   const lipM = std({ color: new THREE.Color(o.skin).lerp(new THREE.Color(0x8a3a3a), 0.45), roughness: 0.4 });
   const lipU = mesh(new THREE.CapsuleGeometry(0.0055, 0.03, 3, 8), lipM, 0, -0.047, 0.1, head); lipU.rotation.z = Math.PI / 2;
@@ -3071,11 +3352,11 @@ function makePerson(o) {
   let torch = null;
   for (const s of [1, -1]) { // s=+1 is the character's LEFT side (+x when facing +z)
     const shG = new THREE.Group(); shG.position.set(s * 0.235, 0.47, 0); torso.add(shG);
-    if (!o.longSleeve) { const sl = mesh(new THREE.CylinderGeometry(0.078 * bulk, 0.074 * bulk, 0.09, o.lo ? 10 : 18, 3, true), shirtC, 0, -0.14, 0, shG); sl.userData.keep = true; cloth.push({ m: sl, base: sl.geometry.attributes.position.array.slice(), top: 0.045, h: 0.09, rad: true, sleeve: s }); }
+    if (!o.longSleeve && !o.shirtless && !o.tank) { const sl = mesh(new THREE.CylinderGeometry(0.078 * bulk, 0.074 * bulk, 0.09, o.lo ? 10 : 18, 3, true), shirtC, 0, -0.14, 0, shG); sl.userData.keep = true; cloth.push({ m: sl, base: sl.geometry.attributes.position.array.slice(), top: 0.045, h: 0.09, rad: true, sleeve: s }); }
     // upper arm: deltoid -> biceps -> elbow; short sleeves leave the lower arm bare
     const UA = [[0.066, 0.004, 0.005, 0, -0.03], [0.058, 0.026, 0.034, 0, -0.026], [0.045, 0.045, 0.052, 0, -0.02], [0.035, 0.058, 0.062, 0, -0.012], [0.0, 0.072, 0.072, 0, -0.004], [-0.05, 0.069, 0.07, 0.004], [-0.13, 0.058, 0.064, 0.012], [-0.2, 0.052, 0.058, 0.01], [-0.27, 0.045, 0.047], [-0.31, 0.042, 0.043]].map(r => [r[0], r[1], r[2], r[3] || 0, (r[4] || 0) * s]);
     mesh(loftGeo(scaleRings(UA, bulk * (fem ? 0.85 : 1), bulk * (fem ? 0.85 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, shG);
-    if (!o.longSleeve) mesh(loftGeo(scaleRings(UA.slice(0, 7).map(r => [r[0], r[1] + 0.006, r[2] + 0.006, r[3], r[4] || 0]), bulk, bulk), LS - 4, 2.2), shirt, 0, 0, 0, shG);
+    if (!o.longSleeve && !o.shirtless && !o.tank) mesh(loftGeo(scaleRings(UA.slice(0, 7).map(r => [r[0], r[1] + 0.006, r[2] + 0.006, r[3], r[4] || 0]), bulk, bulk), LS - 4, 2.2), shirt, 0, 0, 0, shG);
     const el = new THREE.Group(); el.position.y = -0.3; shG.add(el);
     // forearm: brachioradialis bulge, tapering to the wrist
     mesh(loftGeo(scaleRings([[0.02, 0.042, 0.043], [-0.04, 0.05, 0.047, 0.003, 0.004], [-0.1, 0.047, 0.042, 0.002], [-0.18, 0.036, 0.031], [-0.25, 0.029, 0.023], [-0.28, 0.028, 0.022]], bulk * (fem ? 0.86 : 1), bulk * (fem ? 0.86 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, el);
@@ -3093,7 +3374,7 @@ function makePerson(o) {
     mesh(loftGeo(scaleRings([[0.04, 0.092, 0.096], [-0.04, 0.094, 0.1, 0.008], [-0.15, 0.086 * (o.baggy ? 1.04 : 1), 0.092, 0.012], [-0.28, 0.074 * (o.baggy ? 1.12 : 1), 0.078, 0.008], [-0.4, 0.058 * (o.baggy ? 1.3 : 1), 0.062], [-0.47, 0.054 * (o.baggy ? 1.3 : 1), 0.058]], lw * bg, lw * bg), LS - 2, 2.3), pants, 0, 0, 0, hipG);
     const kG = new THREE.Group(); kG.position.y = -0.45; hipG.add(kG);
     // calf: muscle bulge at the back, slim ankle
-    mesh(loftGeo(scaleRings([[0.03, 0.052, 0.056], [-0.06, 0.056, 0.064, -0.014], [-0.15, 0.054, 0.062, -0.016], [-0.26, 0.042, 0.046, -0.006], [-0.38, 0.033, 0.034], [-0.44, 0.032, 0.033]].map(r => o.baggy ? [r[0], Math.max(r[1], 0.06), Math.max(r[2], 0.064), 0] : r), lw * bg, lw * bg), LS - 2, 2.3), pants, 0, 0, 0, kG);
+    mesh(loftGeo(scaleRings([[0.03, 0.052, 0.056], [-0.06, 0.056, 0.064, -0.014], [-0.15, 0.054, 0.062, -0.016], [-0.26, 0.042, 0.046, -0.006], [-0.38, 0.033, 0.034], [-0.44, 0.032, 0.033]].map(r => o.baggy ? [r[0], Math.max(r[1], 0.06), Math.max(r[2], 0.064), 0] : r), lw * bg, lw * bg), LS - 2, 2.3), o.shorts ? skin : pants, 0, 0, 0, kG);
     const foot = new THREE.Group(); foot.position.set(0, -0.455, 0.0); kG.add(foot);
     const up = mesh(cap(0.055, 0.17), shoes, 0, 0.02, 0.035, foot); up.rotation.x = Math.PI / 2; up.scale.set(1.05, 1, 0.75);
     mesh(new THREE.BoxGeometry(0.115, 0.03, 0.29), sole, 0, -0.03, 0.035, foot);
@@ -4396,6 +4677,36 @@ function spawnFixedPeople() {
     n.proxy = personProxy(m.root, po); npcs.push(n);
   });
 }
+// beach-goers: shirtless guys in swim trunks, women in swimsuits, most in shades
+function spawnBeachPeople() {
+  const R = rng(4711), TR = [0x1e5aa8, 0xe83a3a, 0x2ac87a, 0xf2c21a, 0x1c1c1e, 0xff8a2a, 0x8a2ac8], SW = [0xe83a3a, 0x1c1c1e, 0xf27aa8, 0x2a8ae8, 0xffffff, 0xf2c21a];
+  for (let i = 0; i < (LITE ? 10 : 18); i++) {
+    const female = R() < 0.45;
+    const po = { skin: SKIN[(R() * SKIN.length) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0xc8a050][(R() * 4) | 0], shoes: 0x2a2a2a, sole: 0x2a2a2a, lo: true, shades: R() < 0.8, shorts: true, bulk: female ? 0.92 + R() * 0.08 : 0.95 + R() * 0.2, female, beard: female ? 0 : R() * 0.4 };
+    if (female) { const c = SW[(R() * SW.length) | 0]; Object.assign(po, { tank: true, shirt: c, pants: c, longHair: R() < 0.85 }); }
+    else Object.assign(po, { shirtless: true, shirt: po.skin, pants: TR[(R() * TR.length) | 0], capHat: R() < 0.2 ? 0xf2f2ee : 0 });
+    const m = makePerson(po); scene.add(m.root);
+    const n = { m, female, x: 1e6, z: 1e6, h: 0, a: [0, 0], b: [0, 0], tgt: [0, 0], state: 'idle', t: 0, hp: PED_HP, brave: false, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [0, 0], b: [0, 0] }, ws: 0.9 + R() * 0.3, beach: true, parked: true, recT: R() };
+    n.proxy = personProxy(m.root, po); m.root.visible = false; npcs.push(n);
+  }
+}
+function nearBeachPt(x, z, rmin, rmax) {
+  for (let tries = 0; tries < 40; tries++) { const p = BEACH_PTS[(Math.random() * BEACH_PTS.length) | 0], d = Math.hypot(p[0] - x, p[1] - z); if (d >= rmin && d <= rmax) return [p[0] + (Math.random() - .5) * 24, p[1] + (Math.random() - .5) * 24]; }
+  return null;
+}
+function beachNext(n) {
+  if (Math.random() < 0.55) { n.state = 'idle'; n.sitting = Math.random() < 0.7; n.t = 6 + Math.random() * 14; return; }
+  const q = nearBeachPt(n.x, n.z, 4, 40); if (q && terrSDF(q[0], q[1]) > 2) { n.tgt = q; n.home = { a: [n.x, n.z], b: q }; n.sitting = false; n.state = 'walk'; } else { n.state = 'idle'; n.t = 4; }
+}
+function recycleBeach(n, dt) {
+  n.recT -= dt; if (n.recT > 0) return; n.recT = 1 + Math.random();
+  if (n.rag || n.dead || n.pendingFall || (n.state !== 'walk' && n.state !== 'idle')) return;
+  const px = P.inCar ? car.x : P.x, pz = P.inCar ? car.z : P.z;
+  if (!n.parked && Math.hypot(n.x - px, n.z - pz) < 170) return;
+  const q = BEACH_PTS.length ? nearBeachPt(px, pz, 25, 150) : null;
+  if (!q || terrSDF(q[0], q[1]) < 2) { if (!n.parked) { n.parked = true; n.m.root.visible = false; n.x = n.z = 1e6; } return; }
+  n.parked = false; n.x = q[0]; n.z = q[1]; n.h = Math.random() * TAU; n.state = 'idle'; n.sitting = Math.random() < 0.6; n.t = 3 + Math.random() * 12; n.tgt = [n.x, n.z]; n.walk = null; n.fall = 0; n.y = 0;
+}
 // pedestrians can't walk through cars: push them out of every nearby car's footprint
 function pushFromCars(p, r) {
   let hit = false;
@@ -4438,7 +4749,7 @@ function spawnActors() {
   const fb = new THREE.Mesh(new THREE.ConeGeometry(2.0, 9, 20, 1, true), new THREE.MeshBasicMaterial({ color: 0xfff0c8, transparent: true, opacity: 0.05, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
   fb.geometry.translate(0, -4.5, 0); fb.geometry.rotateX(-Math.PI / 2); flash.userData.beam = fb; scene.add(fb);
   guard = newGuard();
-  spawnNPCs(); spawnFixedPeople();
+  spawnNPCs(); spawnFixedPeople(); spawnBeachPeople();
   const cols = CAR_COLORS;
   const kinds = ['sedan', 'pickup', 'suv', 'hatch', 'coupe', 'van', 'sedan', 'hatch', 'suv', 'coupe'];
   const routes = [];
@@ -4570,6 +4881,7 @@ function placeBody(e, m) {
 }
 function recycleNPC(n, dt) {
   if (n.fixed) return;
+  if (n.beach) { recycleBeach(n, dt); return; }
   n.recT = (n.recT || 0) - dt; if (n.recT > 0) return;
   n.recT = 0.25 + Math.random() * 0.35;
   if (n.rag || n.dead || n.pendingFall || (n.state !== 'walk' && n.state !== 'idle')) return;
@@ -4634,7 +4946,7 @@ let activeWalkers = 0;
 function updateNPCs(dt) {
   separatePeople();
   updateNpcBudget(dt);
-  activeWalkers = 0; for (const n of npcs) if (!n.fixed && !n.parked) activeWalkers++;
+  activeWalkers = 0; for (const n of npcs) if (!n.fixed && !n.parked && !n.beach) activeWalkers++;
   for (const n of npcs) {
     recycleNPC(n, dt);
     if (n.parked) { n.m.root.visible = false; continue; }
@@ -4656,23 +4968,25 @@ function updateNPCs(dt) {
         const sees = d < 60 && !losBlocked(n.x, n.z, P.x, P.z, 1.4);
         n.t = sees || d < 45 ? 0 : n.t + dt;
         n.screamT = (n.screamT || 0) - dt; if (n.screamT <= 0 && d < 30 && Math.random() < dt * 0.5) { AU.scream(n.x, n.z, n.female); n.screamT = 3; }
-        if (n.t > 4) { n.state = 'walk'; n.fleeDir = null; snapWalk(n); }
+        if (n.t > 4) { n.state = 'walk'; n.fleeDir = null; if (n.beach) beachNext(n); else snapWalk(n); }
       }
       const dx = tx - n.x, dz = tz - n.z, d = Math.hypot(dx, dz);
       if (n.state === 'walk' && d < 0.6) {
-        if (!n.walk) snapWalk(n);
-        if (n.walk) { nextWalk(n); if (Math.random() < 0.05) { n.state = 'idle'; n.t = 1 + Math.random() * 2.5; } }
+        if (n.beach) beachNext(n);
+        else if (!n.walk) snapWalk(n);
+        if (n.beach) { }
+        else if (n.walk) { nextWalk(n); if (Math.random() < 0.05) { n.state = 'idle'; n.t = 1 + Math.random() * 2.5; } }
         else { n.state = 'idle'; n.t = 2 + Math.random() * 4; n.tgt = n.tgt === n.home.a ? n.home.b : n.home.a; }
       }
       else if (d > 0.01) { const want = Math.atan2(dx, dz), dh = wrapA(want - n.h); n.turn = dh * 6; n.h += dh * Math.min(1, dt * 6); n.spd = damp(n.spd, sp, 4, dt); n.x += Math.sin(n.h) * n.spd * dt; n.z += Math.cos(n.h) * n.spd * dt; spd = n.spd; }
-    } else if (n.state === 'idle') { n.t -= dt; n.spd = damp(n.spd, 0, 6, dt); if (n.t <= 0) n.state = 'walk'; }
+    } else if (n.state === 'idle') { n.t -= dt; n.spd = damp(n.spd, 0, 6, dt); if (n.t <= 0) { n.state = 'walk'; n.sitting = false; if (n.beach) beachNext(n); } }
     else if (n.state === 'hit') { n.t -= dt; n.x += n.vx * dt; n.z += n.vz * dt; n.vx *= Math.exp(-6 * dt); n.vz *= Math.exp(-6 * dt); if (n.t <= 0) { n.state = n.brave && !(W && W.cur === 'glock') && !P.inCar ? 'fight' : 'flee'; n.t = 0; n.atkT = 0.6 + Math.random() * 0.6; } }
     else if (n.state === 'fight') spd = npcFight(n, dt);
     else updateDown(n, dt, true);
     if (n.state !== 'down') { const p = { x: n.x, z: n.z }; const hw = pushCircle(p, 0.3), hc = pushFromCars(p, 0.32); if ((hw || hc) && n.state === 'flee') n.fleeDir = (n.fleeDir || 0) + (Math.random() < 0.5 ? 1.4 : -1.4); n.x = p.x; n.z = p.z; }
     n.clutch = Math.max(0, (n.clutch || 0) - dt * 0.1);
     if (n.stagger > 0) { n.stagger -= dt; n.x += (n.vx || 0) * dt; n.z += (n.vz || 0) * dt; }
-    if (!(n.proxy && n.proxy.visible)) { const ev = n.m.update(dt, { fight: n.state === 'fight', spd: n.state === 'walk' || n.state === 'flee' || n.state === 'fight' ? spd : 0, turn: n.turn || 0, down: n.state === 'down' ? 1 : 0, t: gameT + n.x, clutch: n.clutch });
+    if (!(n.proxy && n.proxy.visible)) { const ev = n.m.update(dt, { sit: n.sitting && n.state === 'idle', fight: n.state === 'fight', spd: n.state === 'walk' || n.state === 'flee' || n.state === 'fight' ? spd : 0, turn: n.turn || 0, down: n.state === 'down' ? 1 : 0, t: gameT + n.x, clutch: n.clutch });
       if (ev === 'impact' && n.state === 'fight') npcPunchLands(n); }
     placeBody(n, n.m);
     if (n.m.hair) n.m.hair.update(dt, n.m.root.visible && dc < 24);
@@ -5700,6 +6014,7 @@ function update(dt) {
   processHits(car, true); for (const a of all) processHits(a.v, false);
   tyreFX(car, dt); for (const a of all) if (a.mode === 'phys') tyreFX(a.v, dt);
   updateSkyLife(dt);
+  updateWaterLife(dt);
   updateNPCs(dt); updateDebris(dt); updateTargets(dt); updateBodies(dt); updateDoorsHH(dt); updateGore(dt);
   if (W.eFlashT > 0) { W.eFlashT -= dt; if (W.eFlashT <= 0) { W.eflash.visible = false; W.elight.intensity = 0; } }
   FXS.add.update(dt); FXS.norm.update(dt);
@@ -5804,7 +6119,7 @@ async function boot() {
   const steps = [
     ['Mixing paint', buildTextures], ['Preparing materials', buildMaterials], ['Painting the Texas sky', buildSky], ['Grading the land', buildGround],
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
-    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing brush and wildflowers', buildScrub], ['Growing grass', buildGrass],
+    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Filling the rivers and the Gulf', buildWaterLife], ['Setting up the beaches', buildBeaches], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing brush and wildflowers', buildScrub], ['Growing grass', buildGrass],
     ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { initSkyLife(); spawnActors(); buildMarker(); initCombat(); }],
     ['Photographing the state from above', renderSatMap], ['Loading the world into the graphics chip', uploadWorld], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
@@ -7286,6 +7601,7 @@ function updateSkyLife(dt) {
   }
 }
 window.__SKYLIFE = SKYLIFE;
+window.__BEACH = BEACH_PTS;
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
