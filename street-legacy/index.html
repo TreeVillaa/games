@@ -325,7 +325,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1957</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2035</div>
   </div>
 </div>
 
@@ -2928,6 +2928,26 @@ function punchCurve(t) { // <0 wind-up, 1 = full extension (impact at t≈0.45)
   if (t < 0.58) return 1;
   return 1 - sm01((t - 0.58) / 0.42);
 }
+// smooth anatomical body parts: rings of super-ellipse cross-sections lofted along y
+// rings: [y, rx, rz, oz, ox]  (rx = half width, rz = half depth, oz/ox = offset of the ring centre)
+function loftGeo(rings, seg = 16, pw = 2.4) {
+  const pos = [], uv = [], idx = [], n = rings.length;
+  for (let j = 0; j < n; j++) {
+    const [y, rx, rz, oz = 0, ox = 0] = rings[j];
+    for (let i = 0; i <= seg; i++) {
+      const a = i / seg * TAU, c = Math.cos(a), s = Math.sin(a);
+      const k = 2 / pw, cx = Math.sign(c) * Math.pow(Math.abs(c), k), sz = Math.sign(s) * Math.pow(Math.abs(s), k);
+      pos.push(ox + rx * cx, y, oz + rz * sz); uv.push(i / seg, j / (n - 1));
+    }
+  }
+  const down = rings[0][0] > rings[n - 1][0];
+  for (let j = 0; j < n - 1; j++) for (let i = 0; i < seg; i++) { const a = j * (seg + 1) + i, b = a + seg + 1; if (down) idx.push(a, a + 1, b, b, a + 1, b + 1); else idx.push(a, b, a + 1, b, b + 1, a + 1); }
+  const add = (j, flip) => { const [y, , , oz = 0, ox = 0] = rings[j], c = pos.length / 3; pos.push(ox, y, oz); uv.push(0.5, j / (n - 1)); for (let i = 0; i < seg; i++) { const a = j * (seg + 1) + i; if (flip) idx.push(c, a + 1, a); else idx.push(c, a, a + 1); } };
+  add(0, rings[0][0] > rings[n - 1][0]); add(n - 1, rings[0][0] < rings[n - 1][0]);
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); geo.setIndex(idx); geo.computeVertexNormals();
+  return geo;
+}
+const scaleRings = (rings, sx, sz) => rings.map(([y, rx, rz, oz = 0, ox = 0]) => [y, rx * sx, rz * sz, oz * sz, ox * sx]);
 let PT = null;
 function personTextures() {
   if (PT) return PT;
@@ -2977,10 +2997,21 @@ function makePerson(o) {
   let pendant = null;
 
   const hips = new THREE.Group(); hips.position.y = 0.97; root.add(hips);
-  const pelvis = mesh(cap(0.15, 0.16), pants, 0, 0, 0, hips); pelvis.rotation.z = Math.PI / 2; pelvis.scale.set(1, 1, 0.78 * bulk);
+  const LS = o.lo ? 12 : 22, fem = !!o.female;
+  const hipW = fem ? 1.08 : 1, shW = fem ? 0.88 : 1;
+  // pelvis & glutes (pants)
+  mesh(loftGeo(scaleRings([[0.1, 0.15, 0.1], [0.04, 0.158, 0.106], [-0.02, 0.168, 0.112, -0.008], [-0.08, 0.172, 0.118, -0.016], [-0.13, 0.158, 0.106, -0.012], [-0.16, 0.12, 0.08, -0.005]], hipW * bulk, bulk), LS, 2.6), pants, 0, 0, 0, hips);
   const torso = new THREE.Group(); torso.position.y = 0.04; hips.add(torso);
-  const belly = mesh(cap(0.165, 0.22), shirt, 0, 0.2, 0, torso); belly.scale.set(1.12 * bulk, 1, 0.74 * bulk);
-  const chest = mesh(cap(0.17, 0.2), shirt, 0, 0.38, 0.005, torso); chest.scale.set(1.3, 1, 0.8);
+  // torso: narrow waist, ribcage, broad chest and lats, sloping trapezius into the neck
+  const TR = [[-0.03, 0.152, 0.106], [0.06, 0.143, 0.1, 0.004], [0.16, 0.148, 0.104, 0.008], [0.25, 0.163, 0.113, 0.012], [0.33, 0.182, 0.12, 0.016], [0.4, 0.196, 0.118, 0.014],
+    [0.45, 0.205, 0.108, 0.006], [0.5, 0.19, 0.094, -0.004], [0.54, 0.15, 0.08, -0.01], [0.575, 0.085, 0.064, -0.006], [0.6, 0.058, 0.054]];
+  const tw = (fem ? 0.92 : 1) * bulk, td = (fem ? 0.98 : 1) * (0.92 + bulk * 0.08);
+  mesh(loftGeo(scaleRings(TR.map(r => r[0] > 0.3 && r[0] < 0.52 ? [r[0], r[1] * shW / (fem ? 0.92 : 1) * (fem ? 0.96 : 1), r[2], r[3]] : r), tw, td), LS, 2.5), shirt, 0, 0, 0, torso);
+  // pecs, shoulder blades and deltoids give the chest its shape under the shirt
+  for (const s of [-1, 1]) {
+    const pec = mesh(SPH(0.085, 14, 10), shirt, s * 0.085 * tw, 0.385, 0.075 * td, torso); pec.scale.set(1.05, 0.72, 0.55);
+    const bl = mesh(SPH(0.08, 12, 8), shirt, s * 0.09 * tw, 0.4, -0.07 * td, torso); bl.scale.set(1.0, 1.1, 0.45);
+  }
   const shirtC = shirt.clone(); shirtC.side = THREE.DoubleSide;
   const hem = mesh(new THREE.CylinderGeometry(0.168, 0.188, 0.2, o.lo ? 14 : 28, o.lo ? 3 : 5, true), shirtC, 0, 0.02, 0, torso); hem.scale.set(1.13 * bulk, 1, 0.8 * bulk); hem.userData.keep = true;
   const cloth = [{ m: hem, base: hem.geometry.attributes.position.array.slice(), top: 0.1, h: 0.2, rad: true }];
@@ -2996,7 +3027,7 @@ function makePerson(o) {
     const back = mesh(bg, jm, 0, 0.44, -0.15, torso); back.rotation.y = Math.PI; back.userData.keep = true;
     cloth.push({ m: back, base: bg.attributes.position.array.slice(), top: 0, h: 0.36, flap: true, side: 0, back: true });
   }
-  const sh = mesh(cap(0.105, 0.34), shirt, 0, 0.49, 0, torso); sh.rotation.z = Math.PI / 2; sh.scale.set(1, 1, 0.8);
+
   mesh(new THREE.CylinderGeometry(0.056, 0.064, 0.14, 12), skin, 0, 0.6, 0.0, torso);
   const head = new THREE.Group(); head.position.set(0, 0.73, 0.01); torso.add(head);
   const skull = mesh(SPH(0.104, 24, 18), skin, 0, 0, 0, head); skull.scale.set(0.86, 1.12, 0.98);
@@ -3025,7 +3056,7 @@ function makePerson(o) {
     const ph = mesh(new THREE.BoxGeometry(0.032, 0.01, 0.008), silver, 0, -0.025, 0, pendant); ph.userData.keep = true;
     const pl = mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.02, 4), silver, 0, -0.005, 0, pendant); pl.userData.keep = true;
   }
-  if (o.badge) mesh(new THREE.BoxGeometry(0.05, 0.06, 0.01), std({ color: 0xd8b050, metalness: 1, roughness: 0.3 }), 0.09, 0.42, 0.135, torso);
+  if (o.badge) mesh(new THREE.BoxGeometry(0.05, 0.06, 0.01), std({ color: 0xd8b050, metalness: 1, roughness: 0.3 }), 0.09, 0.42, 0.15, torso);
   const bag = new THREE.Group(); bag.position.set(0, 0.32, -0.2); torso.add(bag); bag.visible = false;
   const bb = mesh(cap(0.14, 0.38), std({ color: 0x15171a, roughness: 0.7 }), 0, 0, 0, bag); bb.rotation.z = Math.PI / 2;
   const strap = mesh(new THREE.TorusGeometry(0.25, 0.012, 4, 24), dark, 0, 0.08, 0.13, bag); strap.rotation.set(0, 0, 0.7); strap.scale.set(1, 1.3, 0.3);
@@ -3034,22 +3065,29 @@ function makePerson(o) {
   let torch = null;
   for (const s of [1, -1]) { // s=+1 is the character's LEFT side (+x when facing +z)
     const shG = new THREE.Group(); shG.position.set(s * 0.235, 0.47, 0); torso.add(shG);
-    mesh(cap(0.068, 0.12), shirt, 0, -0.08, 0, shG);
-    if (!o.longSleeve) { const sl = mesh(new THREE.CylinderGeometry(0.07, 0.078, 0.09, o.lo ? 10 : 18, 3, true), shirtC, 0, -0.14, 0, shG); sl.userData.keep = true; cloth.push({ m: sl, base: sl.geometry.attributes.position.array.slice(), top: 0.045, h: 0.09, rad: true, sleeve: s }); }
-    mesh(cap(0.053 * bulk, 0.14), o.longSleeve ? shirt : skin, 0, -0.2, 0, shG);
+    if (!o.longSleeve) { const sl = mesh(new THREE.CylinderGeometry(0.078 * bulk, 0.074 * bulk, 0.09, o.lo ? 10 : 18, 3, true), shirtC, 0, -0.14, 0, shG); sl.userData.keep = true; cloth.push({ m: sl, base: sl.geometry.attributes.position.array.slice(), top: 0.045, h: 0.09, rad: true, sleeve: s }); }
+    // upper arm: deltoid -> biceps -> elbow; short sleeves leave the lower arm bare
+    const UA = [[0.055, 0.03, 0.04, 0, -0.025], [0.035, 0.058, 0.062, 0, -0.012], [0.0, 0.072, 0.072, 0, -0.004], [-0.05, 0.069, 0.07, 0.004], [-0.13, 0.058, 0.064, 0.012], [-0.2, 0.052, 0.058, 0.01], [-0.27, 0.045, 0.047], [-0.31, 0.042, 0.043]].map(r => [r[0], r[1], r[2], r[3] || 0, (r[4] || 0) * s]);
+    mesh(loftGeo(scaleRings(UA, bulk * (fem ? 0.85 : 1), bulk * (fem ? 0.85 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, shG);
+    if (!o.longSleeve) mesh(loftGeo(scaleRings(UA.slice(0, 5).map(r => [r[0], r[1] + 0.006, r[2] + 0.006, r[3], r[4] || 0]), bulk, bulk), LS - 4, 2.2), shirt, 0, 0, 0, shG);
     const el = new THREE.Group(); el.position.y = -0.3; shG.add(el);
-    mesh(cap(0.044, 0.19), o.longSleeve ? shirt : skin, 0, -0.12, 0, el);
+    // forearm: brachioradialis bulge, tapering to the wrist
+    mesh(loftGeo(scaleRings([[0.02, 0.042, 0.043], [-0.04, 0.05, 0.047, 0.003, 0.004], [-0.1, 0.047, 0.042, 0.002], [-0.18, 0.036, 0.031], [-0.25, 0.029, 0.023], [-0.28, 0.028, 0.022]], bulk * (fem ? 0.86 : 1), bulk * (fem ? 0.86 : 1)), LS - 4, 2.2), o.longSleeve ? shirt : skin, 0, 0, 0, el);
     const fist = new THREE.Group(); fist.position.y = -0.29; el.add(fist);
-    const palm = mesh(new THREE.BoxGeometry(0.062, 0.07, 0.03), skin, 0, 0.005, 0.005, fist); palm.scale.set(1, 1, 1);
-    for (let f = 0; f < 4; f++) { const fg = mesh(new THREE.CapsuleGeometry(0.0085, 0.032, 2, 6), skin, (f - 1.5) * 0.0155, -0.043, 0.018, fist); fg.rotation.x = 0.9; }
-    const th = mesh(new THREE.CapsuleGeometry(0.009, 0.03, 2, 6), skin, -s * 0.034, -0.01, 0.02, fist); th.rotation.set(0.5, 0, s * 0.6);
+    const handS = new THREE.Group(); handS.scale.setScalar(o.female ? 1.1 : 1.25); handS.position.y = -0.01; fist.add(handS);
+    const palm = mesh(new THREE.BoxGeometry(0.062, 0.07, 0.03), skin, 0, 0.005, 0.005, handS); palm.scale.set(1, 1, 1);
+    for (let f = 0; f < 4; f++) { const fg = mesh(new THREE.CapsuleGeometry(0.0085, 0.032, 2, 6), skin, (f - 1.5) * 0.0155, -0.043, 0.018, handS); fg.rotation.x = 0.9; }
+    const th = mesh(new THREE.CapsuleGeometry(0.009, 0.03, 2, 6), skin, -s * 0.034, -0.01, 0.02, handS); th.rotation.set(0.5, 0, s * 0.6);
     if (o.watch && s > 0) mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.03, 14), silver, 0, -0.215, 0, el);
     if (o.flashlight && s < 0) { torch = mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.22, 10), dark, 0, -0.01, 0.06, fist); torch.rotation.x = Math.PI / 2; torch.userData.keep = true; }
     arms[s > 0 ? 'L' : 'R'] = { sh: shG, el, fist, s };
     const hipG = new THREE.Group(); hipG.position.set(s * 0.1, -0.02, 0); hips.add(hipG);
-    mesh(cap(o.baggy ? 0.095 : 0.085, 0.3), pants, 0, -0.22, 0, hipG);
+    // thigh: full quads tapering to the knee (baggy jeans hang straighter)
+    const bg = o.baggy ? 1.15 : 1, lw = (fem ? 1.04 : 1) * bulk;
+    mesh(loftGeo(scaleRings([[0.04, 0.092, 0.096], [-0.04, 0.094, 0.1, 0.008], [-0.15, 0.086 * (o.baggy ? 1.04 : 1), 0.092, 0.012], [-0.28, 0.074 * (o.baggy ? 1.12 : 1), 0.078, 0.008], [-0.4, 0.058 * (o.baggy ? 1.3 : 1), 0.062], [-0.47, 0.054 * (o.baggy ? 1.3 : 1), 0.058]], lw * bg, lw * bg), LS - 2, 2.3), pants, 0, 0, 0, hipG);
     const kG = new THREE.Group(); kG.position.y = -0.45; hipG.add(kG);
-    mesh(cap(o.baggy ? 0.085 : 0.07, 0.33), pants, 0, -0.22, 0, kG);
+    // calf: muscle bulge at the back, slim ankle
+    mesh(loftGeo(scaleRings([[0.03, 0.052, 0.056], [-0.06, 0.056, 0.064, -0.014], [-0.15, 0.054, 0.062, -0.016], [-0.26, 0.042, 0.046, -0.006], [-0.38, 0.033, 0.034], [-0.44, 0.032, 0.033]].map(r => o.baggy ? [r[0], Math.max(r[1], 0.06), Math.max(r[2], 0.064), 0] : r), lw * bg, lw * bg), LS - 2, 2.3), pants, 0, 0, 0, kG);
     const foot = new THREE.Group(); foot.position.set(0, -0.455, 0.0); kG.add(foot);
     const up = mesh(cap(0.055, 0.17), shoes, 0, 0.02, 0.035, foot); up.rotation.x = Math.PI / 2; up.scale.set(1.05, 1, 0.75);
     mesh(new THREE.BoxGeometry(0.115, 0.03, 0.29), sole, 0, -0.03, 0.035, foot);
@@ -4252,9 +4290,10 @@ function spawnNPCs() {
     const po = { skin: SKIN[(R() * SKIN.length) | 0], shirt: SHIRT[(R() * SHIRT.length) | 0], pants: PANTS[(R() * PANTS.length) | 0], denim: R() < 0.5,
       shoes: [0xeeeeee, 0x222222, 0x6a4a2a][(R() * 3) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a][(R() * 4) | 0], capHat: R() < 0.3 ? [0x8a1c1c, 0x1c2a4a, 0xe8e4da][(R() * 3) | 0] : 0, longHair: R() < 0.45, pony: R() < 0.35, bulk: 0.95 + R() * 0.2, longSleeve: R() < 0.3, beard: R() * 0.4, lo: true, jacket: R() < 0.32 ? [0x1c1c1e, 0x2a3a5a, 0x5a3a24, 0x3a4a2a, 0x8a1c1c, 0xb8a888][(R() * 6) | 0] : 0 };
     if (po.jacket && R() < 0.35) { po.leather = true; po.jacket = 0x18161a; }
+    po.female = R() < 0.45; if (po.female) { po.beard = 0; po.longHair = R() < 0.8; po.bulk = Math.min(po.bulk, 1.0); }
     const m = makePerson(po);
     scene.add(m.root);
-    const n = { m, female: R() < 0.45, x: a[0], z: a[1], h: 0, a, b, tgt: b, state: 'walk', t: 0, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a, b }, ws: 1.15 + R() * 0.45, recT: 0 };
+    const n = { m, female: po.female, x: a[0], z: a[1], h: 0, a, b, tgt: b, state: 'walk', t: 0, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a, b }, ws: 1.15 + R() * 0.45, recT: 0 };
     n.proxy = personProxy(m.root, po); npcs.push(n);
   }
 }
@@ -4332,8 +4371,9 @@ function spawnFixedPeople() {
   const R = rng(99);
   for (const f of FIXED_PEOPLE) {
     const po = Object.assign({ skin: SKIN[(R() * SKIN.length) | 0], shirt: SHIRT[(R() * SHIRT.length) | 0], pants: PANTS[(R() * PANTS.length) | 0], shoes: 0x222222, hair: [0x15110e, 0x3a2a1a, 0x8a6a3a][(R() * 3) | 0], capHat: 0, longHair: R() < 0.4, bulk: 0.95 + R() * 0.2, lo: true }, f.o);
+    po.female = R() < 0.45; if (po.female) { po.beard = 0; po.longHair = R() < 0.8; po.bulk = Math.min(po.bulk, 1.0); }
     const m = makePerson(po); scene.add(m.root);
-    const n = { m, female: R() < 0.45, x: f.x, z: f.z, h: f.h, a: [f.x, f.z], b: [f.x, f.z], tgt: [f.x, f.z], state: 'idle', t: 1e9, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [f.x, f.z], b: [f.x, f.z] }, ws: 1.3, fixed: true, recT: 1e9 };
+    const n = { m, female: po.female, x: f.x, z: f.z, h: f.h, a: [f.x, f.z], b: [f.x, f.z], tgt: [f.x, f.z], state: 'idle', t: 1e9, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [f.x, f.z], b: [f.x, f.z] }, ws: 1.3, fixed: true, recT: 1e9 };
     n.proxy = personProxy(m.root, po); npcs.push(n);
   }
 }
