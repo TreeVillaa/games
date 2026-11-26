@@ -320,7 +320,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1840</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1914</div>
   </div>
 </div>
 
@@ -2070,7 +2070,8 @@ function hotdogStand(x, z, rot) {
 function adBoard(x, y, z, rot, w, R, posts = 0) {
   const h = w * 0.5, c = rng(((x * 13 + z * 7) | 0) >>> 0)();
   addB('adScreen', signQuad(w, h, (c * 8) | 0, 2, 4), mat(x, y + h / 2, z, rot));
-  addB('dark', boxG(w + 0.4, h + 0.4, 0.3), mat(x - Math.sin(rot) * 0.2, y + h / 2, z - Math.cos(rot) * 0.2, rot));
+  addB('adScreen', signQuad(w, h, ((c * 8) | 0) ^ 1, 2, 4), mat(x - Math.sin(rot) * 0.42, y + h / 2, z - Math.cos(rot) * 0.42, rot + Math.PI));
+  addB('dark', boxG(w + 0.4, h + 0.4, 0.3), mat(x - Math.sin(rot) * 0.21, y + h / 2, z - Math.cos(rot) * 0.21, rot));
   const sp = posts || 1.5; for (const s of [-0.35, 0.35]) addB('steel', boxG(0.3, y + 0.2 - (posts ? 0 : y - sp), 0.3), mat(x + Math.cos(rot) * s * w - Math.sin(rot) * 0.5, posts ? (y + 0.2) / 2 : y - sp / 2, z - Math.sin(rot) * s * w - Math.cos(rot) * 0.5), 0x3a3d42);
   if (posts) for (const s of [-0.35, 0.35]) { const px = x + Math.cos(rot) * s * w, pz = z - Math.sin(rot) * s * w; addCol(px - 0.3, pz - 0.3, px + 0.3, pz + 0.3, y); }
   addB('glowPool', planeG(w, 6, 1, 1), mat(x + Math.sin(rot) * 3, y - 0.1, z + Math.cos(rot) * 3, rot), 0xffffff);
@@ -3299,6 +3300,20 @@ const VT = {
     grille: { y0: 0.78, y1: 1.06, w: 1.35, chrome: true }, intake: { y0: 0.45, y1: 0.66, w: 1.8 }, plateY: [0.62, 0.8],
   },
 };
+// more body styles derived from the three base shapes (stretched / squashed)
+function deriveVT(b, kz, kyTop, kyGh, extra = {}) {
+  const Z = v => v * kz, pz = a => a.map(([z, y]) => [z * kz, y]);
+  const v = JSON.parse(JSON.stringify(b));
+  v.L2 = b.L2 * kz; v.WZ = b.WZ.map(Z); v.bot = pz(b.bot);
+  v.top = b.top.map(([z, y]) => [z * kz, y * kyTop]); v.gh = b.gh.map(([z, y]) => [z * kz, b.top[0][1] + (y - b.top[0][1]) * kyGh]);
+  v.tubs = b.tubs.map(([a, c, y]) => [a * kz, c * kz, y]); v.wind = b.wind.map(Z); v.rear = b.rear.map(Z); v.sides = b.sides.map(s => s.map(Z));
+  v.door = b.door.map(Z); if (b.lowerDoor != null) v.lowerDoor = b.lowerDoor * kz;
+  v.head = { z: b.head.z.map(Z), j: b.head.j }; v.tail = { z: b.tail.z.map(Z), j: b.tail.j };
+  return Object.assign(v, extra);
+}
+VT.hatch = deriveVT(VT.suv, 0.86, 0.92, 0.86, { wr: 0.31, archR: 0.36, floor: 0.2, HW: 0.86, roofHW: 0.62 });
+VT.coupe = deriveVT(VT.sedan, 1.03, 0.97, 0.86, { HW: 0.9, sides: [[-0.9, 1.12]], door: [-0.5, 1.0] });
+VT.van = deriveVT(VT.suv, 1.12, 1.04, 1.12, { HW: 0.96, roofHW: 0.78 });
 function interp(tab, z) {
   if (z <= tab[0][0]) return tab[0][1];
   for (let i = 1; i < tab.length; i++) if (z <= tab[i][0]) { const a = tab[i - 1], b = tab[i], t = (z - a[0]) / (b[0] - a[0]); return lerp(a[1], b[1], t * t * (3 - 2 * t) * 0.35 + t * 0.65); }
@@ -3396,10 +3411,10 @@ function bodyPatch(bodyG, R, zs, za, zb, j0, j1, side, off) {
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
   return g;
 }
-const CAR_COLORS = [0x2b2f35, 0x8a1418, 0xe9e9e6, 0x1d2a44, 0x6d737a, 0x0e0f11, 0x3b4a3a, 0xb7bcc2, 0x5a3a24];
+const CAR_COLORS = [0x2b2f35, 0x8a1418, 0xe9e9e6, 0x1d2a44, 0x6d737a, 0x0e0f11, 0x3b4a3a, 0xb7bcc2, 0x5a3a24, 0x1e5aa8, 0xd8b02a, 0xd8661e, 0x1e8a8a, 0x5a1430, 0xd8ccb0, 0x2e6a3a, 0x8a8ec8, 0xf2f2ee, 0x3a2a5a, 0xa8321e];
 function buildCar(o = {}) {
   const lite = !!o.lite, ct = carTextures();
-  const type = o.kind === 'pickup' ? 'pickup' : o.kind === 'suv' ? 'suv' : 'sedan';
+  const type = VT[o.kind] ? o.kind : 'sedan';
   const shp = makeShape(type), V = shp.V;
   const g = new THREE.Group(); const body = new THREE.Group(); g.add(body);
   const physical = o.physical !== false;
@@ -3591,6 +3606,9 @@ const debris = [];
 const CAR_CFG = {
   sedan: { m: 1300, a: 1.2, b: 1.52, h: 0.55, Iz: 2150, T: 172, red: 6500, idle: 800, gears: [3.55, 2.06, 1.4, 1.03, 0.78], final: 4.06, rev: 3.3, rw: 0.315, cda: 0.62, rwd: false },
   suv: { m: 1700, a: 1.3, b: 1.4, h: 0.68, Iz: 3000, T: 245, red: 6200, idle: 750, gears: [3.3, 1.96, 1.31, 1.0, 0.76], final: 4.1, rev: 3.2, rw: 0.36, cda: 0.9, rwd: false },
+  hatch: { m: 1150, a: 1.05, b: 1.3, h: 0.55, Iz: 1700, T: 150, red: 6800, idle: 850, gears: [3.6, 2.1, 1.45, 1.05, 0.8], final: 4.2, rev: 3.3, rw: 0.31, cda: 0.6, rwd: false },
+  coupe: { m: 1350, a: 1.25, b: 1.55, h: 0.5, Iz: 2200, T: 260, red: 7000, idle: 850, gears: [3.4, 2.0, 1.4, 1.05, 0.8], final: 3.9, rev: 3.3, rw: 0.315, cda: 0.58, rwd: true },
+  van: { m: 2000, a: 1.45, b: 1.55, h: 0.75, Iz: 3800, T: 250, red: 6000, idle: 750, gears: [3.3, 1.96, 1.31, 1.0, 0.76], final: 4.1, rev: 3.2, rw: 0.36, cda: 1.0, rwd: false },
   pickup: { m: 2100, a: 1.6, b: 1.9, h: 0.75, Iz: 4700, T: 380, red: 5600, idle: 700, gears: [3.0, 1.8, 1.25, 1.0, 0.72], final: 3.55, rev: 3.0, rw: 0.39, cda: 1.05, rwd: true },
 };
 class Vehicle {
@@ -3598,7 +3616,7 @@ class Vehicle {
     this.m = model; this.x = x; this.z = z; this.h = h; this.vx = 0; this.vz = 0; this.w = 0;
     this.steer = 0; this.spin = 0; this.pitch = 0; this.roll = 0; this.pv = 0; this.rv = 0; this.axS = 0; this.ayS = 0; this.bounce = 0; this.bv = 0; this.rpm = 900; this.speed = 0; this.fwd = 0; this.slip = 0;
     this.input = { steer: 0, thr: 0, brk: 0, hand: 0 }; this.spinT = 0; this.health = 1000; this.dentT = 0; this.hits = [];
-    this.mass = model.kind === 'sedan' ? 1 : model.kind === 'suv' ? 1.3 : 1.5;
+    this.mass = { sedan: 1, suv: 1.3, pickup: 1.5, hatch: 0.9, coupe: 1, van: 1.5 }[model.kind] || 1;
     this.y = 0; this.vy = 0; this.rollA = 0; this.rollV = 0; this.pitchA = 0; this.pitchV = 0; this.flipped = false; this.doorA = 0; this.doorT = 0; this.I = this.mass * (model.L * model.L + model.W * model.W) / 12;
     const hl = model.L / 2, hw = model.W / 2;
     this.samples = [[hw, hl], [-hw, hl], [hw, -hl], [-hw, -hl], [hw, 0], [-hw, 0], [hw, hl * 0.5], [-hw, hl * 0.5], [hw, -hl * 0.5], [-hw, -hl * 0.5], [0, hl + 0.02], [0, -hl - 0.02], [hw * 0.5, hl], [-hw * 0.5, hl], [hw * 0.5, -hl], [-hw * 0.5, -hl]];
@@ -4281,7 +4299,7 @@ function spawnActors() {
   guard = newGuard();
   spawnNPCs(); spawnFixedPeople();
   const cols = CAR_COLORS;
-  const kinds = ['sedan', 'pickup', 'suv'];
+  const kinds = ['sedan', 'pickup', 'suv', 'hatch', 'coupe', 'van', 'sedan', 'hatch', 'suv', 'coupe'];
   const routes = [];
   const add = (name, n, spd) => { for (const ch of roadChains(name)) for (let i = 0; i < n; i++) routes.push([kinds[(routes.length * 7 + i) % 3], polyLoop(ch, ROADS.find(r => r.name === name).w > 10 ? 2.75 : 2.0), spd + (i % 3) * 2]); };
   add('I-40', 7, 27); add('I-20', 4, 26); add('I-35', 6, 27); add('Hwy 404', 2, 25); add('FM 427', 2, 24); add('Loop 1', 5, 20);
@@ -4290,8 +4308,8 @@ function spawnActors() {
   const streets = ROADS.filter(r => r.type === 'street' && r.len > 300).sort((a, b) => b.len - a.len);
   const usedT = {};
   let nCity = 0;
-  for (const r of streets) { if (nCity >= 48) break; const k = r.town || (r.old ? 'old' : r.zone); usedT[k] = (usedT[k] || 0) + 1; if (usedT[k] > (k === 'San Felipe' ? 30 : k === 'Westlake' ? 6 : 4)) continue; for (let c = 0; c < (r.len > 900 ? 2 : 1); c++, nCity++) routes.push([kinds[routes.length % 3], polyLoop([[r.x1, r.z1], [r.x2, r.z2]], 1.7), 10 + (routes.length % 4), k === 'San Felipe' && routes.length % 5 < 2 ? 0xf2c21a : null, true]); }
-  routes.forEach((r, i) => { const a = makeAI(r[3] ? 'sedan' : r[0], r[3] || cols[(i * 3 + 1) % cols.length], r[1], r[2]); a.city = !!r[4]; a.s = (i * 0.37 % 1) * a.total; a.recT = Math.random() * 1.5; a.proxy = carProxy(a.v, r[3] || cols[(i * 3 + 1) % cols.length]); traffic.push(a); });
+  for (const r of streets) { if (nCity >= 48) break; const k = r.town || (r.old ? 'old' : r.zone); usedT[k] = (usedT[k] || 0) + 1; if (usedT[k] > (k === 'San Felipe' ? 30 : k === 'Westlake' ? 6 : 4)) continue; for (let c = 0; c < (r.len > 900 ? 2 : 1); c++, nCity++) routes.push([kinds[(routes.length * 7) % kinds.length], polyLoop([[r.x1, r.z1], [r.x2, r.z2]], 1.7), 10 + (routes.length % 4), k === 'San Felipe' && routes.length % 4 === 0 ? 0xf2c21a : null, true]); }
+  routes.forEach((r, i) => { const a = makeAI(r[3] ? 'sedan' : r[0], r[3] || cols[(i * 7 + 3) % cols.length], r[1], r[2]); a.id = i; a.city = !!r[4]; a.s = (i * 0.37 % 1) * a.total; a.recT = Math.random() * 1.5; a.proxy = carProxy(a.v, r[3] || cols[(i * 7 + 3) % cols.length]); traffic.push(a); });
 }
 function roadChains(name) {
   const out = []; let cur = null;
@@ -4324,6 +4342,7 @@ function recycleAI(a, dt) {
       const t0 = clamp((px - r.x1) * r.ux + (pz - r.z1) * r.uz + (Math.random() - 0.5) * 320, 1, r.len - 1); a.s = Math.random() < 0.5 ? t0 : Math.max(0, a.total - t0 - 1); const q = pathPos(a), dx = q.x - px, dz = q.z - pz, d = Math.hypot(dx, dz);
       if (d < 30 || d > 210) continue;
       if ((dx * fx + dz * fz) / d > 0.3 && d < 70 && !losBlocked(camera.position.x, camera.position.z, q.x, q.z, 1.5)) continue;
+      if (traffic.some(o => o !== a && Math.hypot(o.v.x - q.x, o.v.z - q.z) < 16)) continue;
       a.cur = a.speed; a.done = false; a.v.set(q.x, q.z, q.h); return;
     }
     return;
@@ -4359,7 +4378,20 @@ function updateAI(a, dt) {
     const dx = tx - v.x, dz = tz - v.z, ahead = dx * fx + dz * fz, side = Math.abs(dx * fz - dz * fx);
     if (ahead > 0 && ahead < 22 && side < 3.2) want = Math.min(want, Math.max(0, (ahead - 7) * 1.2));
   }
-  for (const o of traffic) if (o !== a) { const ox = o.v.x - v.x, oz = o.v.z - v.z, oa = ox * fx + oz * fz, os = Math.abs(ox * fz - oz * fx); if (oa > 0 && oa < 18 && os < 2.5) want = Math.min(want, Math.max(0, (oa - 8) * 1.2)); }
+  a.wait = a.wait || 0; let blocked = false;
+  for (const o of traffic) {
+    if (o === a || Math.abs(o.v.x - v.x) > 20 || Math.abs(o.v.z - v.z) > 20) continue;
+    const ox = o.v.x - v.x, oz = o.v.z - v.z, oa = ox * fx + oz * fz, os = Math.abs(ox * fz - oz * fx);
+    if (oa > 0 && oa < 18 && os < 2.5) { want = Math.min(want, Math.max(0, (oa - 8) * 1.2)); continue; } // same lane: follow
+    // crossing / merging: give way to a car in the way, the lower id goes first if both are waiting
+    if (oa > -1 && oa < 13 && os < 5.5) {
+      const gx = Math.sin(o.v.h), gz = Math.cos(o.v.h), theyA = -ox * gx - oz * gz, theyS = Math.abs(-ox * gz + oz * gx);
+      const theyBlocked = theyA > -1 && theyA < 13 && theyS < 5.5;
+      if (!theyBlocked || (a.id ?? 0) > (o.id ?? 0) || o.mode !== 'path') { want = Math.min(want, Math.max(0, (Math.hypot(ox, oz) - 6) * 0.8)); blocked = true; }
+    }
+  }
+  a.wait = blocked && want < 0.5 ? a.wait + dt : 0;
+  if (a.wait > 7) want = a.speed * 0.3; // never stay gridlocked forever
   a.cur = lerp(a.cur, want, Math.min(1, dt * (want < a.cur ? 3 : 0.8)));
   a.s += a.cur * dt;
   if (a.s >= a.total) { if (a.loop) a.s -= a.total; else { a.s = a.total - 0.01; a.done = true; a.cur = 0; } }
@@ -4417,8 +4449,23 @@ function recycleNPC(n, dt) {
     return;
   }
 }
+function separatePeople() {
+  const list = []; for (const n of npcs) if (!n.parked && n.m.root.visible && !n.rag && n.state !== 'down') list.push(n);
+  const R = 0.62;
+  for (let i = 0; i < list.length; i++) for (let j = i + 1; j < list.length; j++) {
+    const a = list[i], b = list[j], dx = b.x - a.x, dz = b.z - a.z; if (Math.abs(dx) > R || Math.abs(dz) > R) continue;
+    const d = Math.hypot(dx, dz); if (d >= R) continue;
+    const ux = d > 1e-4 ? dx / d : Math.cos(i), uz = d > 1e-4 ? dz / d : Math.sin(i), push = (R - d) / 2;
+    const wa = a.fixed ? 0 : b.fixed ? 2 : 1, wb = b.fixed ? 0 : a.fixed ? 2 : 1;
+    a.x -= ux * push * wa; a.z -= uz * push * wa; b.x += ux * push * wb; b.z += uz * push * wb;
+    // step aside instead of walking into each other
+    if (a.state === 'walk' && !a.fixed) a.h += 0.6 * Math.sign(ux * Math.cos(a.h) - uz * Math.sin(a.h) || 1) * 0.1;
+  }
+  for (const n of list) { const dx = n.x - P.x, dz = n.z - P.z, d = Math.hypot(dx, dz); if (!P.inCar && d < 0.6 && d > 1e-4) { n.x = P.x + dx / d * 0.6; n.z = P.z + dz / d * 0.6; } }
+}
 let activeWalkers = 0;
 function updateNPCs(dt) {
+  separatePeople();
   updateNpcBudget(dt);
   activeWalkers = 0; for (const n of npcs) if (!n.fixed && !n.parked) activeWalkers++;
   for (const n of npcs) {
