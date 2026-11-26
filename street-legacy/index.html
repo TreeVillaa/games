@@ -306,6 +306,7 @@
     <h2 class="display">SETTINGS</h2>
     <button class="btn" data-cycle="quality">Graphics quality: <span class="val" id="vQuality"></span></button>
     <button class="btn" data-cycle="sound">Sound: <span class="val" id="vSound"></span></button>
+    <button class="btn" data-cycle="music">Menu music: <span class="val" id="vMusic"></span></button>
     <button class="btn" data-cycle="sens">Camera speed: <span class="val" id="vSens"></span></button>
     <button class="btn" data-cycle="fps">Show FPS: <span class="val" id="vFps"></span></button>
     <button class="btn" data-cycle="gore">Gore: <span class="val" id="vGore"></span></button>
@@ -473,7 +474,7 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
 };
-const settings = Object.assign({ quality: isTouch ? 'medium' : 'high', sound: true, sens: 1, fps: false, gore: 'ultra' }, store.get('sl.settings', {}));
+const settings = Object.assign({ quality: isTouch ? 'medium' : 'high', sound: true, sens: 1, fps: false, gore: 'ultra', music: false }, store.get('sl.settings', {}));
 const save = Object.assign({ cash: 0, passed: false }, store.get('sl.save', {}));
 
 const QUAL = {
@@ -3506,10 +3507,17 @@ const AU = {
     this.amb = { ag, wg };
     if (this.buildV2) this.buildV2();
   },
+  // when nothing should be heard (menus with music off, pause, map, background) the whole audio engine is suspended
+  idle(gameOn) {
+    if (!this.ctx) return;
+    const want = settings.sound && !document.hidden && (gameOn || this.music || performance.now() - (this.lastUi || 0) < 1500);
+    if (!want && this.ctx.state === 'running') this.ctx.suspend();
+    else if (want && this.ctx.state === 'suspended') this.ctx.resume();
+  },
   gate(on) { if (!this.bus) return; const v = on ? 1 : 0; if (this.gateV !== v) { this.gateV = v; const t = this.ctx.currentTime; this.bus.gain.cancelScheduledValues(t); this.bus.gain.setValueAtTime(this.bus.gain.value, t); this.bus.gain.linearRampToValueAtTime(v, t + (on ? 0.25 : 0.12)); } },
   setOn(on) { if (this.master) this.master.gain.value = on ? 0.8 : 0; },
   beep(freq, dur, type = 'sine', vol = 0.2, when = 0, slide = 0) {
-    if (!this.ctx) return; const c = this.ctx, t = c.currentTime + when;
+    if (!this.ctx) return; if (!this.gateV) { this.lastUi = performance.now(); if (this.ctx.state === 'suspended' && settings.sound && !document.hidden) this.ctx.resume(); } const c = this.ctx, t = c.currentTime + when;
     const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(freq, t);
     if (slide) o.frequency.exponentialRampToValueAtTime(slide, t + dur);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
@@ -3579,7 +3587,7 @@ const AU = {
   gunS() { if (!this.ctx) return; this.hit(0.35, 1400, 0.06); this.hit(0.25, 400, 0.09); this.beep(2200, 0.03, 'square', 0.05); },
   horn() { this.beep(415, 0.5, 'sawtooth', 0.09); this.beep(349, 0.5, 'sawtooth', 0.09); },
   musicOn() {
-    if (!this.ctx || this.music) return; const c = this.ctx;
+    if (!this.ctx || this.music || !settings.music) return; const c = this.ctx;
     const out = c.createGain(); out.gain.value = 0.0; out.gain.linearRampToValueAtTime(0.16, c.currentTime + 2); out.connect(this.master);
     const dl = c.createDelay(); dl.delayTime.value = 0.375; const fb = c.createGain(); fb.gain.value = 0.35; dl.connect(fb); fb.connect(dl); dl.connect(out);
     const chords = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]];
@@ -3980,6 +3988,7 @@ document.addEventListener('click', e => {
 function cycleSetting(k, d) {
   if (k === 'quality') { settings.quality = QORDER[(QORDER.indexOf(settings.quality) + d + 4) % 4]; applyQuality(); }
   if (k === 'sound') { settings.sound = !settings.sound; AU.setOn(settings.sound); }
+  if (k === 'music') { settings.music = !settings.music; if (settings.music) { AU.init(); AU.musicOn(); } else AU.musicOff(); }
   if (k === 'sens') { const o = [0.6, 1, 1.5]; settings.sens = o[(o.indexOf(settings.sens) + d + 3) % 3] || 1; }
   if (k === 'fps') { settings.fps = !settings.fps; $('fps').classList.toggle('hidden', !settings.fps); }
   if (k === 'gore') { const o = ['medium', 'high', 'ultra']; settings.gore = o[(o.indexOf(settings.gore) + d + 3) % 3]; }
@@ -3991,6 +4000,7 @@ function refreshSettings() {
   $('qualNote').textContent = QUAL[settings.quality].note;
   $('vGore').textContent = ({ medium: 'Medium', high: 'High', ultra: 'Ultra' })[settings.gore] || 'Ultra';
   $('fps').classList.toggle('hidden', !settings.fps);
+  $('vMusic').textContent = settings.music ? 'On' : 'Off';
 }
 function applyQuality() {
   if (!sun) return;
@@ -4773,7 +4783,7 @@ function loop(now) {
   requestAnimationFrame(loop);
   const rawDt = (now - lastT) / 1000, dt = Math.min(0.05, rawDt); lastT = now;
   pollInput(dt);
-  AU.gate((state === 'play' || state === 'cine') && !document.hidden);
+  { const on = (state === 'play' || state === 'cine') && !document.hidden; AU.gate(on); AU.idle(on); }
   if (state === 'loading') return;
   if (state === 'play' || state === 'cine') {
     let gdt = dt; if (hitStop > 0) { hitStop -= dt; gdt = dt * 0.06; }
