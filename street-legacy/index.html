@@ -320,7 +320,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0729</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1814</div>
   </div>
 </div>
 
@@ -2381,7 +2381,7 @@ function buildTrees() {
   const R = rng(1234);
   const free = (x, z, m = 9) => terrSDF(x, z) > 6 && !nearRoad(x - 1, z - 1, x + 1, z + 1, m) && !reserved(x - 2, z - 2, x + 2, z + 2) && !onRoad(x, z);
   let tries = 0;
-  while (pts.mesquite.length + pts.cedar.length < 12000 && tries++ < 220000) {
+  while (pts.mesquite.length + pts.cedar.length < 16000 && tries++ < 300000) {
     const x = lerp(WB.x1, WB.x2, R()), z = lerp(WB.z1, WB.z2, R());
     const c = mapCls(x, z); if (c !== 1 && !(c === 3 && R() < 0.12)) continue;
     // clustered: thin out using noise (greener in the north, sparse in the desert)
@@ -2422,7 +2422,45 @@ function buildTrees() {
     }
   }
 }
-function setTreeDensity(f) { for (const s of treeSets) { const n = s.oak ? s.n : Math.max(0, Math.round(s.n * f)); s.tm.count = n; s.lm.count = n; } }
+// ---- shrubs, wildflowers and rocks across the open country (cheap instanced clumps, no collision)
+const scrubSets = [];
+function buildScrub() {
+  const R = rng(4321), TC = 640;
+  const bushG = (() => { const parts = []; for (let i = 0; i < 3; i++) { const s = new THREE.IcosahedronGeometry(0.6 + R() * 0.35, 0); s.scale(1, 0.7, 1); parts.push(prep(s, mat((R() - .5) * 0.9, 0.35 + R() * 0.2, (R() - .5) * 0.9), 0xffffff)); } return mergeGeos(parts); })();
+  const rockG = (() => { const s = new THREE.DodecahedronGeometry(0.6, 0); const p = s.attributes.position; for (let i = 0; i < p.count; i++) p.setXYZ(i, p.getX(i) * (0.8 + hash2(i, 1) * 0.5), p.getY(i) * (0.5 + hash2(i, 2) * 0.3), p.getZ(i) * (0.8 + hash2(i, 3) * 0.5)); s.computeVertexNormals(); return prep(s, mat(0, 0.15, 0), 0xffffff); })();
+  const flowerG = (() => { const parts = []; for (let i = 0; i < 7; i++) parts.push(prep(new THREE.OctahedronGeometry(0.09, 0), mat((R() - .5) * 0.8, 0.25 + R() * 0.15, (R() - .5) * 0.8), 0xffffff)); return mergeGeos(parts); })();
+  const kinds = {
+    bush: { geo: bushG, mat: std({ vertexColors: true, roughness: 0.95, flatShading: true }), n: 12000, pts: [] },
+    rock: { geo: rockG, mat: std({ vertexColors: true, roughness: 1, flatShading: true }), n: 5000, pts: [] },
+    flower: { geo: flowerG, mat: std({ vertexColors: true, roughness: 0.8, emissive: 0x221100 }), n: 5000, pts: [] },
+  };
+  const free = (x, z) => terrSDF(x, z) > 4 && !onRoad(x, z) && !nearRoad(x - 1, z - 1, x + 1, z + 1, 5) && !reserved(x - 1.5, z - 1.5, x + 1.5, z + 1.5) && !pointBlocked(x, z, 0.1);
+  let tries = 0;
+  while ((kinds.bush.pts.length < kinds.bush.n || kinds.rock.pts.length < kinds.rock.n || kinds.flower.pts.length < kinds.flower.n) && tries++ < 260000) {
+    const x = lerp(WB.x1, WB.x2, R()), z = lerp(WB.z1, WB.z2, R()), c = mapCls(x, z);
+    if (c !== 1 && c !== 3 && c !== 5) continue;
+    const [px] = toMapPx(x, z), desert = c === 3 || px < 330;
+    const r = R();
+    if (c === 3 || (desert && r < 0.35)) { if (kinds.rock.pts.length < kinds.rock.n && free(x, z)) kinds.rock.pts.push([x, z, c === 3 ? 0xb06a48 : 0xa89a88]); continue; }
+    if (c === 5) { if (r < 0.3 && kinds.rock.pts.length < kinds.rock.n && free(x, z)) kinds.rock.pts.push([x, z, 0xd8ccb0]); continue; }
+    if (vnoise(x / 90, z / 90) < 0.35) continue; // clumps, with open meadows between
+    if (r < 0.2) { if (kinds.flower.pts.length < kinds.flower.n && free(x, z)) kinds.flower.pts.push([x, z, [0xffd23f, 0xff7ab0, 0x9a7aff, 0xffffff, 0xff8a3a][(R() * 5) | 0]]); }
+    else if (kinds.bush.pts.length < kinds.bush.n && free(x, z)) kinds.bush.pts.push([x, z, [0x6a7a3a, 0x7c8a44, 0x5a6a34, 0x8a8a4a, 0x76703c][(R() * 5) | 0]]);
+  }
+  const col = new THREE.Color();
+  for (const k in kinds) {
+    const K = kinds[k], groups = new Map();
+    for (const p of K.pts) { const key = Math.floor(p[0] / TC) + ',' + Math.floor(p[1] / TC); if (!groups.has(key)) groups.set(key, []); groups.get(key).push(p); }
+    for (const list of groups.values()) {
+      const im = new THREE.InstancedMesh(K.geo, K.mat, list.length);
+      list.forEach((p, i) => { const s = (k === 'rock' ? 0.6 : 0.7) + hash2(p[0] * 7, p[1] * 7) * (k === 'rock' ? 1.6 : 0.9); im.setMatrixAt(i, mat(p[0], 0, p[1], hash2(p[1], p[0]) * TAU, 0, 0, s, s, s)); im.setColorAt(i, col.setHex(p[2]).multiplyScalar(0.85 + hash2(p[0], p[1] * 3) * 0.3)); });
+      im.castShadow = k !== 'flower'; im.receiveShadow = true; im.computeBoundingSphere(); scene.add(im);
+      scrubSets.push({ im, n: list.length });
+    }
+  }
+}
+function setTreeDensity(f) { for (const s of scrubSets) s.im.count = Math.max(0, Math.round(s.n * Math.min(1, f + 0.1))); setTreeDensity0(f); }
+function setTreeDensity0(f) { for (const s of treeSets) { const n = s.oak ? s.n : Math.max(0, Math.round(s.n * f)); s.tm.count = n; s.lm.count = n; } }
 
 // ---------------------------------------------------------------- grass tufts near the camera
 let grass = null, grassMax = 0, grassAt = { x: 1e9, z: 1e9 };
@@ -2503,84 +2541,10 @@ function drawMapTiles(g, px, pz, rad) {
 function renderMapCanvas() { mapTile(Math.floor(HOME.x / MTILE), Math.floor(HOME.z / MTILE)); buildBigMapBase(); }
 function renderSatMap() { try { buildSatBase(); } catch (e) { console.warn('satellite map failed', e); } }
 
-// ============================================================================
-//  MISSION LOCATION: 412 Oak St (enterable house)
-// ============================================================================
+// mission-location helpers (no enterable mission house any more)
 const INTERIORS = []; // {x1,z1,x2,z2,ceil}
-const HH = { x1: -135, x2: -121, z1: 98.5, z2: 109.5, h: 2.8, front: { x: -131, z: 98.5 }, back: { x: -124, z: 109.5 } };
+const HH = { x1: 0, x2: 0, z1: 0, z2: 0, h: 0, front: { x: 0, z: 0 }, back: { x: 0, z: 0 } };
 const HH_DOORS = [];
-function buildHitHouse() {
-  const { x1, x2, z1, z2, h } = HH, t = 0.18;
-  reserve(x1 - 10, z1 - 16, x2 + 10, z2 + 10);
-  INTERIORS.push({ x1, z1, x2, z2, ceil: h - 0.15 });
-  const ext = 0xe8d6c4, inner = 0xe9e2d4;
-  const wall = (ax1, az1, ax2, az2, key, col, y0 = 0, y1 = h) => {
-    const w = Math.max(t, ax2 - ax1), d = Math.max(t, az2 - az1);
-    addB(key, boxG(w, y1 - y0, d, 2), mat((ax1 + ax2) / 2, (y0 + y1) / 2, (az1 + az2) / 2), col);
-    if (y0 < 1.9) addCol(ax1, az1, ax1 + w, az1 + d, y1, 'wall');
-  };
-  // exterior shell (brick) with front + back door gaps, windows above sills
-  const fd = HH.front.x, bd = HH.back.x;
-  wall(x1, z1 - t, fd - 0.55, z1, 'brick', ext); wall(fd + 0.55, z1 - t, x2, z1, 'brick', ext); wall(fd - 0.55, z1 - t, fd + 0.55, z1, 'brick', ext, 2.15, h);
-  wall(x1, z2, bd - 0.5, z2 + t, 'brick', ext); wall(bd + 0.5, z2, x2, z2 + t, 'brick', ext); wall(bd - 0.5, z2, bd + 0.5, z2 + t, 'brick', ext, 2.1, h);
-  wall(x1 - t, z1 - t, x1, z2 + t, 'brick', ext); wall(x2, z1 - t, x2 + t, z2 + t, 'brick', ext);
-  for (const [wx, wz, ry] of [[-134.0 + 1.2, z1 - t - 0.01, 0], [-124.5, z1 - t - 0.01, 0], [-128, z2 + t + 0.01, Math.PI], [x1 - t - 0.01, 104, -Math.PI / 2], [x2 + t + 0.01, 101, Math.PI / 2]]) {
-    addB('glassLit', boxG(1.4, 1.2, 0.05), mat(wx, 1.55, wz, ry));
-    addB('trim', boxG(1.65, 1.45, 0.04), mat(wx, 1.55, wz + (ry === 0 ? 0.01 : ry === Math.PI ? -0.01 : 0), ry), 0xffffff);
-  }
-  // interior walls (drywall) with doorways
-  wall(x1, 104 - t / 2, -127.6, 104 + t / 2, 'paint', inner); wall(-126.6, 104 - t / 2, x2, 104 + t / 2, 'paint', inner); wall(-127.6, 104 - t / 2, -126.6, 104 + t / 2, 'paint', inner, 2.1, h);
-  wall(-128 - t / 2, z1, -128 + t / 2, 100.6, 'paint', inner); wall(-128 - t / 2, 101.6, -128 + t / 2, 104, 'paint', inner); wall(-128 - t / 2, 100.6, -128 + t / 2, 101.6, 'paint', inner, 2.1, h);
-  // inner faces of the outer walls (so the inside isn't brick)
-  for (const [ax1, az1, ax2, az2] of [[x1, z1, x2, z1 + 0.02], [x1, z2 - 0.02, x2, z2], [x1, z1, x1 + 0.02, z2], [x2 - 0.02, z1, x2, z2]]) addB('paint', boxG(Math.max(0.02, ax2 - ax1), h - 0.02, Math.max(0.02, az2 - az1)), mat((ax1 + ax2) / 2, h / 2, (az1 + az2) / 2), inner);
-  // floor, ceiling, roof, foundation
-  addB('wood', planeG(x2 - x1, z2 - z1, (x2 - x1) / 2, (z2 - z1) / 2), mat((x1 + x2) / 2, 0.03, (z1 + z2) / 2), 0xb08860);
-  addB('trim', boxG(x2 - x1, 0.08, z2 - z1), mat((x1 + x2) / 2, h, (z1 + z2) / 2), 0xf2efe8);
-  addB('shingle', hipRoof(x2 - x1 + 1.2, z2 - z1 + 1.2, 2.2, 2), mat((x1 + x2) / 2, h + 0.04, (z1 + z2) / 2), 0x6f6c6a);
-  addB('trim', boxG(x2 - x1 + 1.2, 0.2, z2 - z1 + 1.2), mat((x1 + x2) / 2, h + 0.02, (z1 + z2) / 2), 0xf5f3ee);
-  // living room: couch, coffee table, TV
-  const cf = (key, w, hh, d, x, z, col, y = hh / 2, ry = 0, colH = hh) => { addB(key, boxG(w, hh, d, 1), mat(x, y, z, ry), col); if (colH > 0) addCol(x - (ry ? d : w) / 2, z - (ry ? w : d) / 2, x + (ry ? d : w) / 2, z + (ry ? w : d) / 2, colH, 'furn'); };
-  cf('paint', 0.9, 0.42, 2.2, -133.9, 101.3, 0x5a4a3c); cf('paint', 0.25, 0.85, 2.2, -134.45, 101.3, 0x564638, 0.42); addB('paint', boxG(0.8, 0.3, 0.6), mat(-133.9, 0.57, 100.6), 0x6a5848); addB('paint', boxG(0.8, 0.3, 0.6), mat(-133.9, 0.57, 102.0), 0x6a5848);
-  cf('wood', 0.6, 0.42, 1.1, -132.2, 101.3, 0x8a6040);
-  cf('dark', 0.45, 0.5, 1.6, -128.5, 101.3, 0x222222); addB('dark', boxG(0.06, 0.7, 1.3), mat(-128.5, 0.95, 101.3)); addB('glassLit', boxG(0.02, 0.6, 1.2), mat(-128.53, 0.95, 101.3));
-  addB('paint', planeG(2.6, 2.0, 1, 1), mat(-132.5, 0.035, 101.3), 0x7a2a22);
-  // kitchen: counters, fridge, table + chairs
-  cf('wood', 0.65, 0.92, 4.2, -121.45, 101.2, 0x6a4a30); addB('concreteBox', boxG(0.7, 0.04, 4.25), mat(-121.45, 0.94, 101.2), 0x2a2a2c);
-  cf('steel', 0.75, 1.8, 0.75, -121.5, 103.5, 0xd8dadc); 
-  cf('wood', 1.2, 0.76, 0.8, -124.6, 100.8, 0x9a7048); for (const [cx, cz] of [[-125.5, 100.8], [-123.7, 100.8], [-124.6, 101.6]]) cf('wood', 0.42, 0.45, 0.42, cx, cz, 0x7a5236, 0.225, 0, 0);
-  // bedroom: bed, dresser, nightstand, closet
-  cf('wood', 1.7, 0.45, 2.1, -131.0, 108.3, 0x5a3e28); addB('paint', boxG(1.6, 0.12, 2.0), mat(-131, 0.51, 108.25), 0xe8e4dc); addB('paint', boxG(1.5, 0.15, 0.45), mat(-131, 0.6, 109.1), 0xffffff);
-  cf('wood', 1.2, 0.9, 0.5, -123.0, 109.0, 0x6a4a30); cf('wood', 0.45, 0.55, 0.45, -132.3, 109.1, 0x6a4a30);
-  // lights inside
-  for (const [lx, lz] of [[-131.5, 101.3], [-124.5, 101.2], [-128, 107]]) { addB('emitWarm', new THREE.CylinderGeometry(0.22, 0.22, 0.05, 16), mat(lx, h - 0.06, lz)); LIGHT_ANCHORS.push({ x: lx, y: h - 0.3, z: lz, int: 7, dist: 9, color: 0xffd2a0 }); }
-  // yard, driveway, walkway, porch light, mailbox "412"
-  addB('lawn', planeG(28, 13.8, 6, 3), mat((x1 + x2) / 2, 0.015, 91.3), 0xffffff); addB('lawn', planeG(28, 6, 6, 2), mat((x1 + x2) / 2, 0.015, 112.8), 0xffffff);
-  for (const sx of [x1 - 3.5, x2 + 3.5]) addB('lawn', planeG(6.6, 11.6, 2, 3), mat(sx, 0.015, (z1 + z2) / 2), 0xffffff);
-  addB('concrete', planeG(1.4, 12.6, 0.5, 4), mat(fd, 0.033, 92.2), 0xd8d4cb);
-  addB('concrete', planeG(5, 15, 2, 5), mat(-124.5, 0.032, 91), 0xd8d4cb); PAVED.push([-127, 83.5, -122, 98.5]);
-  addB('emitWarm', boxG(0.15, 0.25, 0.1), mat(fd + 0.9, 2.2, z1 - 0.25));
-  addB('steel', boxG(0.08, 1.1, 0.08), mat(-119, 0.55, 85.6), 0x333333); addB('paint', boxG(0.25, 0.25, 0.48), mat(-119, 1.15, 85.6), 0x2a2a2a);
-  const nm = signMat('sign_412', 128, 64, (g, W, Hh) => { g.fillStyle = '#f2efe6'; g.fillRect(0, 0, W, Hh); g.fillStyle = '#222'; g.font = 'bold 46px Arial'; g.textAlign = 'center'; g.fillText('412', W / 2, 50); });
-  const np = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.25), nm); np.position.set(fd + 0.9, 2.6, z1 - t - 0.02); np.rotation.y = Math.PI; scene.add(np);
-  addCol(-119.1, 85.5, -118.9, 85.7, 1.2);
-  // hinged doors (physics): front, back, kitchen doorway, bedroom doorway
-  const doorMat = std({ color: 0x6b3f22, roughness: 0.6 }), inMat = std({ color: 0xece6d8, roughness: 0.55 }), knobMat = std({ color: 0xd0c080, metalness: 1, roughness: 0.3 });
-  const mkDoor = (hx, hz, axis, w, sgn, mat, h = 2.1) => {
-    const g = new THREE.Group(); g.position.set(hx, 0, hz); scene.add(g);
-    const along = axis === 'x' ? [1, 0] : [0, 1];
-    const dm = new THREE.Mesh(axis === 'x' ? new THREE.BoxGeometry(w, h, 0.045) : new THREE.BoxGeometry(0.045, h, w), mat);
-    dm.position.set(along[0] * w / 2, h / 2, along[1] * w / 2); dm.castShadow = true; dm.receiveShadow = true; g.add(dm);
-    for (const side of [-1, 1]) { const kn = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 6), knobMat); kn.position.set(along[0] * (w - 0.09) + (axis === 'z' ? side * 0.04 : 0), 1.0, along[1] * (w - 0.09) + (axis === 'x' ? side * 0.04 : 0)); g.add(kn); }
-    const cx = hx + along[0] * w / 2, cz = hz + along[1] * w / 2;
-    const col = axis === 'x' ? addCol(hx, hz - 0.06, hx + w, hz + 0.06, h, 'door') : addCol(hx - 0.06, hz, hx + 0.06, hz + w, h, 'door');
-    HH_DOORS.push({ g, col, x: cx, z: cz, sgn, open: false, ang: 0, vel: 0, w });
-  };
-  mkDoor(fd - 0.55, z1 - t / 2, 'x', 1.1, -1, doorMat);
-  mkDoor(bd - 0.5, z2 + t / 2, 'x', 1.0, 1, doorMat);
-  mkDoor(-128, 100.6, 'z', 1.0, 1, inMat);
-  mkDoor(-127.6, 104, 'x', 1.0, -1, inMat);
-
-}
 
 // ============================================================================
 //  PEOPLE v2 — procedural animation: walk/run cycle, crouch, fight stance,
@@ -4308,7 +4272,7 @@ document.addEventListener('click', e => {
   if (b.dataset.cycle) { cycleSetting(b.dataset.cycle, 1); return; }
   const a = b.dataset.act;
   if (a === 'play') { AU.musicOn(); refreshMissionList(); show('missions'); }
-  else if (a === 'm1') { const id = +a[1]; if (id > 1 && !(save.missions || {})[id - 1]) { toast('LOCKED', 1); return; } MS.next = id; fillBrief(id); show('brief'); }
+  else if (a === 'm1') { const id = 1; MS.next = id; fillBrief(id); show('brief'); }
   else if (a === 'continue') continueGame();
   else if (a === 'save') { if (MS.free) { saveGame(); resumeGame(); } else toast('SAVE IN FREE ROAM', 1.6); }
   else if (a === 'freeroam') startFreeRoam();
@@ -4386,17 +4350,6 @@ function resetWorld() {
   $('timer').classList.add('hidden'); seq = null; car.doorA = 0;
   for (const d of HH_DOORS) { d.open = false; d.ang = 0; d.vel = 0; d.g.rotation.y = 0; d.col.on = true; }
 }
-function startContract(id) {
-  clearMissionEnts(); setupMission2();
-  car.set(HOME.x, HOME.z + 3, Math.PI);
-  P.x = HOME.x - 2.4; P.z = HOME.z + 2; P.h = Math.PI; camYaw = 0; camPitch = 0.3;
-  W.has.glock = true; W.suppressed = true; W.infinite = false; W.mag = 15; W.reserve = 75; if (W.cur !== 'glock') switchWeapon();
-  $('intro').classList.add('hidden'); $('btnRestart').classList.remove('hidden');
-  setObjective('Drive to <b>412 Oak Street</b>');
-  try { renderer.compile(scene, camera); } catch (e) { }
-  show('play'); toast('MISSION ' + id + ': ' + MISSIONS[id].title, 2.6);
-  say([['Vance', "Three of them. 412 Oak Street, right in town."], ['Vance', "Two are armed. Glock's yours. Nobody walks out of that house."], ['Travis', 'Understood.']]);
-}
 function fillBrief(id) {
   const B = $('brief'), M = MISSIONS[id];
   if (id === 1) { B.querySelector('.mtitle').textContent = 'MISSION 1 — THE QUIET JOB'; B.querySelector('p').textContent = "Dale Ritter runs Ritter Feed & Supply out on Ritter Road, and he keeps his cash in the office safe. He's at the stock show tonight — but he's coming home."; B.querySelector('ul').innerHTML = '<li>Sneak into the warehouse. Don\'t let the night watchman see you.</li><li>Crack the safe and take the money.</li><li>Get back to your Toyota Corolla before Ritter gets home.</li><li>Drive home to Westlake County.</li>'; return; }
@@ -4466,7 +4419,7 @@ function failMission(why) {
 }
 function passMission() {
   const id = MS.id || 1, M = MISSIONS[id];
-  MS.stage = 5; save.cash += M.pay; save.passed = true; save.missions = save.missions || {}; save.missions[id] = true; if (id >= 2) save.glock = true;
+  MS.stage = 5; save.cash += M.pay; save.passed = true; save.missions = save.missions || {}; save.missions[id] = true; 
   save.pos = { x: HOME.x - 2.4, z: HOME.z + 2, h: Math.PI, inCar: false, cx: HOME.x, cz: HOME.z + 3, ch: Math.PI, carHp: 1000 };
   store.set('sl.save', save);
   $('passed').querySelector('.sub').textContent = id === 1 ? "You've passed your first mission!" : 'Contract complete. Vance paid in full.';
@@ -4491,8 +4444,8 @@ function currentInteraction() {
   if (!P.inCar) { const d = nearestDoor(P.x, P.z); if (d) return { label: d.open ? 'Close door' : 'Open door', tap: true, go: () => toggleDoor(d) }; }
   if (car.flipped && car.speed < 1.5 && (P.inCar || Math.hypot(P.x - car.x, P.z - car.z) < 4)) return { label: 'Flip the car back over', hold: 1.5, go: () => { car.flipUpright(); AU.hit(0.5, 200, 0.3); } };
   if (P.inCar) {
-    if (car.speed < 2 && (MS.free || MS.id > 1 || MS.stage >= 3)) return { label: 'Get out', tap: true, go: beginExit };
-    if (car.speed >= 2 && !car.flipped && (MS.free || MS.id > 1 || MS.stage >= 3)) return { label: 'Bail out', tap: true, go: bailOut };
+    if (car.speed < 2 && (MS.free || MS.stage >= 3)) return { label: 'Get out', tap: true, go: beginExit };
+    if (car.speed >= 2 && !car.flipped && (MS.free || MS.stage >= 3)) return { label: 'Bail out', tap: true, go: bailOut };
     return null;
   }
   const dCar = Math.hypot(P.x - (car.x + Math.cos(car.h) * 1.3), P.z - (car.z - Math.sin(car.h) * 1.3));
@@ -4504,7 +4457,7 @@ function currentInteraction() {
     say([['Travis', 'Forty-eight five. Time to go.']]);
   } };
   if (dCar < 2.4 || Math.hypot(P.x - car.x, P.z - car.z) < 2.6) {
-    if (MS.free || MS.id > 1 || MS.stage >= 2) return { label: 'Get in the Corolla', tap: true, go: beginEnter };
+    if (MS.free || MS.stage >= 2) return { label: 'Get in the Corolla', tap: true, go: beginEnter };
     return { label: 'Get the money first', tap: true, go: () => { } , disabled: true };
   }
   return null;
@@ -4904,7 +4857,6 @@ function updatePlayer(dt) {
 }
 
 function updateMission(dt) {
-  if (!MS.free && MS.id > 1) { if (car.health <= 0 && !car.wreckSaid) { car.wreckSaid = true; toast('CAR WRECKED'); } updateMission23(dt); return; }
   if (car.health > 0) car.wreckSaid = false;
   if (MS.free) return;
   const near = Math.hypot(P.x - (WH.x1 + WH.x2) / 2, P.z + 260);
@@ -4929,7 +4881,6 @@ function updateMission(dt) {
 
 function missionTarget() {
   if (MS.free) return null;
-  if (MS.id > 1) return mission23Target();
   if (MS.stage === 0) return { x: WH.x2 + 1.2, z: SIDE_DOOR.z, y: 0 };
   if (MS.stage === 1) return { x: SAFE.x, z: SAFE.z + 0.6, y: 0 };
   if (MS.stage === 2) return { x: car.x, z: car.z, y: 0 };
@@ -5167,7 +5118,7 @@ async function boot() {
   const steps = [
     ['Mixing paint', buildTextures], ['Preparing materials', buildMaterials], ['Painting the Texas sky', buildSky], ['Grading the land', buildGround],
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
-    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing grass', buildGrass],
+    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing brush and wildflowers', buildScrub], ['Growing grass', buildGrass],
     ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { spawnActors(); buildMarker(); initCombat(); }],
     ['Photographing the state from above', renderSatMap], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
@@ -5185,7 +5136,7 @@ async function boot() {
   $('btnFree').classList.toggle('hidden', !save.passed); $('btnCont').classList.toggle('hidden', !save.pos);
   $('mainMenu').classList.remove('hidden');
   show('menu');
-  window.__PL = player; window.__SL = { doors: HH_DOORS, aimAt: (e, y) => { const [a, b] = aimSolve(e.x, y, e.z); camYaw = a; camPitch = b; camIdle = -99; }, castBullet, partSegments, camera, get W() { return W; }, MS2, humans, hitPerson, playerShoot, startContract, saveGame, continueGame, setCam: (y, p) => { camYaw = y; camPitch = p; camIdle = -99; }, ready: true, scene, renderer, P, MS, car, npcs, traffic, combat, startPunch, guard: () => guard, state: () => state, HOME, startMission, startFreeRoam, enterCar, passMission };
+  window.__PL = player; window.__SL = { doors: HH_DOORS, aimAt: (e, y) => { const [a, b] = aimSolve(e.x, y, e.z); camYaw = a; camPitch = b; camIdle = -99; }, castBullet, partSegments, camera, get W() { return W; }, MS2, humans, hitPerson, playerShoot, saveGame, continueGame, setCam: (y, p) => { camYaw = y; camPitch = p; camIdle = -99; }, ready: true, scene, renderer, P, MS, car, npcs, traffic, combat, startPunch, guard: () => guard, state: () => state, HOME, startMission, startFreeRoam, enterCar, passMission };
 }
 // app in the background / tab hidden: stop all sound and pause the game
 const onHide = () => { if (document.hidden) { if (state === 'play') pauseGame(); if (AU.ctx && AU.ctx.state === 'running') AU.ctx.suspend(); } else if (AU.ctx && AU.ctx.state === 'suspended' && settings.sound) AU.ctx.resume(); };
@@ -5771,7 +5722,7 @@ function hurtPlayer(dmg, fx, fz) {
 }
 
 // ============================================================================
-//  MISSIONS 2 & 3 — contracts from Mr. Vance
+//  MISSIONS
 // ============================================================================
 const MS2 = { ents: [] };
 const MISSIONS = {
@@ -5814,17 +5765,6 @@ function alertEnt(e, lx, lz) {
 function shout(e) { // the others in the house come running
   for (const o of MS2.ents) if (o !== e && !o.dead && !o.rag && !o.alerted && Math.hypot(o.x - e.x, o.z - e.z) < 16) { o.aware = Math.max(o.aware || 0, 0.8); o.search = [e.x, e.z]; o.searchT = 8; o.state = 'search'; o.alertDelay = 0.8 + Math.random() * 0.6; }
 }
-// ---------------------------------------------------------------- mission 2: the three men inside 412 Oak St
-function setupMission2() {
-  clearMissionEnts();
-  const armed = (e) => { e.kind = 'enemy'; e.armed = true; e.cool = 0.8 + Math.random(); e.gun = buildGlock(); mountGun(e.m, e.gun); };
-  // watching TV on the couch (distracted), cooking in the kitchen (back turned), on the phone in the bedroom
-  armed(makeTarget(-133.7, 101.3, Math.PI / 2, { skin: 0xc68642, shirt: 0x2e5a8a, pants: 0x2a3346, denim: true, shoes: 0x222222, hair: 0x15110e, capHat: 0x8a1c1c }, { sit: true, home: [-133.7, 101.3], homeH: Math.PI / 2, distract: 0.45, cone: 0.7, look: 0 }));
-  armed(makeTarget(-122.4, 100.2, Math.PI / 2, { skin: 0x8d5524, shirt: 0xe8e4da, pants: 0x3a3a3e, shoes: 0xeeeeee, hair: 0x15110e, bulk: 1.15 }, { home: [-122.4, 100.2], homeH: Math.PI / 2, distract: 0.7, cone: 0.95, look: 0.55 }));
-  makeTarget(-129.5, 107.2, 0, { skin: 0xe0ac69, shirt: 0x6b4a2e, pants: 0x1c1c1c, shoes: 0x6a4a2a, hair: 0x8a6a3a, longHair: true }, { home: [-129.5, 107.2], homeH: 0, distract: 0.8, cone: 0.95, look: 0.9, female: false });
-  for (const e of MS2.ents) { e.aware = 0; e.state = 'idle'; e.lookPh = Math.random() * 6; }
-}
-const HOUSE_GO = { x: -124.5, z: 86 };
 function canSeePlayer(e, range, cone) {
   if (P.dead || P.inCar) return 0;
   const dx = P.x - e.x, dz = P.z - e.z, d = Math.hypot(dx, dz); if (d > range) return 0;
@@ -5960,26 +5900,6 @@ function updateAwareMarkers() {
   for (const [e, el] of AWM) if (!MS2.ents.includes(e)) { el.remove(); AWM.delete(e); }
 }
 
-function m2Arrived() { return Math.hypot(P.x - (HH.x1 + HH.x2) / 2, P.z - 100) < 30; }
-function updateMission23(dt) {
-  const id = MS.id, ents = MS2.ents, alive = ents.filter(e => !e.dead);
-  if (MS.stage === 0) { // drive there
-    if (Math.hypot(P.x - HOUSE_GO.x, P.z - HOUSE_GO.z) < 14) { MS.stage = 1; setObjective('Kill the <b>three men</b> inside 412 Oak St'); say([['Vance', "Two of them are carrying. Don't let any of them walk out."]]); }
-  } else if (MS.stage === 1) {
-    for (const e of alive) if (Math.hypot(e.x - (HH.x1 + HH.x2) / 2, e.z - 104) > 48) { failMission('One of the targets got away.'); return; }
-    if (!alive.length) { MS.stage = 2; setObjective('Get back in your car and <b>drive home</b>'); toast('CONTRACT DONE', 2); say([['Vance', 'Clean work. Money will be at your place.']]); }
-    $('timer').classList.remove('hidden'); $('timer').classList.remove('warn'); $('timer').textContent = `TARGETS LEFT: ${alive.length}`;
-  } else if (MS.stage === 2) {
-    $('timer').classList.add('hidden');
-    if (P.inCar && Math.hypot(car.x - HOME.x, car.z - HOME.z) < 6 && car.speed < 4) { car.input = { steer: 0, thr: 0, brk: 1, hand: 1 }; passMission(); }
-  }
-}
-function mission23Target() {
-  if (MS.stage === 0) return { x: HOUSE_GO.x, z: HOUSE_GO.z };
-  if (MS.stage === 1) { const a = MS2.ents.filter(e => !e.dead); if (a.length) { let b = a[0], bd = 1e9; for (const e of a) { const d = Math.hypot(e.x - P.x, e.z - P.z); if (d < bd) { bd = d; b = e; } } return { x: b.x, z: b.z, person: true }; } }
-  if (MS.stage === 2) return { x: HOME.x, z: HOME.z };
-  return null;
-}
 // hinged doors: spring toward open / shut, bounce off the stop, can be kicked open
 function nearestDoor(x, z, r = 1.4) { let best = null, bd = r; for (const d of HH_DOORS) { const dd = Math.hypot(x - d.x, z - d.z); if (dd < bd) { bd = dd; best = d; } } return best; }
 function toggleDoor(d, kick = false) {
