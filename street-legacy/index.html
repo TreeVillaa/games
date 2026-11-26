@@ -325,7 +325,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2035</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2114</div>
   </div>
 </div>
 
@@ -4254,9 +4254,21 @@ const P = { hp: 100, hurtT: 9, x: PLAYER_START.x, z: PLAYER_START.z, h: Math.PI,
 const combat = { combo: 0, comboT: 0, fightT: 0, lungeT: 0, lunge: 0 };
 let hitStop = 0, shakeAmt = 0;
 
+// a real person sitting behind the wheel (static pose: hands on the wheel, looking ahead)
+function seatDriver(model, o) {
+  const d = model.driver; for (const c of [...d.children]) d.remove(c);
+  const p = makePerson(Object.assign({ cloth: false }, o));
+  p.update(0.016, { sit: true, spd: 0, t: 0, cloth: false });
+  for (const s of ['L', 'R']) { const a = p.arms[s]; a.sh.rotation.set(-1.05, 0, s === 'L' ? 0.18 : -0.18); a.el.rotation.set(-0.75, 0, 0); }
+  p.head.rotation.set(0.05, (Math.random() - 0.5) * 0.3, 0);
+  p.root.position.set(0, -0.6, -0.05); p.root.scale.setScalar(0.96); p.shadow.visible = false; d.add(p.root);
+  p.root.traverse(m => { if (m.isMesh) m.castShadow = false; });
+  return p;
+}
 function makeAI(kind, color, path, speed, loop = true) {
   const rr = Math.random;
   const v = new Vehicle(buildCar({ kind, color, physical: false, lite: true, plate: 'TX ' + (1000 + (rr() * 8999 | 0)), skin: SKIN[(rr() * SKIN.length) | 0], shirt: SHIRT[(rr() * SHIRT.length) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a, 0xc8a050][(rr() * 5) | 0], longHair: rr() < 0.4 }), path[0][0], path[0][1], 0);
+  seatDriver(v.m, { skin: SKIN[(rr() * SKIN.length) | 0], shirt: SHIRT[(rr() * SHIRT.length) | 0], pants: PANTS[(rr() * PANTS.length) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a, 0xc8a050][(rr() * 5) | 0], shoes: 0x222222, capHat: rr() < 0.25 ? 0x1c2a4a : 0, female: rr() < 0.45, beard: rr() * 0.4, jacket: rr() < 0.3 ? 0x1c1c1e : 0, lo: true });
   v.m.driver.visible = true;
   const segs = []; let total = 0;
   for (let i = 0; i < path.length - (loop ? 0 : 1); i++) { const a = path[i], b = path[(i + 1) % path.length]; const l = Math.hypot(b[0] - a[0], b[1] - a[1]); segs.push({ a, b, l, s: total }); total += l; }
@@ -4293,7 +4305,7 @@ function spawnNPCs() {
     po.female = R() < 0.45; if (po.female) { po.beard = 0; po.longHair = R() < 0.8; po.bulk = Math.min(po.bulk, 1.0); }
     const m = makePerson(po);
     scene.add(m.root);
-    const n = { m, female: po.female, x: a[0], z: a[1], h: 0, a, b, tgt: b, state: 'walk', t: 0, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a, b }, ws: 1.15 + R() * 0.45, recT: 0 };
+    const n = { m, female: po.female, x: a[0], z: a[1], h: 0, a, b, tgt: b, state: 'walk', t: 0, hp: PED_HP, brave: R() < 0.4, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a, b }, ws: 1.15 + R() * 0.45, recT: 0 };
     n.proxy = personProxy(m.root, po); npcs.push(n);
   }
 }
@@ -4373,7 +4385,7 @@ function spawnFixedPeople() {
     const po = Object.assign({ skin: SKIN[(R() * SKIN.length) | 0], shirt: SHIRT[(R() * SHIRT.length) | 0], pants: PANTS[(R() * PANTS.length) | 0], shoes: 0x222222, hair: [0x15110e, 0x3a2a1a, 0x8a6a3a][(R() * 3) | 0], capHat: 0, longHair: R() < 0.4, bulk: 0.95 + R() * 0.2, lo: true }, f.o);
     po.female = R() < 0.45; if (po.female) { po.beard = 0; po.longHair = R() < 0.8; po.bulk = Math.min(po.bulk, 1.0); }
     const m = makePerson(po); scene.add(m.root);
-    const n = { m, female: po.female, x: f.x, z: f.z, h: f.h, a: [f.x, f.z], b: [f.x, f.z], tgt: [f.x, f.z], state: 'idle', t: 1e9, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [f.x, f.z], b: [f.x, f.z] }, ws: 1.3, fixed: true, recT: 1e9 };
+    const n = { m, female: po.female, x: f.x, z: f.z, h: f.h, a: [f.x, f.z], b: [f.x, f.z], tgt: [f.x, f.z], state: 'idle', t: 1e9, hp: PED_HP, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a: [f.x, f.z], b: [f.x, f.z] }, ws: 1.3, fixed: true, recT: 1e9 };
     n.proxy = personProxy(m.root, po); npcs.push(n);
   }
 }
@@ -4401,6 +4413,7 @@ function updateNpcBudget(dt) {
 function spawnActors() {
   FXS = { add: new Particles(900, true), norm: new Particles(900, false), skids: new Skids(900) };
   const tm = buildCar({ color: 0x3d4652, physical: QUAL[settings.quality].name !== 'Low', plate: 'TRV-3201' });
+  seatDriver(tm, { skin: 0xa8795a, shirt: 0x121214, pants: 0x25282e, denim: true, shoes: 0xeeeeea, hair: 0x15110e, chain: true, watch: true, lo: true });
   car = new Vehicle(tm, CAR_START.x, CAR_START.z, CAR_START.h);
   headL = new THREE.SpotLight(0xfff1dd, 0, 60, 0.5, 0.55, 1.2); headTarget = new THREE.Object3D();
   headL.position.set(0, 0.75, 2.3); headTarget.position.set(0, 0, 14); tm.group.add(headL); tm.group.add(headTarget); headL.target = headTarget;
@@ -4539,7 +4552,7 @@ function updateDown(e, dt, getUp) {
     if (getUp && e.t > 4.5 && e.y === 0) { e.state = 'getup'; e.t = 0; e.fall = wrapA(e.fall); }
   } else if (e.state === 'getup') {
     e.fall = damp(e.fall, 0, 4, dt);
-    if (e.t > 1.1) { e.fall = 0; e.state = 'flee'; e.t = 0; e.hp = 3; }
+    if (e.t > 1.1) { e.fall = 0; e.t = 0; e.hp = Math.max(e.hp || 0, 5); e.state = e.brave && e.kos < 2 && !(W && W.cur === 'glock') ? 'fight' : 'flee'; }
   }
 }
 function placeBody(e, m) {
@@ -4584,6 +4597,31 @@ function separatePeople() {
   }
   for (const n of list) { const dx = n.x - P.x, dz = n.z - P.z, d = Math.hypot(dx, dz); if (!P.inCar && d < 0.6 && d > 1e-4) { n.x = P.x + dx / d * 0.6; n.z = P.z + dz / d * 0.6; } }
 }
+// a pedestrian who fights back: squares up, circles, closes the distance and throws punches
+function npcFight(n, dt) {
+  const dx = P.x - n.x, dz = P.z - n.z, d = Math.hypot(dx, dz) || 0.01;
+  if (P.dead || P.inCar || d > 14 || (W && W.cur === 'glock' && W.aim > 0.3) || n.hp < 3) { n.state = 'flee'; n.t = 0; return 0; }
+  const th = Math.atan2(dx, dz); n.h += wrapA(th - n.h) * Math.min(1, dt * 8);
+  n.blockT = Math.max(0, (n.blockT || 0) - dt);
+  let sp = 0;
+  if (!n.m.busy()) {
+    const want = 1.05; // fighting distance
+    if (d > want + 0.25) { const v = d > 3 ? 3.2 : 1.6; n.x += dx / d * v * dt; n.z += dz / d * v * dt; sp = v; }
+    else if (d < want - 0.25) { n.x -= dx / d * 1.2 * dt; n.z -= dz / d * 1.2 * dt; sp = 1.2; }
+    else { n.circ = n.circ || (Math.random() < 0.5 ? 1 : -1); n.x += dz / d * n.circ * 0.7 * dt; n.z -= dx / d * n.circ * 0.7 * dt; sp = 0.7; if (Math.random() < dt * 0.4) n.circ *= -1; }
+  }
+  n.atkT = (n.atkT ?? 1) - dt;
+  if (n.atkT <= 0 && d < 1.6 && !n.m.busy()) { n.m.punch(['jab', 'cross', 'jab', 'hook'][(Math.random() * 4) | 0]); n.atkT = 0.9 + Math.random() * 1.1; }
+  return sp;
+}
+function npcPunchLands(n) {
+  const dx = P.x - n.x, dz = P.z - n.z, d = Math.hypot(dx, dz), ang = Math.abs(wrapA(Math.atan2(dx, dz) - n.h));
+  const def = n.m.st.act && n.m.st.act.def; if (!def) return;
+  if (d < def.reach + 0.25 && ang < 0.8 && !P.dead && !P.inCar) {
+    const dmg = 4 + def.dmg * 2.2; hurtPlayer(dmg, n.x, n.z);
+    P.vx += dx / d * 1.5; P.vz += dz / d * 1.5; hitStop = 0.05; AU.punch(def.dmg / 3); FX.hitPuff(P.x - dx / d * 0.2, 1.55, P.z - dz / d * 0.2);
+  } else AU.whoosh();
+}
 let activeWalkers = 0;
 function updateNPCs(dt) {
   separatePeople();
@@ -4620,12 +4658,14 @@ function updateNPCs(dt) {
       }
       else if (d > 0.01) { const want = Math.atan2(dx, dz), dh = wrapA(want - n.h); n.turn = dh * 6; n.h += dh * Math.min(1, dt * 6); n.spd = damp(n.spd, sp, 4, dt); n.x += Math.sin(n.h) * n.spd * dt; n.z += Math.cos(n.h) * n.spd * dt; spd = n.spd; }
     } else if (n.state === 'idle') { n.t -= dt; n.spd = damp(n.spd, 0, 6, dt); if (n.t <= 0) n.state = 'walk'; }
-    else if (n.state === 'hit') { n.t -= dt; n.x += n.vx * dt; n.z += n.vz * dt; n.vx *= Math.exp(-6 * dt); n.vz *= Math.exp(-6 * dt); if (n.t <= 0) { n.state = 'flee'; n.t = 0; } }
+    else if (n.state === 'hit') { n.t -= dt; n.x += n.vx * dt; n.z += n.vz * dt; n.vx *= Math.exp(-6 * dt); n.vz *= Math.exp(-6 * dt); if (n.t <= 0) { n.state = n.brave && !(W && W.cur === 'glock') && !P.inCar ? 'fight' : 'flee'; n.t = 0; n.atkT = 0.6 + Math.random() * 0.6; } }
+    else if (n.state === 'fight') spd = npcFight(n, dt);
     else updateDown(n, dt, true);
     if (n.state !== 'down') { const p = { x: n.x, z: n.z }; const hw = pushCircle(p, 0.3), hc = pushFromCars(p, 0.32); if ((hw || hc) && n.state === 'flee') n.fleeDir = (n.fleeDir || 0) + (Math.random() < 0.5 ? 1.4 : -1.4); n.x = p.x; n.z = p.z; }
     n.clutch = Math.max(0, (n.clutch || 0) - dt * 0.1);
     if (n.stagger > 0) { n.stagger -= dt; n.x += (n.vx || 0) * dt; n.z += (n.vz || 0) * dt; }
-    if (!(n.proxy && n.proxy.visible)) n.m.update(dt, { spd: n.state === 'walk' || n.state === 'flee' ? spd : 0, turn: n.turn || 0, down: n.state === 'down' ? 1 : 0, t: gameT + n.x, clutch: n.clutch });
+    if (!(n.proxy && n.proxy.visible)) { const ev = n.m.update(dt, { fight: n.state === 'fight', spd: n.state === 'walk' || n.state === 'flee' || n.state === 'fight' ? spd : 0, turn: n.turn || 0, down: n.state === 'down' ? 1 : 0, t: gameT + n.x, clutch: n.clutch });
+      if (ev === 'impact' && n.state === 'fight') npcPunchLands(n); }
     placeBody(n, n.m);
     if (n.m.hair) n.m.hair.update(dt, n.m.root.visible && dc < 24);
   }
@@ -4883,14 +4923,14 @@ function cycleSetting(k, d) {
   if (k === 'fps') { settings.fps = !settings.fps; $('fps').classList.toggle('hidden', !settings.fps); }
   if (k === 'invertY') settings.invertY = !settings.invertY;
   if (k === 'controls') { const o = ['auto', 'mobile', 'computer', 'console']; settings.controls = o[(o.indexOf(settings.controls || 'auto') + d + 4) % 4]; applyControls(); }
-  if (k === 'gore') { const o = ['medium', 'high', 'ultra']; settings.gore = o[(o.indexOf(settings.gore) + d + 3) % 3]; }
+  if (k === 'gore') { const o = ['low', 'high', 'ultra']; settings.gore = o[(Math.max(0, o.indexOf(settings.gore)) + d + 3) % 3]; }
   store.set('sl.settings', settings); refreshSettings();
 }
 function refreshSettings() {
   $('vQuality').textContent = QUAL[settings.quality].name; $('vSound').textContent = settings.sound ? 'On' : 'Off';
   $('vSens').textContent = settings.sens < 1 ? 'Slow' : settings.sens > 1 ? 'Fast' : 'Normal'; $('vFps').textContent = settings.fps ? 'On' : 'Off';
   $('qualNote').textContent = QUAL[settings.quality].note;
-  $('vGore').textContent = ({ medium: 'Medium', high: 'High', ultra: 'Ultra' })[settings.gore] || 'Ultra';
+  $('vGore').textContent = ({ low: '1 — Low', medium: '1 — Low', high: '2 — High', ultra: '3 — Ultra' })[settings.gore] || '3 — Ultra';
   $('fps').classList.toggle('hidden', !settings.fps);
   $('vMusic').textContent = settings.music ? 'On' : 'Off';
   $('vInvert').textContent = settings.invertY ? 'On' : 'Off';
@@ -4938,7 +4978,7 @@ function resetWorld() {
   car.set(CAR_START.x, CAR_START.z, CAR_START.h);
   guard = newGuard(); car.repair(); P.vx = P.vz = 0; P.crouch = false; combat.fightT = 0;
   for (const d of debris) { if (d.o.parent === scene && !d.o.userData.gone) scene.remove(d.o); } debris.length = 0;
-  for (const n of npcs) { n.x = n.home.a[0]; n.z = n.home.a[1]; n.state = 'walk'; n.tgt = n.home.b; n.walk = null; n.fall = 0; n.y = 0; n.hp = 3; n.recT = 0; n.parked = false; if (n.fixed) { n.state = 'idle'; n.t = 1e9; n.recT = 1e9; } }
+  for (const n of npcs) { n.x = n.home.a[0]; n.z = n.home.a[1]; n.state = 'walk'; n.tgt = n.home.b; n.walk = null; n.fall = 0; n.y = 0; n.hp = PED_HP; n.kos = 0; n.recT = 0; n.parked = false; if (n.fixed) { n.state = 'idle'; n.t = 1e9; n.recT = 1e9; } }
   for (const a of traffic) if (a.mode === 'phys') { a.v.repair(); a.mode = 'path'; const p = pathPos(a); a.v.set(p.x, p.z, p.h); }
   whDoorCol.on = true; MS.doorOpen = 0; whDoor.rotation.y = 0; MS.safeOpen = 0; safeDoor.rotation.y = 0;
   if (owner) { scene.remove(owner.v.m.group); owner = null; }
@@ -5209,6 +5249,7 @@ function updateGuard(dt) {
 //  COMBAT — combo punches, auto-aim, hit-stop, knock-downs, takedowns
 // ============================================================================
 const COMBO = ['jab', 'cross', 'hook', 'uppercut'];
+const PED_HP = 10; // pedestrians take a real beating before they go down
 function targets() {
   const l = npcs.filter(n => n.m.root.visible && !n.rag && n.state !== 'getup');
   if (!guard.ko && !guard.rag) l.push(guard);
@@ -5243,9 +5284,14 @@ function resolvePunch() {
         guard.ko = true; knockDown(guard, nx, nz, 2.5 + d.dmg); toast('WATCHMAN KNOCKED OUT', 2.2); guard.sus = 0;
       } else { guardModel.flinch(1, (Math.random() - .5) * 2); guard.state = 'stagger'; guard.wait = 0.45; guard.vx = nx * 1.6; guard.vz = nz * 1.6; guard.sus = Math.min(0.95, guard.sus + 0.35); }
     } else {
-      t.hp = (t.hp ?? 3) - d.dmg; t.m.flinch(1, (Math.random() - .5) * 2); t.alerted = true;
-      if (t.hp <= 0 || (act.type === 'uppercut' && t.hp <= 1.5)) knockDown(t, nx, nz, 2 + d.dmg * 1.2);
-      else { t.state = 'hit'; t.t = 0.45; t.vx = nx * (1 + d.dmg * 0.6); t.vz = nz * (1 + d.dmg * 0.6); t.h = Math.atan2(-nx, -nz); }
+      // fighters block some jabs/crosses; hits from behind land harder
+      const facing = Math.sin(t.h) * -nx + Math.cos(t.h) * -nz;
+      let dmg = d.dmg * (facing < -0.3 ? 1.4 : 1);
+      if (t.state === 'fight' && facing > 0.4 && (act.type === 'jab' || act.type === 'cross') && Math.random() < 0.35) { dmg *= 0.25; t.blockT = 0.35; t.m.flinch(0.3, 0); AU.hit(0.2, 900, 0.04); }
+      else t.m.flinch(0.6 + Math.min(0.6, dmg * 0.2), act.type === 'hook' ? (act.def.side === 'L' ? 1.6 : -1.6) : (Math.random() - .5) * 1.4);
+      t.hp = (t.hp ?? PED_HP) - dmg; t.alerted = true;
+      if (t.hp <= 0 || (act.type === 'uppercut' && t.hp <= 2.5)) { t.kos = (t.kos || 0) + 1; knockDown(t, nx, nz, 2 + d.dmg * 1.2); }
+      else { t.state = 'hit'; t.t = 0.28 + d.dmg * 0.07; const kb = 0.8 + d.dmg * 0.5; t.vx = nx * kb; t.vz = nz * kb; t.h = Math.atan2(-nx, -nz); t.stagger = 0.15; }
       for (const o of npcs) if (o !== t && o.state === 'walk' && Math.hypot(o.x - P.x, o.z - P.z) < 25) { o.state = 'flee'; o.t = 0; }
     }
   }
@@ -5762,6 +5808,7 @@ boot().catch(e => { console.error(e); $('loadLabel').textContent = 'Error: ' + e
 //  armed enemies, missions 2 + 3, save / continue.
 // ============================================================================
 const GORE = {
+  low:    { spray: 5, mist: 1, decals: 1, wall: false, pool: 0.35, stain: 0.05, drip: 0.2, streak: 0.3 },
   medium: { spray: 12, mist: 4, decals: 2, wall: true, pool: 0.6, stain: 0.09, drip: 0.5, streak: 0.6 },
   high:   { spray: 28, mist: 12, decals: 4, wall: true, pool: 0.9, stain: 0.13, drip: 1, streak: 0.9 },
   ultra:  { spray: 55, mist: 26, decals: 7, wall: true, pool: 1.25, stain: 0.18, drip: 1.6, streak: 1.25 },
