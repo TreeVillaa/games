@@ -316,6 +316,7 @@
     <button class="btn" data-act="howto">How to Play</button>
     <button class="btn" data-act="keys">Key Bindings (computer)</button>
     <button class="btn" data-cycle="invertY">Invert mouse up/down: <span class="val" id="vInvert"></span></button>
+    <button class="btn" data-cycle="autoRes">Auto resolution: <span class="val" id="vAutoRes"></span></button>
     <button class="btn" data-cycle="quality">Graphics quality: <span class="val" id="vQuality"></span></button>
     <button class="btn" data-cycle="sound">Sound: <span class="val" id="vSound"></span></button>
     <button class="btn" data-cycle="music">Menu music: <span class="val" id="vMusic"></span></button>
@@ -325,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2114</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2122</div>
   </div>
 </div>
 
@@ -4922,6 +4923,7 @@ function cycleSetting(k, d) {
   if (k === 'sens') { const o = [0.6, 1, 1.5]; settings.sens = o[(o.indexOf(settings.sens) + d + 3) % 3] || 1; }
   if (k === 'fps') { settings.fps = !settings.fps; $('fps').classList.toggle('hidden', !settings.fps); }
   if (k === 'invertY') settings.invertY = !settings.invertY;
+  if (k === 'autoRes') { settings.autoRes = settings.autoRes === false; applyQuality(); }
   if (k === 'controls') { const o = ['auto', 'mobile', 'computer', 'console']; settings.controls = o[(o.indexOf(settings.controls || 'auto') + d + 4) % 4]; applyControls(); }
   if (k === 'gore') { const o = ['low', 'high', 'ultra']; settings.gore = o[(Math.max(0, o.indexOf(settings.gore)) + d + 3) % 3]; }
   store.set('sl.settings', settings); refreshSettings();
@@ -4934,21 +4936,30 @@ function refreshSettings() {
   $('fps').classList.toggle('hidden', !settings.fps);
   $('vMusic').textContent = settings.music ? 'On' : 'Off';
   $('vInvert').textContent = settings.invertY ? 'On' : 'Off';
+  $('vAutoRes').textContent = settings.autoRes === false ? 'Off (always full)' : 'On';
   $('vControls').textContent = ({ auto: 'Auto (' + ({ mobile: 'Mobile', computer: 'Computer', console: 'Console' })[ctrlMode()] + ')', mobile: 'Mobile (touch)', computer: 'Computer (keyboard + mouse)', console: 'Console (controller)' })[settings.controls || 'auto'];
 }
 const PIX_BUDGET = { low: 0.9e6, medium: 1.6e6, high: 2.6e6, ultra: 3.8e6 };
 let resScale = 1, ftAvg = 16, resT = 0;
 function basePixelRatio() { const q = QUAL[settings.quality]; return Math.max(0.5, Math.min(window.devicePixelRatio || 1, q.pr, Math.sqrt(PIX_BUDGET[settings.quality] / Math.max(1, innerWidth * innerHeight)))); }
 // keeps the frame rate up: lowers the render resolution a little when frames get slow, raises it back when there's headroom
+// settles on one resolution for a few seconds after a quality change, then holds it steady (no constant switching)
+let resSettle = 0, slowT = 0;
 function adaptResolution(rawDt) {
-  ftAvg = lerp(ftAvg, Math.min(rawDt * 1000, 200), 0.05); resT += rawDt; if (resT < 2) return; resT = 0;
-  let s = resScale; if (ftAvg > 36 && s > 0.55) s *= 0.87; else if (ftAvg < 21 && s < 1) s = Math.min(1, s * 1.07);
+  if (settings.autoRes === false) return;
+  ftAvg = lerp(ftAvg, Math.min(rawDt * 1000, 200), 0.05);
+  slowT = ftAvg > 45 ? slowT + rawDt : 0;
+  resSettle += rawDt; resT += rawDt;
+  const settling = resSettle < 10;
+  if (!settling && slowT < 6) return; // locked: only react to a long, heavy slowdown
+  if (resT < (settling ? 2.5 : 6)) return; resT = 0; slowT = 0;
+  let s = resScale; if (ftAvg > 40 && s > 0.75) s = Math.max(0.75, s * 0.9); else if (settling && ftAvg < 20 && s < 1) s = Math.min(1, s * 1.08);
   if (Math.abs(s - resScale) > 0.01) { resScale = s; renderer.setPixelRatio(basePixelRatio() * resScale); resize(); }
 }
 function applyQuality() {
   if (!sun) return;
   const q = QUAL[settings.quality];
-  resScale = 1; renderer.setPixelRatio(basePixelRatio());
+  resScale = 1; resSettle = 0; renderer.setPixelRatio(basePixelRatio());
   if (renderer.shadowMap.enabled !== q.shadows) {
     renderer.shadowMap.enabled = q.shadows;
     scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); });
