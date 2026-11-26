@@ -314,7 +314,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0433</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0441</div>
   </div>
 </div>
 
@@ -1654,51 +1654,84 @@ function blurGrid(src, passes) {
 }
 const MAPF_SM = blurGrid(SDF_M, 3), MAPF_SW = blurGrid(SDF_W, 2);
 const MAPF_BEND = blurGrid(Array.from(MAPCLS, c => c === 3 ? 1 : 0), 2), MAPF_BEACH = blurGrid(Array.from(MAPCLS, c => c === 5 ? 1 : 0), 1);
-const MC = {
-  land: [222, 213, 186], landN: [196, 206, 168], bend: [214, 160, 118], beach: [240, 226, 184],
-  rockLo: [190, 172, 150], rockHi: [134, 118, 132], shallow: [86, 158, 196], deep: [34, 86, 132], lake: [70, 140, 190],
+let TREE_PTS = [];
+const hexC = h => [(h >> 16) & 255, (h >> 8) & 255, h & 255];
+const AT = {
+  dry: hexC(0xd2c391), green: hexC(0xa7b779), lush: hexC(0x8fa86a), desert: hexC(0xdcc69c), bend: hexC(0xc4835a), bend2: hexC(0xa95f42), beach: hexC(0xefe0b4),
+  scrub: hexC(0xa8a070), rock: hexC(0xb09c88), rockHi: hexC(0xd2cac2), snow: hexC(0xf4f2f0), shallow: hexC(0x6cc0dc), deep: hexC(0x163f72), lake: hexC(0x3f8cc4),
+  fields: [0xb9c47e, 0xd9ca8a, 0xa7b46c, 0xcbb27a, 0x9fb066, 0xc8c08a, 0xb4a66e].map(hexC),
 };
-// writes an RGB colour for world point (x,z) into out; light = hillshade term
-function mapColorAt(x, z, out) {
+const ridged = (x, z) => { const n = 1 - Math.abs(vnoise(x, z) * 2 - 1); return n * n; };
+// atlas sample: returns terrain height (for shading) and writes the base colour into out
+function atlasSample(x, z, out) {
   const sm = sampleGrid(MAPF_SM, x, z), sw = sampleGrid(MAPF_SW, x, z);
-  const north = clamp((z - WB.z1) / (WB.z2 - WB.z1), 0, 1);
-  let r = lerp(MC.landN[0], MC.land[0], north), g = lerp(MC.landN[1], MC.land[1], north), b = lerp(MC.landN[2], MC.land[2], north);
-  const bend = clamp(sampleGrid(MAPF_BEND, x, z) * 1.6 - 0.3, 0, 1), beach = clamp(sampleGrid(MAPF_BEACH, x, z) * 2.2 - 0.4, 0, 1);
-  r = lerp(r, MC.bend[0], bend); g = lerp(g, MC.bend[1], bend); b = lerp(b, MC.bend[2], bend);
-  r = lerp(r, MC.beach[0], beach); g = lerp(g, MC.beach[1], beach); b = lerp(b, MC.beach[2], beach);
-  let h = 0;
-  if (sm < 0) {
-    const d = -sm, k = clamp(d / 900, 0, 1), m = clamp(d / 25, 0, 1);
-    const ridge = 1 - Math.abs(vnoise(x / 420, z / 420) * 2 - 1), ridge2 = 1 - Math.abs(vnoise(x / 150 + 9, z / 150) * 2 - 1);
-    h = d * 0.55 + (ridge * 180 + ridge2 * 60) * Math.min(1, d / 250);
-    r = lerp(r, lerp(MC.rockLo[0], MC.rockHi[0], k), m); g = lerp(g, lerp(MC.rockLo[1], MC.rockHi[1], k), m); b = lerp(b, lerp(MC.rockLo[2], MC.rockHi[2], k), m);
+  const [px, py] = toMapPx(x, z), north = clamp((py - 120) / 560, 0, 1), west = clamp((420 - px) / 300, 0, 1);
+  const n1 = vnoise(x / 1300, z / 1300), n2 = vnoise(x / 330 + 5, z / 330);
+  // plains: greener north-east, dry centre, desert west
+  let c = [lerp(AT.lush[0], AT.dry[0], north * 0.8 + n1 * 0.4), lerp(AT.lush[1], AT.dry[1], north * 0.8 + n1 * 0.4), lerp(AT.lush[2], AT.dry[2], north * 0.8 + n1 * 0.4)];
+  const mix = (col, k) => { if (k <= 0) return; k = Math.min(1, k); c[0] += (col[0] - c[0]) * k; c[1] += (col[1] - c[1]) * k; c[2] += (col[2] - c[2]) * k; };
+  mix(AT.green, clamp((n2 - 0.45) * 2, 0, 0.5));
+  mix(AT.desert, west * 0.8);
+  // farmland patchwork across the middle of the state
+  const farm = clamp(1 - Math.hypot((px - 680) / 260, (py - 470) / 120), 0, 1) * (n1 > 0.3 ? 1 : 0.4);
+  if (farm > 0) {
+    const fx = Math.floor(x / 240), fz = Math.floor(z / 190), f = AT.fields[(hash2(fx, fz) * AT.fields.length) | 0];
+    const ex = (x / 240) % 1, ez = (z / 190) % 1, edge = (Math.min(Math.abs(ex), 1 - Math.abs(ex)) < 0.04 || Math.min(Math.abs(ez), 1 - Math.abs(ez)) < 0.05) ? 0.85 : 1;
+    mix(f, farm * 0.75); c[0] *= lerp(1, edge, farm); c[1] *= lerp(1, edge, farm); c[2] *= lerp(1, edge, farm);
   }
+  let h = 8 * n1 + 4 * n2;
+  // Big Bend: stepped mesas & canyons in red rock
+  const bend = clamp(sampleGrid(MAPF_BEND, x, z) * 1.7 - 0.35, 0, 1);
+  if (bend > 0) {
+    const r = ridged(x / 520, z / 520), m = Math.floor((fbm2(x / 900, z / 900) * 1.2 + r * 0.4) * 6) / 6;
+    h += bend * (m * 120 - ridged(x / 180 + 3, z / 180) * 40);
+    const band = 0.5 + 0.5 * Math.sin(h * 0.12);
+    mix([lerp(AT.bend[0], AT.bend2[0], band), lerp(AT.bend[1], AT.bend2[1], band), lerp(AT.bend[2], AT.bend2[2], band)], bend);
+  }
+  mix(AT.beach, clamp(sampleGrid(MAPF_BEACH, x, z) * 2.4 - 0.4, 0, 1));
+  // mountains: ridged relief, scrub on the foothills, bare rock, snow on the peaks
+  if (sm < 30) {
+    const d = Math.max(0, -sm), m = clamp((30 - sm) / 60, 0, 1);
+    const relief = ridged(x / 760, z / 760) * 260 + ridged(x / 270 + 7, z / 270) * 110 + ridged(x / 95 - 3, z / 95) * 35;
+    const mh = d * 0.32 + relief * clamp(d / 260, 0, 1) + relief * 0.15 * m;
+    h += mh;
+    const k = clamp(mh / 700, 0, 1);
+    mix(AT.scrub, m * clamp(1 - k * 3, 0, 1));
+    mix(AT.rock, clamp(k * 3, 0, 1) * m);
+    mix(AT.rockHi, clamp(k * 2 - 0.6, 0, 1));
+    mix(AT.snow, clamp((mh - 560) / 120, 0, 1));
+  }
+  // water: depth gradient, lakes, a touch of surface texture
   const wet = clamp((-sw - 1.5) / 2.5, 0, 1);
   if (wet > 0) {
-    const depth = clamp(-sw / 500, 0, 1), lake = mapCls(x, z) === 4;
-    const wr = lake ? MC.lake[0] : lerp(MC.shallow[0], MC.deep[0], depth), wg = lake ? MC.lake[1] : lerp(MC.shallow[1], MC.deep[1], depth), wb = lake ? MC.lake[2] : lerp(MC.shallow[2], MC.deep[2], depth);
-    r = lerp(r, wr, wet); g = lerp(g, wg, wet); b = lerp(b, wb, wet); h = 0;
+    const lake = mapCls(x, z) === 4, dep = clamp(-sw / 600, 0, 1), wn = 0.96 + vnoise(x / 120, z / 60) * 0.08;
+    const w = lake ? AT.lake : [lerp(AT.shallow[0], AT.deep[0], Math.sqrt(dep)) * wn, lerp(AT.shallow[1], AT.deep[1], Math.sqrt(dep)) * wn, lerp(AT.shallow[2], AT.deep[2], Math.sqrt(dep)) * wn];
+    mix(w, wet);
+    if (!lake && -sw > 3 && -sw < 14) { const foam = (1 - Math.abs(-sw - 7) / 7) * 0.35; mix([255, 255, 255], foam); }
+    h = lerp(h, 0, wet);
   }
-  out[0] = r; out[1] = g; out[2] = b; return h;
+  out[0] = c[0]; out[1] = c[1]; out[2] = c[2];
+  return h;
 }
-// paints a smooth, hill-shaded image of the area [x0,x0+w]x[z0,z0+d] into an ImageData of size W x H
+function mapColorAt(x, z, out) { return atlasSample(x, z, out); }
+// paints a hill-shaded atlas image of [x0,x0+w]x[z0,z0+d] into ImageData img
 function paintTerrain(img, x0, z0, w, d) {
-  const W = img.width, H = img.height, data = img.data, col = [0, 0, 0], sx = w / W, sz = d / H;
-  const hs = new Float32Array((W + 1) * 2);
-  let prev = new Float32Array(W), cur = new Float32Array(W);
-  for (let j = 0; j < H; j++) {
-    for (let i = 0; i < W; i++) {
-      const x = x0 + (i + 0.5) * sx, z = z0 + (j + 0.5) * sz, h = mapColorAt(x, z, col);
-      cur[i] = h;
-      const dx = i > 0 ? h - cur[i - 1] : 0, dz = j > 0 ? h - prev[i] : 0;
-      const shade = clamp(1 + (-dx / sx * 0.55 - dz / sz * 0.35) * 0.9, 0.55, 1.35);
-      const k = (j * W + i) * 4;
-      data[k] = clamp(col[0] * shade, 0, 255); data[k + 1] = clamp(col[1] * shade, 0, 255); data[k + 2] = clamp(col[2] * shade, 0, 255); data[k + 3] = 255;
-    }
-    [prev, cur] = [cur, prev];
+  const W = img.width, H = img.height, data = img.data, sx = w / W, sz = d / H, col = [0, 0, 0];
+  const hh = new Float32Array(W * H);
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const k = j * W + i; hh[k] = atlasSample(x0 + (i + 0.5) * sx, z0 + (j + 0.5) * sz, col);
+    data[k * 4] = col[0]; data[k * 4 + 1] = col[1]; data[k * 4 + 2] = col[2]; data[k * 4 + 3] = 255;
+  }
+  const L = [-0.55, 0.75, -0.45], ll = Math.hypot(...L); L[0] /= ll; L[1] /= ll; L[2] /= ll;
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    const k = j * W + i, l = hh[j * W + Math.max(0, i - 1)], r = hh[j * W + Math.min(W - 1, i + 1)], u = hh[Math.max(0, j - 1) * W + i], dn = hh[Math.min(H - 1, j + 1) * W + i];
+    const nx = -(r - l) / (2 * sx), nz = -(dn - u) / (2 * sz), nl = Math.hypot(nx, 1, nz);
+    const lam = (nx * L[0] + L[1] + nz * L[2]) / nl, base = L[1];
+    const sh = clamp(1 + (lam - base) * 1.15, 0.64, 1.3);
+    data[k * 4] = clamp(data[k * 4] * sh, 0, 255); data[k * 4 + 1] = clamp(data[k * 4 + 1] * sh, 0, 255); data[k * 4 + 2] = clamp(data[k * 4 + 2] * sh, 0, 255);
   }
 }
-const ROAD_STYLE = { hwy: ['#b0762a', '#f6c453'], road: ['#9a9488', '#ffffff'], street: ['#b8b2a6', '#fbfaf6'] };
+const ROAD_STYLE = { hwy: ['#8a4a12', '#ffb43a'], road: ['#6a6458', '#fffdf6'], street: ['#4a4e58', '#e9e7e2'] };
 
 // ============================================================================
 //  WORLD: Calder County, Texas
@@ -2356,6 +2389,7 @@ function buildTrees() {
   }
   // shuffle so quality slider can reduce counts evenly
   for (const k in pts) { const a = pts[k]; for (let i = a.length - 1; i > 0; i--) { const j = (R() * (i + 1)) | 0;[a[i], a[j]] = [a[j], a[i]]; } }
+  TREE_PTS = [...pts.mesquite, ...pts.cedar, ...pts.oak, ...pts.palm];
   const TC = 640;
   for (const kind in pts) {
     const vs = variants[kind];
@@ -2431,9 +2465,9 @@ function mapTile(tx, tz) {
   paintTerrain(img, x0, z0, MTILE, MTILE); tg.putImageData(img, 0, 0);
   g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high'; g.drawImage(tc, 0, 0, MTILE, MTILE);
   g.translate(-x0, -z0);
-  g.fillStyle = 'rgba(200,196,188,0.95)'; for (const p of PAVED) if (p && p[2] > x0 && p[0] < x0 + MTILE && p[3] > z0 && p[1] < z0 + MTILE) g.fillRect(p[0], p[1], p[2] - p[0], p[3] - p[1]);
-  g.fillStyle = '#9d978e';
-  for (const cc of queryCols(x0 + MTILE / 2, z0 + MTILE / 2, MTILE * 0.71)) if (cc.tag === 'house' || cc.tag === 'bldg' || cc.tag === 'wall') g.fillRect(cc.x1, cc.z1, Math.max(1, cc.x2 - cc.x1), Math.max(1, cc.z2 - cc.z1));
+  g.fillStyle = '#2f5d2a'; for (const t of TREE_PTS) if (t[0] > x0 - 4 && t[0] < x0 + MTILE + 4 && t[1] > z0 - 4 && t[1] < z0 + MTILE + 4) { g.globalAlpha = 0.55; g.beginPath(); g.arc(t[0], t[1], 2.2, 0, TAU); g.fill(); } g.globalAlpha = 1;
+  g.fillStyle = '#5e636e'; for (const p of PAVED) if (p && p[2] > x0 && p[0] < x0 + MTILE && p[3] > z0 && p[1] < z0 + MTILE) g.fillRect(p[0], p[1], p[2] - p[0], p[3] - p[1]);
+  for (const cc of queryCols(x0 + MTILE / 2, z0 + MTILE / 2, MTILE * 0.71)) if (cc.tag === 'house' || cc.tag === 'bldg' || cc.tag === 'wall') { g.fillStyle = cc.tag === 'house' ? '#a8735a' : '#a9afbd'; g.fillRect(cc.x1, cc.z1, Math.max(1, cc.x2 - cc.x1), Math.max(1, cc.z2 - cc.z1)); }
   g.lineCap = 'round'; g.lineJoin = 'round';
   const near = [...roadsNear(x0 - 20, z0 - 20, x0 + MTILE + 20, z0 + MTILE + 20)].sort((a, b) => (a.type === 'hwy') - (b.type === 'hwy'));
   for (const pass of [0, 1]) for (const r of near) {
@@ -6208,7 +6242,8 @@ function drawBigMap(dt) {
   }
   bmClampView();
   const g = bmG; g.setTransform(BM.dpr, 0, 0, BM.dpr, 0, 0);
-  g.fillStyle = '#160c26'; g.fillRect(0, 0, BM.W, BM.H);
+  if (BM.art || !BM.base) { g.fillStyle = '#160c26'; g.fillRect(0, 0, BM.W, BM.H); }
+  else { const og = g.createRadialGradient(BM.W / 2, BM.H / 2, 0, BM.W / 2, BM.H / 2, Math.max(BM.W, BM.H) * 0.8); og.addColorStop(0, '#1a4a80'); og.addColorStop(1, '#0c2446'); g.fillStyle = og; g.fillRect(0, 0, BM.W, BM.H); }
   const [ox, oy] = bmToScreen(0, 0);
   if (BM.art || !BM.base) { if (bmImg.complete) g.drawImage(bmImg, ox, oy, 1376 * BM.z, 768 * BM.z); }
   else drawCleanMap(g, ox, oy);
@@ -6237,6 +6272,7 @@ function drawBigMap(dt) {
   g.restore();
   // controller / keyboard cursor
   if (BM.cur) { const [cx, cy] = BM.cur; g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.arc(cx, cy, 12, 0, TAU); g.moveTo(cx - 20, cy); g.lineTo(cx - 6, cy); g.moveTo(cx + 6, cy); g.lineTo(cx + 20, cy); g.moveTo(cx, cy - 20); g.lineTo(cx, cy - 6); g.moveTo(cx, cy + 6); g.lineTo(cx, cy + 20); g.stroke(); }
+  if (!BM.art && BM.base) { drawCompass(g, BM.W - 40, BM.H - 120, 20); drawScaleBar(g, BM.W - 150, BM.H - 58); if (BM.W > 560) drawLegend(g, 12, 70); }
   let txt = 'You are in ' + regionName(me.x, me.z);
   if (WAYPT) txt += ' · Waypoint ' + (Math.hypot(WAYPT.x - me.x, WAYPT.z - me.z) / 1609).toFixed(1) + ' mi (' + regionName(WAYPT.x, WAYPT.z) + ')';
   $('bmWhere').textContent = txt;
@@ -6279,10 +6315,35 @@ const BASE_K = 1.5; // base pixels per map pixel (6 m)
 function buildBigMapBase() {
   const W = Math.round(1376 * BASE_K), H = Math.round(768 * BASE_K), c = mkCanvas(W, H), g = c.getContext('2d'), img = g.createImageData(W, H);
   paintTerrain(img, WB.x1, WB.z1, WB.x2 - WB.x1, WB.z2 - WB.z1); g.putImageData(img, 0, 0);
-  const s = W / (WB.x2 - WB.x1);
-  g.fillStyle = 'rgba(178,174,168,0.9)';
-  for (const p of PAVED) if (p) g.fillRect((p[0] - WB.x1) * s, (p[1] - WB.z1) * s, Math.max(0.6, (p[2] - p[0]) * s), Math.max(0.6, (p[3] - p[1]) * s));
+  const s = W / (WB.x2 - WB.x1), X = x => (x - WB.x1) * s, Z = z => (z - WB.z1) * s;
+  // woods: every tree in the world as a soft dark-green dot
+  g.fillStyle = 'rgba(46,84,40,0.5)';
+  for (const t of TREE_PTS) { g.beginPath(); g.arc(X(t[0]), Z(t[1]), 0.85, 0, TAU); g.fill(); }
+  // city blocks (dark) and buildings (light roofs)
+  g.fillStyle = '#5c616c';
+  for (const p of PAVED) if (p) g.fillRect(X(p[0]), Z(p[1]), Math.max(0.7, (p[2] - p[0]) * s), Math.max(0.7, (p[3] - p[1]) * s));
+  for (const cc of colliders) if (cc.tag === 'bldg' || cc.tag === 'house') { g.fillStyle = cc.tag === 'house' ? '#b07a5c' : (cc.h > 60 ? '#d4dae6' : '#a9b0be'); g.fillRect(X(cc.x1), Z(cc.z1), Math.max(0.8, (cc.x2 - cc.x1) * s), Math.max(0.8, (cc.z2 - cc.z1) * s)); }
   BM.base = c;
+}
+function drawCompass(g, x, y, r) {
+  g.save(); g.translate(x, y);
+  g.fillStyle = 'rgba(12,18,30,0.55)'; g.beginPath(); g.arc(0, 0, r + 8, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke();
+  for (let i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.fillStyle = i === 3 ? '#ff5a4a' : '#f2efe6'; g.beginPath(); g.moveTo(0, -r + 2); g.lineTo(5, 0); g.lineTo(-5, 0); g.closePath(); g.fill(); }
+  g.fillStyle = '#fff'; g.font = '900 11px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3; g.strokeText('N', 0, -r - 17); g.fillText('N', 0, -r - 17);
+  g.restore();
+}
+function drawScaleBar(g, x, y) {
+  const mpp = BM.z / MPX, miles = [0.25, 0.5, 1, 2, 5].find(m => m * 1609 * mpp > 70) || 5, w = miles * 1609 * mpp;
+  g.fillStyle = 'rgba(12,18,30,0.55)'; g.fillRect(x - 8, y - 18, w + 16, 30);
+  g.fillStyle = '#fff'; g.fillRect(x, y, w, 4); g.fillRect(x, y - 4, 2, 8); g.fillRect(x + w - 2, y - 4, 2, 8);
+  g.font = '800 10px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText(miles + (miles === 1 ? ' MILE' : ' MILES'), x, y - 3);
+}
+function drawLegend(g, x, y) {
+  const items = [['#3ad16a', 'Safehouse'], ['#ffd23f', 'Mission'], ['#c86bff', 'Waypoint'], ['#ffffff', 'You']];
+  g.fillStyle = 'rgba(12,18,30,0.6)'; g.fillRect(x, y, 112, 20 + items.length * 17);
+  g.font = '900 10px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#ffd23f'; g.fillText('MAP KEY', x + 10, y + 11);
+  items.forEach(([c, t], i) => { g.fillStyle = c; g.beginPath(); g.arc(x + 15, y + 28 + i * 17, 5, 0, TAU); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = '700 11px system-ui, sans-serif'; g.fillText(t, x + 27, y + 28 + i * 17); });
 }
 const MAP_LABELS = [
   [1090, 300, 'SAN FELIPE', 3], [905, 192, 'FORT WORTH', 2], [850, 296, 'AUSTIN', 2], [878, 478, 'SAN ANTONIO', 2], [735, 540, 'REDNECK COUNTY', 2], [830, 612, 'OIL FIELDS', 1],
@@ -6326,7 +6387,9 @@ function drawCleanMap(g, ox, oy) {
     if (lvl === 0 && z < bmFit() * 2) continue;
     const [a, b] = bmToScreen(px, py), fs = Math.round([10, 11, 14, 18][lvl] * clamp(Math.sqrt(z / bmFit()), 1, 1.8));
     g.font = `900 ${fs}px system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.lineWidth = 3.5; g.strokeStyle = 'rgba(20,14,30,0.8)'; g.strokeText(name, a, b); g.fillStyle = lvl === 3 ? '#fff4c8' : '#ffffff'; g.fillText(name, a, b);
+    if ('letterSpacing' in g) g.letterSpacing = (lvl >= 2 ? 2 : 1) + 'px';
+    g.lineJoin = 'round'; g.lineWidth = 4; g.strokeStyle = 'rgba(10,14,24,0.85)'; g.strokeText(name, a, b); g.fillStyle = lvl === 3 ? '#ffe9a8' : lvl === 1 ? '#e8f2ff' : '#ffffff'; g.fillText(name, a, b);
+    if ('letterSpacing' in g) g.letterSpacing = '0px';
   }
 }
 
