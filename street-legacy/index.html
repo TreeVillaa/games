@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2151</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2216</div>
   </div>
 </div>
 
@@ -5002,6 +5002,7 @@ function say(lines) { MS.subs.push(...lines); }
 function toast(t, dur = 2.6) { $('toast').textContent = t; $('toast').classList.add('show'); MS.toastT = dur; }
 function setObjective(html) { const o = $('objective'); o.innerHTML = html; o.classList.toggle('hidden', !html); }
 function resetWorld() {
+  cine = null; camIdle = 0; camLift = 0; camDelta.x = camDelta.y = 0; touch.cam = null; touch.joy = null;
   P.inCar = false; P.spd = 0; player.root.visible = true; player.bag.visible = false; car.m.driver.visible = false;
   car.set(CAR_START.x, CAR_START.z, CAR_START.h);
   guard = newGuard(); car.repair(); P.vx = P.vz = 0; P.crouch = false; combat.fightT = 0;
@@ -5684,6 +5685,7 @@ function update(dt) {
   if (state === 'play') { updatePlayer(dt); updateMission(dt); }
   else if (cine && cine.outro) { car.input = { steer: 0, thr: 0, brk: 1, hand: 1 }; car.update(dt); }
   else if (state === 'cine') { player.root.position.set(P.x, 0, P.z); player.root.rotation.set(0, P.h, 0); }
+  if (cine && cine.outro && state === 'play') cine = null;
   if (cine) { cine.t += dt; if (cine.t >= cine.dur && !cine.outro) { cine = null; show('play'); } }
   if (state === 'cine' && !cine?.outro) { player.update(dt, { spd: 0, t: gameT }); }
   updateGuard(dt);
