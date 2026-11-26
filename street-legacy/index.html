@@ -325,7 +325,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1925</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1957</div>
   </div>
 </div>
 
@@ -511,8 +511,8 @@ const save = Object.assign({ cash: 0, passed: false }, store.get('sl.save', {}))
 const QUAL = {
   low:    { name: 'Low',    pr: 0.8,  shadows: false, shadowSize: 512,  shadowExt: 40, dist: 380,  grass: 0,    trees: 0.45, lights: false, note: 'Fastest. No shadows, short draw distance.' },
   medium: { name: 'Medium', pr: 1.15, shadows: true,  shadowSize: 1024, shadowExt: 45, dist: 600,  grass: 2500, trees: 0.7,  lights: false, note: 'Balanced for most phones.' },
-  high:   { name: 'High',   pr: 1.6,  shadows: true,  shadowSize: 2048, shadowExt: 60, dist: 900,  grass: 5500, trees: 1,    lights: true,  note: 'Soft shadows, headlights, thick grass.' },
-  ultra:  { name: 'Ultra',  pr: 2.0,  shadows: true,  shadowSize: 4096, shadowExt: 80, dist: 1400, grass: 9000, trees: 1,    lights: true,  note: 'Maximum detail. Needs a strong device.' },
+  high:   { name: 'High',   pr: 1.6,  shadows: true,  shadowSize: 2048, shadowExt: 55, dist: 800,  grass: 5500, trees: 1,    lights: true,  note: 'Soft shadows, headlights, thick grass.' },
+  ultra:  { name: 'Ultra',  pr: 2.0,  shadows: true,  shadowSize: 4096, shadowExt: 70, dist: 1000, grass: 7000, trees: 1,    lights: true,  note: 'Maximum detail. Sharpest shadows, longest view.' },
 };
 const QORDER = ['low', 'medium', 'high', 'ultra'];
 if (!QUAL[settings.quality]) settings.quality = 'medium';
@@ -527,7 +527,7 @@ renderer.shadowMap.enabled = true;
 const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.3, 1200);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.4, 1200);
 camera.position.set(-830, 30, -200);
 
 // ---------------------------------------------------------------- canvas textures
@@ -2928,18 +2928,49 @@ function punchCurve(t) { // <0 wind-up, 1 = full extension (impact at t≈0.45)
   if (t < 0.58) return 1;
   return 1 - sm01((t - 0.58) / 0.42);
 }
+let PT = null;
+function personTextures() {
+  if (PT) return PT;
+  const R = rng(4242);
+  const knit = tex(128, 128, (g, w, h) => { // fine jersey knit for shirts (normal map)
+    const img = g.createImageData(w, h);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = Math.sin(x * 1.6) * 0.5 + Math.sin(y * 0.8 + (x % 4 < 2 ? 1.5 : 0)) * 0.5, i = (y * w + x) * 4; img.data[i] = 128 + v * 30; img.data[i + 1] = 128 + Math.cos(y * 0.8) * 22; img.data[i + 2] = 255; img.data[i + 3] = 255; }
+    g.putImageData(img, 0, 0);
+  }, { srgb: false });
+  const fabric = tex(256, 256, (g, w, h) => { // soft creases and folds for the shirt colour
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 26; i++) { const x = R() * w, y = R() * h, l = 30 + R() * 70, a = (R() - .5) * 0.9; g.strokeStyle = `rgba(0,0,0,${0.05 + R() * 0.07})`; g.lineWidth = 2 + R() * 5; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + Math.cos(a) * l * 0.5 + 8, y + Math.sin(a) * l * 0.5, x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); }
+    for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(${R() < 0.5 ? '0,0,0' : '255,255,255'},${R() * 0.05})`; g.fillRect(R() * w, R() * h, 1, 1); }
+  });
+  const skinT = tex(128, 128, (g, w, h) => { // pores, blush and subtle tone variation
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 1800; i++) { g.fillStyle = `rgba(${R() < 0.6 ? '120,60,50' : '255,235,225'},${R() * 0.07})`; g.fillRect(R() * w, R() * h, 1 + R(), 1 + R()); }
+    const gr = g.createRadialGradient(w * 0.5, h * 0.55, 4, w * 0.5, h * 0.55, w * 0.5); gr.addColorStop(0, 'rgba(200,90,80,.08)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  });
+  const hairT = tex(128, 128, (g, w, h) => { // strands
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 700; i++) { const x = R() * w; g.strokeStyle = `rgba(${R() < 0.5 ? '0,0,0' : '255,255,255'},${0.08 + R() * 0.16})`; g.lineWidth = 0.6 + R(); g.beginPath(); g.moveTo(x, 0); g.bezierCurveTo(x + (R() - .5) * 10, h * 0.3, x + (R() - .5) * 10, h * 0.7, x + (R() - .5) * 8, h); g.stroke(); }
+  });
+  for (const t of [knit, fabric, skinT, hairT]) { t.wrapS = t.wrapT = THREE.RepeatWrapping; }
+  knit.repeat.set(4, 4);
+  PT = { knit, fabric, skinT, hairT };
+  return PT;
+}
+const IRIS = [0x5a3a1e, 0x3a2412, 0x2a5a7a, 0x4a6a3a, 0x6a4a2a];
 function makePerson(o) {
+  const pt = personTextures();
   const root = new THREE.Group(); root.rotation.order = 'YXZ';
   const SPH = (r, w, h, ...a) => new THREE.SphereGeometry(r, o.lo ? Math.max(6, w >> 1) : w, o.lo ? Math.max(4, h >> 1) : h, ...a);
-  const skin = o.lo ? std({ color: o.skin, roughness: 0.6 }) : new THREE.MeshPhysicalMaterial({ color: o.skin, roughness: 0.55, sheen: 0.4, sheenColor: new THREE.Color(0x663322) });
+  const skin = o.lo ? std({ color: o.skin, map: pt.skinT, roughness: 0.58 }) : new THREE.MeshPhysicalMaterial({ color: o.skin, map: pt.skinT, roughness: 0.5, sheen: 0.5, sheenRoughness: 0.6, sheenColor: new THREE.Color(0x8a3a2a), clearcoat: 0.08, clearcoatRoughness: 0.6 });
   const stub = std({ color: new THREE.Color(o.skin).lerp(new THREE.Color(0x1a1410), o.beard ?? 0.35), roughness: 0.8 });
-  const shirt = std({ color: o.shirt, roughness: 0.95 });
+  const shirt = std({ color: o.shirt, map: pt.fabric, normalMap: pt.knit, normalScale: new THREE.Vector2(0.35, 0.35), roughness: 0.92 });
   const pants = std({ color: o.pants, map: o.denim ? T.denim : null, roughness: 0.9 });
   const shoes = std({ color: o.shoes, roughness: 0.55 });
   const sole = std({ color: o.sole ?? 0xf2f2f2, roughness: 0.7 });
-  const hair = std({ color: o.hair, roughness: 0.9 });
+  const hair = std({ color: o.hair, map: pt.hairT, roughness: 0.75, metalness: 0.05 });
   const silver = std({ color: 0xe8e8e8, metalness: 1, roughness: 0.18 });
   const dark = std({ color: 0x111111, roughness: 0.4 });
+  const eyeWhite = std({ color: 0xf2eee6, roughness: 0.15 }), iris = std({ color: o.eyes ?? IRIS[((o.skin * 7) >>> 0) % IRIS.length], roughness: 0.2 });
   const mesh = (geo, m, x, y, z, p) => { const me = new THREE.Mesh(geo, m); me.position.set(x, y, z); me.castShadow = true; p.add(me); return me; };
   const cap = (r, l) => new THREE.CapsuleGeometry(r, l, o.lo ? 3 : 6, o.lo ? 7 : 12);
   const bulk = o.bulk ?? 1;
@@ -2953,21 +2984,40 @@ function makePerson(o) {
   const shirtC = shirt.clone(); shirtC.side = THREE.DoubleSide;
   const hem = mesh(new THREE.CylinderGeometry(0.168, 0.188, 0.2, o.lo ? 14 : 28, o.lo ? 3 : 5, true), shirtC, 0, 0.02, 0, torso); hem.scale.set(1.13 * bulk, 1, 0.8 * bulk); hem.userData.keep = true;
   const cloth = [{ m: hem, base: hem.geometry.attributes.position.array.slice(), top: 0.1, h: 0.2, rad: true }];
+  if (o.jacket) { // open jacket: two front panels and a back panel that swing with movement
+    const jm = std({ color: o.jacket, map: o.leather ? null : pt.fabric, normalMap: o.leather ? null : pt.knit, normalScale: new THREE.Vector2(0.5, 0.5), roughness: o.leather ? 0.45 : 0.9, side: THREE.DoubleSide });
+    mesh(cap(0.18, 0.2), jm, 0, 0.38, -0.01, torso).scale.set(1.36, 1.02, 0.86);
+    for (const s of [-1, 1]) {
+      const pg = new THREE.PlaneGeometry(0.15, 0.34, 2, o.lo ? 3 : 6); pg.translate(0, -0.17, 0);
+      const pnl = mesh(pg, jm, s * 0.11, 0.42, 0.16, torso); pnl.rotation.y = s * 0.25; pnl.userData.keep = true;
+      cloth.push({ m: pnl, base: pg.attributes.position.array.slice(), top: 0, h: 0.34, flap: true, side: s });
+    }
+    const bg = new THREE.PlaneGeometry(0.4, 0.36, 3, o.lo ? 3 : 6); bg.translate(0, -0.18, 0);
+    const back = mesh(bg, jm, 0, 0.44, -0.15, torso); back.rotation.y = Math.PI; back.userData.keep = true;
+    cloth.push({ m: back, base: bg.attributes.position.array.slice(), top: 0, h: 0.36, flap: true, side: 0, back: true });
+  }
   const sh = mesh(cap(0.105, 0.34), shirt, 0, 0.49, 0, torso); sh.rotation.z = Math.PI / 2; sh.scale.set(1, 1, 0.8);
   mesh(new THREE.CylinderGeometry(0.056, 0.064, 0.14, 12), skin, 0, 0.6, 0.0, torso);
   const head = new THREE.Group(); head.position.set(0, 0.73, 0.01); torso.add(head);
-  const skull = mesh(SPH(0.104, 24, 18), skin, 0, 0, 0, head); skull.scale.set(0.9, 1.1, 1.0);
-  const jaw = mesh(SPH(0.084, 20, 14), stub, 0, -0.055, 0.022, head); jaw.scale.set(1.0, 0.85, 1.05);
+  const skull = mesh(SPH(0.104, 24, 18), skin, 0, 0, 0, head); skull.scale.set(0.86, 1.12, 0.98);
+  const jaw = mesh(SPH(0.078, 20, 14), stub, 0, -0.052, 0.018, head); jaw.scale.set(0.95, 0.82, 1.0);
   const hc = mesh(SPH(0.107, 24, 14, 0, TAU, 0, Math.PI * (o.capHat ? 0.5 : 0.42)), o.capHat ? std({ color: o.capHat, roughness: 0.8 }) : hair, 0, 0.012, -0.004, head); hc.scale.set(0.93, 1.1, 1.03);
   if (o.capHat) { const brim = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.012, 16, 1, false, -Math.PI / 2, Math.PI), hc.material, 0, 0.04, 0.07, head); brim.scale.set(1, 1, 0.9); }
   if (o.longHair) { const lh = mesh(cap(0.1, 0.16), hair, 0, -0.06, -0.05, head); lh.scale.set(1.05, 1, 0.7); }
   for (const s of [-1, 1]) {
     const ear = mesh(SPH(0.026, 10, 8), skin, s * 0.094, 0, -0.005, head); ear.scale.set(0.5, 1.1, 0.8);
-    mesh(SPH(0.011, 8, 6), dark, s * 0.034, 0.012, 0.094, head);
-    const brow = mesh(new THREE.BoxGeometry(0.038, 0.009, 0.012), hair, s * 0.035, 0.034, 0.098, head); brow.rotation.z = -s * 0.12;
+    const eyeW = mesh(SPH(0.0135, 12, 10), eyeWhite, s * 0.034, 0.012, 0.089, head); eyeW.scale.set(1.15, 0.8, 0.6);
+    mesh(new THREE.CircleGeometry(0.0068, 12), iris, s * 0.034, 0.012, 0.0972, head);
+    mesh(new THREE.CircleGeometry(0.0032, 8), dark, s * 0.034, 0.012, 0.0975, head);
+    const lid = mesh(SPH(0.0145, 12, 8, 0, TAU, 0, Math.PI * 0.42), skin, s * 0.034, 0.0135, 0.0885, head); lid.scale.set(1.2, 0.9, 0.7); lid.rotation.x = -0.25;
+    const cheek = mesh(SPH(0.022, 10, 8), skin, s * 0.046, -0.018, 0.07, head); cheek.scale.set(1, 0.75, 0.55);
+    const brow = mesh(new THREE.BoxGeometry(0.032, 0.006, 0.01), hair, s * 0.034, 0.031, 0.097, head); brow.rotation.z = -s * 0.12;
   }
-  const nose = mesh(new THREE.ConeGeometry(0.016, 0.045, 8), skin, 0, -0.008, 0.108, head); nose.rotation.x = Math.PI / 2 + 0.3;
-  mesh(new THREE.BoxGeometry(0.04, 0.006, 0.01), std({ color: 0x6a3d32 }), 0, -0.052, 0.1, head);
+  const nose = mesh(new THREE.ConeGeometry(0.0125, 0.04, 8), skin, 0, -0.006, 0.104, head); nose.rotation.x = Math.PI / 2 + 0.3;
+  const lipM = std({ color: new THREE.Color(o.skin).lerp(new THREE.Color(0x8a3a3a), 0.45), roughness: 0.4 });
+  const lipU = mesh(new THREE.CapsuleGeometry(0.0055, 0.03, 3, 8), lipM, 0, -0.047, 0.1, head); lipU.rotation.z = Math.PI / 2;
+  const lipL = mesh(new THREE.CapsuleGeometry(0.0065, 0.026, 3, 8), lipM, 0, -0.057, 0.098, head); lipL.rotation.z = Math.PI / 2;
+  const tip = mesh(SPH(0.0095, 10, 8), skin, 0, -0.024, 0.11, head); tip.scale.set(1.15, 0.85, 0.9);
   if (o.chain) {
     const ch = mesh(new THREE.TorusGeometry(0.105, 0.006, 6, 40), silver, 0, 0.53, 0.035, torso); ch.rotation.x = Math.PI / 2 - 0.55; ch.scale.set(1, 1.35, 1);
     pendant = new THREE.Group(); pendant.position.set(0, 0.47, 0.128); torso.add(pendant);
@@ -2990,8 +3040,9 @@ function makePerson(o) {
     const el = new THREE.Group(); el.position.y = -0.3; shG.add(el);
     mesh(cap(0.044, 0.19), o.longSleeve ? shirt : skin, 0, -0.12, 0, el);
     const fist = new THREE.Group(); fist.position.y = -0.29; el.add(fist);
-    const hand = mesh(new THREE.BoxGeometry(0.065, 0.095, 0.045), skin, 0, 0, 0.005, fist);
-    const kn = mesh(new THREE.CapsuleGeometry(0.022, 0.05, 3, 6), skin, 0, -0.045, 0.02, fist); kn.rotation.z = Math.PI / 2;
+    const palm = mesh(new THREE.BoxGeometry(0.062, 0.07, 0.03), skin, 0, 0.005, 0.005, fist); palm.scale.set(1, 1, 1);
+    for (let f = 0; f < 4; f++) { const fg = mesh(new THREE.CapsuleGeometry(0.0085, 0.032, 2, 6), skin, (f - 1.5) * 0.0155, -0.043, 0.018, fist); fg.rotation.x = 0.9; }
+    const th = mesh(new THREE.CapsuleGeometry(0.009, 0.03, 2, 6), skin, -s * 0.034, -0.01, 0.02, fist); th.rotation.set(0.5, 0, s * 0.6);
     if (o.watch && s > 0) mesh(new THREE.CylinderGeometry(0.048, 0.048, 0.03, 14), silver, 0, -0.215, 0, el);
     if (o.flashlight && s < 0) { torch = mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.22, 10), dark, 0, -0.01, 0.06, fist); torch.rotation.x = Math.PI / 2; torch.userData.keep = true; }
     arms[s > 0 ? 'L' : 'R'] = { sh: shG, el, fist, s };
@@ -3005,7 +3056,7 @@ function makePerson(o) {
     legs[s > 0 ? 'L' : 'R'] = { hip: hipG, kn: kG, foot, s };
   }
   mergeChildren(root);
-  const hairSpec = o.longHair ? { n: o.lo ? 34 : 60, len: o.pony ? 0.3 : 0.34, pony: !!o.pony, color: o.hair } : null;
+  const hairSpec = o.longHair ? { n: o.lo ? 44 : 90, len: o.pony ? 0.3 : 0.34, pony: !!o.pony, color: o.hair } : null;
   const sh2 = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.9), M.shadow); sh2.rotation.x = -Math.PI / 2; sh2.position.y = 0.02; root.add(sh2);
 
   const st = { phase: 0, crouch: 0, fight: 0, act: null, actT: 0, flinch: 0, fx: 0, fy: 0, down: 0, lean: 0, cox: 0, coz: 0, cvx: 0, cvz: 0, pa: 0, pv: 0, pb: 0, pbv: 0, ct: 0 };
@@ -3018,6 +3069,16 @@ function makePerson(o) {
     for (const c of cloth) {
       const a = c.m.geometry.attributes.position, p = a.array, b = c.base;
       const k = c.sleeve ? 0.5 : 1;
+      if (c.flap) {
+        for (let i = 0; i < p.length; i += 3) {
+          const w = Math.pow(clamp((c.top - b[i + 1]) / c.h, 0, 1), 1.5);
+          const wave = Math.sin(st.ct * 1.1 + b[i] * 9 + c.side) * amp * 2.2;
+          p[i] = b[i] + st.cox * w * 1.1;
+          p[i + 2] = b[i + 2] + (c.back ? 1 : 1) * (Math.max(0, -st.coz) * 2.2 + wave) * w + (c.back ? 0 : Math.abs(st.cox) * w * 0.6);
+          p[i + 1] = b[i + 1] + Math.max(0, -st.coz) * w * 0.35;
+        }
+        a.needsUpdate = true; c.m.geometry.computeVertexNormals(); continue;
+      }
       for (let i = 0; i < p.length; i += 3) {
         const w = Math.pow(clamp((c.top - b[i + 1]) / c.h, 0, 1), 1.6);
         const ang = Math.atan2(b[i + 2], b[i]);
@@ -3560,10 +3621,13 @@ function buildCar(o = {}) {
   for (const [m, list] of buckets) { const me = new THREE.Mesh(mergeGeos(list), m); me.castShadow = true; me.receiveShadow = true; body.add(me); deform.push(me); }
   // ---- driver
   const driver = new THREE.Group(); driver.position.set(0.37, fY + 0.12, (cab[0] + cab[1]) / 2 + 0.1); body.add(driver); driver.visible = false;
-  const dm = std({ color: 0x141414, roughness: 0.95 }), dsk = std({ color: 0xa87a5c, roughness: 0.6 });
+  const dm = std({ color: o.shirt ?? 0x141414, roughness: 0.95 }), dsk = std({ color: o.skin ?? 0xa87a5c, roughness: 0.6 }), dhair = std({ color: o.hair ?? 0x15110e, roughness: 0.9 });
   const dt0 = new THREE.Mesh(new THREE.CapsuleGeometry(0.17, 0.3, 4, 10), dm); dt0.position.y = 0.3; dt0.scale.set(1.2, 1, 0.8); dt0.rotation.x = -0.2; driver.add(dt0);
+  const nk = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.1, 8), dsk); nk.position.set(0, 0.6, -0.04); driver.add(nk);
   const dh = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 12), dsk); dh.position.set(0, 0.72, -0.05); dh.scale.set(0.9, 1.1, 1); driver.add(dh);
-  for (const s of [1, -1]) { const ar = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.45, 4, 8), dsk); ar.position.set(s * 0.17, 0.42, 0.3); ar.rotation.x = -1.2; driver.add(ar); }
+  const hc = new THREE.Mesh(new THREE.SphereGeometry(0.105, 14, 10, 0, TAU, 0, Math.PI * 0.55), dhair); hc.position.set(0, 0.735, -0.06); hc.scale.set(0.92, 1.1, 1.05); hc.rotation.x = -0.25; driver.add(hc);
+  if (o.longHair) { const lh = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.14, 4, 8), dhair); lh.position.set(0, 0.6, -0.12); lh.scale.set(1.2, 1, 0.6); driver.add(lh); }
+  for (const s of [1, -1]) { const ar = new THREE.Mesh(new THREE.CapsuleGeometry(0.045, 0.45, 4, 8), dm); ar.position.set(s * 0.17, 0.42, 0.3); ar.rotation.x = -1.2; driver.add(ar); const hd = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 6), dsk); hd.position.set(s * 0.17, 0.48, 0.55); driver.add(hd); }
   // ---- wheels: tyre with tread + sidewall lettering, alloy, disc + caliper
   const wheels = [];
   const k = wr / 0.322;
@@ -4153,7 +4217,9 @@ const combat = { combo: 0, comboT: 0, fightT: 0, lungeT: 0, lunge: 0 };
 let hitStop = 0, shakeAmt = 0;
 
 function makeAI(kind, color, path, speed, loop = true) {
-  const v = new Vehicle(buildCar({ kind, color, physical: false, lite: true, plate: 'TX ' + (1000 + (Math.random() * 8999 | 0)) }), path[0][0], path[0][1], 0);
+  const rr = Math.random;
+  const v = new Vehicle(buildCar({ kind, color, physical: false, lite: true, plate: 'TX ' + (1000 + (rr() * 8999 | 0)), skin: SKIN[(rr() * SKIN.length) | 0], shirt: SHIRT[(rr() * SHIRT.length) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a, 0xc8a050][(rr() * 5) | 0], longHair: rr() < 0.4 }), path[0][0], path[0][1], 0);
+  v.m.driver.visible = true;
   const segs = []; let total = 0;
   for (let i = 0; i < path.length - (loop ? 0 : 1); i++) { const a = path[i], b = path[(i + 1) % path.length]; const l = Math.hypot(b[0] - a[0], b[1] - a[1]); segs.push({ a, b, l, s: total }); total += l; }
   return { v, segs, total, s: 0, speed, cur: speed, loop, done: false, mode: 'path', physT: 0 };
@@ -4184,7 +4250,8 @@ function spawnNPCs() {
     const pt = t => r.horiz ? [t, r.z1 + side * off] : [r.x1 + side * off, t];
     const a = pt(along), b = pt(along + 25 + R() * 20);
     const po = { skin: SKIN[(R() * SKIN.length) | 0], shirt: SHIRT[(R() * SHIRT.length) | 0], pants: PANTS[(R() * PANTS.length) | 0], denim: R() < 0.5,
-      shoes: [0xeeeeee, 0x222222, 0x6a4a2a][(R() * 3) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a][(R() * 4) | 0], capHat: R() < 0.3 ? [0x8a1c1c, 0x1c2a4a, 0xe8e4da][(R() * 3) | 0] : 0, longHair: R() < 0.45, pony: R() < 0.35, bulk: 0.95 + R() * 0.2, longSleeve: R() < 0.3, beard: R() * 0.4, lo: true };
+      shoes: [0xeeeeee, 0x222222, 0x6a4a2a][(R() * 3) | 0], hair: [0x15110e, 0x3a2a1a, 0x8a6a3a, 0x9a9a9a][(R() * 4) | 0], capHat: R() < 0.3 ? [0x8a1c1c, 0x1c2a4a, 0xe8e4da][(R() * 3) | 0] : 0, longHair: R() < 0.45, pony: R() < 0.35, bulk: 0.95 + R() * 0.2, longSleeve: R() < 0.3, beard: R() * 0.4, lo: true, jacket: R() < 0.32 ? [0x1c1c1e, 0x2a3a5a, 0x5a3a24, 0x3a4a2a, 0x8a1c1c, 0xb8a888][(R() * 6) | 0] : 0 };
+    if (po.jacket && R() < 0.35) { po.leather = true; po.jacket = 0x18161a; }
     const m = makePerson(po);
     scene.add(m.root);
     const n = { m, female: R() < 0.45, x: a[0], z: a[1], h: 0, a, b, tgt: b, state: 'walk', t: 0, hp: 3, y: 0, vy: 0, vx: 0, vz: 0, fall: 0, fallDir: -1, spd: 0, home: { a, b }, ws: 1.15 + R() * 0.45, recT: 0 };
@@ -4808,8 +4875,9 @@ function applyQuality() {
   }
   sun.castShadow = q.shadows;
   if (sun.shadow.mapSize.x !== q.shadowSize) { sun.shadow.mapSize.set(q.shadowSize, q.shadowSize); if (sun.shadow.map) { sun.shadow.map.dispose(); sun.shadow.map = null; } }
-  const sc = sun.shadow.camera; sc.left = sc.bottom = -q.shadowExt; sc.right = sc.top = q.shadowExt; sc.near = 1; sc.far = 400; sc.updateProjectionMatrix();
-  camera.far = q.dist + 150; camera.updateProjectionMatrix();
+  const sc = sun.shadow.camera; sc.left = sc.bottom = -q.shadowExt; sc.right = sc.top = q.shadowExt; sc.near = 20; sc.far = 380; sc.updateProjectionMatrix();
+  sun.shadow.normalBias = 0.02 + (q.shadowExt * 2 / q.shadowSize) * 1.2; sun.shadow.bias = -0.0003;
+  camera.far = q.dist + 60; camera.updateProjectionMatrix();
   scene.fog.near = q.dist * 0.18; scene.fog.far = q.dist;
   sky.scale.setScalar(q.dist + 100);
   setTreeDensity(q.trees);
@@ -4837,7 +4905,7 @@ function resetWorld() {
   MS.subs = []; MS.subT = 0; $('subs').innerHTML = ''; MS.holdT = 0; MS.escaped = false; MS.timer = MISSION_TIME; MS.spotted = false;
   document.body.classList.remove('incar');
   for (const n of npcs) resetHuman(n); resetHuman(guard); clearGore();
-  if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.y = 0; P.vy = 0; P.hurtT = 9; player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
+  if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.y = 0; P.vy = 0; P.hurtT = 9; restorePose(player); player.shadow.visible = true;
   if (W) { W.reloadT = -1; W.mag = 15; W.reserve = 60; if (W.handMag) { W.handMag.removeFromParent(); W.handMag = null; } W.gun.mag.visible = true; }
   $('timer').classList.add('hidden'); seq = null; car.doorA = 0;
   for (const d of HH_DOORS) { d.open = false; d.ang = 0; d.vel = 0; d.g.rotation.y = 0; d.col.on = true; }
@@ -4865,7 +4933,7 @@ function continueGame() {
 }
 function resetHuman(e) {
   if (e.rag) e.rag = null;
-  const m = e.m; m.root.quaternion.identity(); m.hips.quaternion.identity(); m.torso.quaternion.identity(); m.shadow.visible = true;
+  const m = e.m; restorePose(m); m.shadow.visible = true;
   if (e.wounds) { for (const w of e.wounds) w.removeFromParent(); e.wounds = null; }
   e.dead = false; e.bleeding = false; e.pool = null; e.torsoHits = 0; e.limbHits = 0; e.legHits = 0; e.armHits = 0; e.dmg = 0; e.stomps = 0; e.pendingFall = null; e.clutch = 0; e.limp = false; e.hitT = 0; e.fall = 0; e.y = 0;
 }
@@ -5012,9 +5080,15 @@ function enterCar() {
     say([['Travis', 'Now home. Nice and easy.']]);
   }
 }
+function restorePose(m) { // clear every joint the ragdoll bent, so the walk animation starts from a clean skeleton
+  m.root.quaternion.identity(); m.hips.quaternion.identity(); m.torso.quaternion.identity(); m.head.quaternion.identity();
+  for (const s of ['L', 'R']) { const a = m.arms[s], l = m.legs[s]; a.sh.quaternion.identity(); a.el.quaternion.identity(); a.fist.quaternion.identity(); l.hip.quaternion.identity(); l.kn.quaternion.identity(); l.foot.quaternion.identity(); }
+}
 function bailOut() { // dive out of a moving car: tumble with the car's momentum, then get back up
   const sp = car.speed, vx = car.vx, vz = car.vz;
   exitCar(false);
+  // the body starts from the driver's door (the hidden player model was still standing where you got in)
+  restorePose(player); player.root.position.set(P.x, 0, P.z); player.root.rotation.set(0, P.h, 0); player.root.updateMatrixWorld(true);
   car.input = { steer: car.steer * 0.3, thr: 0, brk: 0, hand: 0 };
   const sx = Math.cos(car.h), sz = -Math.sin(car.h); // driver side
   const pe = { m: player, x: P.x, z: P.z, h: P.h, kind: 'player' }; P.ent = pe;
@@ -5247,7 +5321,7 @@ function updatePlayer(dt) {
     if (P.bail <= 0 || !r) {
       if (r) { const f = r.bodyFacing(); P.h = Math.atan2(-f.headX, -f.headZ); }
       P.ent = null; P.bail = 0; P.vx = P.vz = 0; P.y = 0; P.land = 1;
-      player.root.quaternion.identity(); player.hips.quaternion.identity(); player.torso.quaternion.identity(); player.shadow.visible = true;
+      restorePose(player); player.shadow.visible = true; P.crouch = false;
       if (P.hp <= 0) { P.hp = 1; }
     }
     return;
@@ -5509,6 +5583,7 @@ function update(dt) {
   }
   processHits(car, true); for (const a of all) processHits(a.v, false);
   tyreFX(car, dt); for (const a of all) if (a.mode === 'phys') tyreFX(a.v, dt);
+  updateSkyLife(dt);
   updateNPCs(dt); updateDebris(dt); updateTargets(dt); updateBodies(dt); updateDoorsHH(dt); updateGore(dt);
   if (W.eFlashT > 0) { W.eFlashT -= dt; if (W.eFlashT <= 0) { W.eflash.visible = false; W.elight.intensity = 0; } }
   FXS.add.update(dt); FXS.norm.update(dt);
@@ -5614,7 +5689,7 @@ async function boot() {
     ['Mixing paint', buildTextures], ['Preparing materials', buildMaterials], ['Painting the Texas sky', buildSky], ['Grading the land', buildGround],
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
     ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing brush and wildflowers', buildScrub], ['Growing grass', buildGrass],
-    ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { spawnActors(); buildMarker(); initCombat(); }],
+    ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { initSkyLife(); spawnActors(); buildMarker(); initCombat(); }],
     ['Photographing the state from above', renderSatMap], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
   for (let i = 0; i < steps.length; i++) {
@@ -6941,6 +7016,106 @@ function drawSatMap(g, ox, oy) {
   g.globalAlpha = 1;
   drawMapLabels(g);
 }
+
+// ============================================================================
+//  SKY LIFE — flocks of birds, gulls at the coast, and airliners overhead
+// ============================================================================
+const SKYLIFE = { flocks: [], planes: [], ready: false };
+function birdGeo(span) {
+  // body + two flapping wings (each wing is its own small mesh so it can bend at the shoulder)
+  const body = new THREE.Group();
+  const m = std({ color: 0x2a2622, roughness: 0.9 });
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(span * 0.06, span * 0.22, 3, 6), m); torso.rotation.x = Math.PI / 2; body.add(torso);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(span * 0.055, 6, 5), m); head.position.z = span * 0.17; body.add(head);
+  const tail = new THREE.Mesh(new THREE.ConeGeometry(span * 0.06, span * 0.16, 4), m); tail.rotation.x = -Math.PI / 2; tail.position.z = -span * 0.2; tail.scale.set(1.6, 1, 0.3); body.add(tail);
+  const wings = [];
+  for (const s of [-1, 1]) {
+    const sh = new THREE.Group(); sh.position.x = s * span * 0.04; body.add(sh);
+    const wg = new THREE.Shape([new THREE.Vector2(0, 0.06 * span), new THREE.Vector2(s * span * 0.5, -0.02 * span), new THREE.Vector2(s * span * 0.46, -0.1 * span), new THREE.Vector2(0, -0.08 * span)]);
+    const w = new THREE.Mesh(new THREE.ShapeGeometry(wg), std({ color: 0x2e2a26, roughness: 0.9, side: THREE.DoubleSide })); w.rotation.x = -Math.PI / 2; sh.add(w);
+    wings.push(sh);
+  }
+  return { body, wings, mat: m };
+}
+function makeFlock(x, z, n, gull) {
+  const f = { x, z, y: 18 + Math.random() * 25, h: Math.random() * TAU, sp: gull ? 9 : 11, birds: [], gull, t: Math.random() * 10, home: [x, z] };
+  for (let i = 0; i < n; i++) {
+    const b = birdGeo(gull ? 1.3 : 0.55); if (gull) { b.mat.color.setHex(0xf2f0ea); for (const w of b.wings) w.children[0].material.color.setHex(0xd8d8d4); }
+    b.body.castShadow = false; scene.add(b.body);
+    f.birds.push({ ...b, ox: (Math.random() - .5) * 14, oy: (Math.random() - .5) * 4, oz: (Math.random() - .5) * 14, ph: Math.random() * TAU, rate: 9 + Math.random() * 3 });
+  }
+  SKYLIFE.flocks.push(f);
+}
+function makePlane(i) {
+  const g = new THREE.Group(), white = std({ color: 0xf2f2f0, roughness: 0.4, metalness: 0.2 }), tailC = std({ color: [0x1c4a9a, 0xc81e2a, 0x1e8a6a, 0xe8a020][i % 4], roughness: 0.5 }), dark = std({ color: 0x20262c, roughness: 0.3 });
+  const fus = new THREE.Mesh(new THREE.CylinderGeometry(2.0, 2.0, 38, 16), white); fus.rotation.x = Math.PI / 2; g.add(fus);
+  const nose = new THREE.Mesh(new THREE.SphereGeometry(2.0, 16, 10, 0, TAU, 0, Math.PI / 2), white); nose.rotation.x = Math.PI / 2; nose.position.z = 19; nose.scale.set(1, 1, 1.6); g.add(nose);
+  const tailcone = new THREE.Mesh(new THREE.ConeGeometry(2.0, 8, 16), white); tailcone.rotation.x = -Math.PI / 2; tailcone.position.set(0, 0.4, -23); tailcone.scale.set(1, 0.7, 1); g.add(tailcone);
+  const wingS = new THREE.Shape([new THREE.Vector2(-1, 3), new THREE.Vector2(-17, -6), new THREE.Vector2(-17, -9), new THREE.Vector2(-1, -4), new THREE.Vector2(1, -4), new THREE.Vector2(17, -9), new THREE.Vector2(17, -6), new THREE.Vector2(1, 3)]);
+  const wing = new THREE.Mesh(new THREE.ExtrudeGeometry(wingS, { depth: 0.4, bevelEnabled: false }), white); wing.rotation.x = Math.PI / 2; wing.position.y = -0.6; g.add(wing);
+  const hs = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-6, -24), new THREE.Vector2(-6, -27), new THREE.Vector2(6, -27), new THREE.Vector2(6, -24), new THREE.Vector2(0, -21)]), { depth: 0.3, bevelEnabled: false }), white); hs.rotation.x = Math.PI / 2; hs.position.y = 1.0; g.add(hs);
+  const fin = new THREE.Mesh(new THREE.ExtrudeGeometry(new THREE.Shape([new THREE.Vector2(-27, 0), new THREE.Vector2(-23, 0), new THREE.Vector2(-26, 7), new THREE.Vector2(-28.5, 7)]), { depth: 0.4, bevelEnabled: false }), tailC); fin.rotation.y = -Math.PI / 2; fin.position.set(0.2, 1, 0); g.add(fin);
+  for (const s of [-1, 1]) { const en = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.0, 4.5, 12), dark); en.rotation.x = Math.PI / 2; en.position.set(s * 7, -2.4, 2); g.add(en); }
+  const stripe = new THREE.Mesh(new THREE.CylinderGeometry(2.02, 2.02, 30, 16, 1, true, -0.6, 1.2), tailC); stripe.rotation.x = Math.PI / 2; stripe.rotation.y = Math.PI / 2; stripe.position.y = -0.1; g.add(stripe);
+  const winM = std({ color: 0x14181c, roughness: 0.2 });
+  for (const s of [-1, 1]) { const wr = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 26), winM); wr.position.set(s * 2.0, 0.6, 0); g.add(wr); }
+  // blinking nav & strobe lights
+  const lt = c => new THREE.Mesh(new THREE.SphereGeometry(0.45, 8, 6), new THREE.MeshBasicMaterial({ color: c, fog: false }));
+  const red = lt(0xff2020), green = lt(0x20ff40), strobe = lt(0xffffff); red.position.set(17, -0.8, -7.5); green.position.set(-17, -0.8, -7.5); strobe.position.set(0, 2.3, 0); g.add(red, green, strobe);
+  // contrail
+  const trail = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 420), new THREE.MeshBasicMaterial({ map: T.beam, color: 0xffffff, transparent: true, opacity: 0.35, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  trail.rotation.x = Math.PI / 2; trail.position.z = -230; g.add(trail);
+  g.traverse(o => { o.castShadow = false; o.frustumCulled = false; });
+  g.scale.setScalar(1);
+  scene.add(g);
+  const p = { g, strobe, red, green, y: 380 + i * 90, sp: 70 + i * 8, t: 0 };
+  resetPlane(p, true);
+  SKYLIFE.planes.push(p);
+}
+function resetPlane(p, initial) {
+  const cx = (WB.x1 + WB.x2) / 2, cz = (WB.z1 + WB.z2) / 2, ang = Math.random() * TAU, R = 7000;
+  const px = (P.inCar ? car.x : P.x) || cx, pz = (P.inCar ? car.z : P.z) || cz;
+  p.h = ang + Math.PI + (Math.random() - .5) * 0.6; p.x = px + Math.sin(ang) * R * (initial ? Math.random() : 1); p.z = pz + Math.cos(ang) * R * (initial ? Math.random() : 1);
+}
+function initSkyLife() {
+  // songbird flocks over the countryside & towns, gulls along the coast and lakes
+  const R = rng(31);
+  for (let i = 0; i < 9; i++) { const [x, z] = PX(lerp(300, 1150, R()), lerp(180, 560, R())); makeFlock(x, z, 6 + ((R() * 8) | 0), false); }
+  for (const [a, b] of [[1150, 440], [1180, 470], [648, 284], [398, 252], [990, 600]]) { const [x, z] = PX(a, b); makeFlock(x, z, 4 + ((R() * 4) | 0), true); }
+  for (let i = 0; i < 3; i++) makePlane(i);
+  SKYLIFE.ready = true;
+}
+function updateSkyLife(dt) {
+  if (!SKYLIFE.ready) return;
+  const px = P.inCar ? car.x : P.x, pz = P.inCar ? car.z : P.z, cx = camera.position.x, cz = camera.position.z;
+  for (const f of SKYLIFE.flocks) {
+    f.t += dt;
+    // wander around home; keep a flock near the player so there is always something in the sky
+    const toHome = Math.atan2(f.home[0] - f.x, f.home[1] - f.z), dh = Math.hypot(f.home[0] - f.x, f.home[1] - f.z);
+    let want = f.h + Math.sin(f.t * 0.3 + f.home[0]) * 0.6 * dt; if (dh > 250) want = toHome;
+    f.h += wrapA(want - f.h) * Math.min(1, dt * 0.8);
+    f.x += Math.sin(f.h) * f.sp * dt; f.z += Math.cos(f.h) * f.sp * dt; f.y = lerp(f.y, 22 + Math.sin(f.t * 0.2) * 10, dt * 0.3);
+    if (Math.hypot(f.x - px, f.z - pz) > 1400 && !f.gull) { const a = Math.random() * TAU; f.home = [px + Math.sin(a) * 300, pz + Math.cos(a) * 300]; f.x = f.home[0] + Math.sin(a) * 400; f.z = f.home[1] + Math.cos(a) * 400; }
+    const vis = Math.hypot(f.x - cx, f.z - cz) < 700;
+    for (const b of f.birds) {
+      b.body.visible = vis; if (!vis) continue;
+      b.ph += dt * b.rate;
+      const glide = Math.sin(f.t * 0.7 + b.ox) > 0.4; // flap, then glide for a moment
+      const flap = glide ? 0.12 : Math.sin(b.ph) * 0.9;
+      b.wings[0].rotation.z = flap; b.wings[1].rotation.z = -flap;
+      const bx = f.x + b.ox + Math.sin(f.t * 0.9 + b.oz) * 2, by = f.y + b.oy + (glide ? 0 : Math.sin(b.ph) * 0.15), bz = f.z + b.oz + Math.cos(f.t * 0.8 + b.ox) * 2;
+      b.body.position.set(bx, by, bz); b.body.rotation.set(-0.05, f.h, wrapA(want - f.h) * -2);
+    }
+  }
+  for (const p of SKYLIFE.planes) {
+    p.t += dt;
+    p.x += Math.sin(p.h) * p.sp * dt; p.z += Math.cos(p.h) * p.sp * dt;
+    p.g.position.set(p.x, p.y, p.z); p.g.rotation.set(0, p.h, 0);
+    p.strobe.visible = (p.t % 1.4) < 0.08; p.red.visible = p.green.visible = (p.t % 1) < 0.6;
+    if (Math.hypot(p.x - px, p.z - pz) > 9000) resetPlane(p, false);
+  }
+}
+window.__SKYLIFE = SKYLIFE;
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
