@@ -126,6 +126,9 @@
     border: 3px solid rgba(0,0,0,.65); box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 4px 16px rgba(0,0,0,.5); overflow: hidden; background: #222; }
   #minimap { width: 100%; height: 100%; display: block; }
   #mapWrap { pointer-events: auto; cursor: pointer; }
+  #keyList { display: grid; gap: 6px; margin: 10px 0; }
+  .btn.kb { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; font-size: .8rem; padding: 10px 14px; }
+  .btn.kb .val { font-weight: 900; color: #ffd23f; white-space: nowrap; } .btn.kb small { color: #c8b8d8; font-weight: 600; }
   #howList { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; text-align: left; margin: 10px 0 14px; font: 600 .82rem system-ui, sans-serif; color: #f0e6f7; }
   #howList h4 { grid-column: 1 / -1; margin: 8px 0 0; font: 900 .75rem system-ui, sans-serif; letter-spacing: .14em; color: #ffd23f; }
   #howList kbd { display: inline-block; min-width: 1.6em; padding: 2px 6px; margin-right: 6px; border-radius: 6px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.3); font: 800 .75rem system-ui, sans-serif; color: #fff; text-align: center; }
@@ -311,6 +314,8 @@
     <h2 class="display">SETTINGS</h2>
     <button class="btn" data-cycle="controls">Controls: <span class="val" id="vControls"></span></button>
     <button class="btn" data-act="howto">How to Play</button>
+    <button class="btn" data-act="keys">Key Bindings (computer)</button>
+    <button class="btn" data-cycle="invertY">Invert mouse up/down: <span class="val" id="vInvert"></span></button>
     <button class="btn" data-cycle="quality">Graphics quality: <span class="val" id="vQuality"></span></button>
     <button class="btn" data-cycle="sound">Sound: <span class="val" id="vSound"></span></button>
     <button class="btn" data-cycle="music">Menu music: <span class="val" id="vMusic"></span></button>
@@ -320,7 +325,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1914</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-1925</div>
   </div>
 </div>
 
@@ -355,6 +360,15 @@
 </div>
 
 <!-- ================= PAUSE ================= -->
+<div id="keysPanel" class="panel hidden">
+  <div class="card" style="max-height:92vh;overflow:auto;max-width:560px">
+    <h2 class="display">KEY BINDINGS</h2>
+    <div class="sub">Click an action, then press the key you want. Esc cancels. Mouse: move to look, left click punch/fire, right click aim, middle click look behind, wheel zoom.</div>
+    <div id="keyList"></div>
+    <button class="btn" data-act="keysReset">Reset to defaults</button>
+    <button class="btn primary" data-act="keysBack" data-back>Back</button>
+  </div>
+</div>
 <div id="howto" class="panel hidden">
   <div class="card" style="max-height:92vh;overflow:auto">
     <h2 class="display">HOW TO PLAY</h2>
@@ -513,7 +527,7 @@ renderer.shadowMap.enabled = true;
 const ANISO = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.15, 1200);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.3, 1200);
 camera.position.set(-830, 30, -200);
 
 // ---------------------------------------------------------------- canvas textures
@@ -4514,8 +4528,20 @@ function updateNPCs(dt) {
 //  INPUT
 // ============================================================================
 const keys = {};
+// ---- rebindable computer controls: one main key per action (changeable in Settings), plus fixed extras
+const KB_DEF = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', sprint: 'ShiftLeft', walk: 'CapsLock', jump: 'Space', crouch: 'KeyC', action: 'KeyE', attack: 'KeyF', aim: 'KeyZ', fire: 'KeyK', reload: 'KeyR', weapon: 'KeyQ', fists: 'Digit1', gun: 'Digit2', stomp: 'KeyG', horn: 'KeyH', lights: 'KeyL', flip: 'KeyX', camera: 'KeyV', lookBack: 'KeyB', map: 'KeyM', save: 'F5', pause: 'Escape' };
+const KB_ALT = { forward: ['ArrowUp'], back: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], sprint: ['ShiftRight'], action: ['Enter'], attack: ['KeyJ'], map: ['Tab'], pause: ['KeyP'] };
+const KB_NAMES = { forward: 'Move forward / gas', back: 'Move back / brake / reverse', left: 'Left / steer left', right: 'Right / steer right', sprint: 'Run (hold)', walk: 'Walk slowly (toggle)', jump: 'Jump / handbrake', crouch: 'Crouch', action: 'Action / enter & exit car', attack: 'Punch / fire', aim: 'Aim (hold)', fire: 'Fire', reload: 'Reload', weapon: 'Switch weapon', fists: 'Fists', gun: 'Gun', stomp: 'Stomp', horn: 'Horn', lights: 'Headlights on/off', flip: 'Flip car upright', camera: 'Change camera view', lookBack: 'Look behind (hold)', map: 'Map', save: 'Quick save (free roam)', pause: 'Pause' };
+const kbKey = a => (settings.keys && settings.keys[a]) || KB_DEF[a];
+const kbDown = a => !!(keys[kbKey(a)] || (KB_ALT[a] || []).some(c => keys[c]));
+const kbIs = (a, code) => code === kbKey(a) || (KB_ALT[a] || []).includes(code);
+function keyLabel(c) { if (!c) return '—'; return c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Left Shift').replace('ShiftRight', 'Right Shift').replace('ControlLeft', 'Left Ctrl').replace('ControlRight', 'Right Ctrl').replace('AltLeft', 'Left Alt').replace('Arrow', '').replace('CapsLock', 'Caps Lock').replace('Escape', 'Esc').replace('Space', 'Space').replace('Backquote', '`').replace('Numpad', 'Num '); }
+let rebinding = null;
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
-addEventListener('keydown', e => { keys[e.code] = true; if (e.repeat) { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); return; } if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
+addEventListener('keydown', e => {
+  if (rebinding) { e.preventDefault(); finishRebind(e.code); return; }
+  if (state === 'play' && (e.code === kbKey('save') || e.code === 'Tab' || e.code === 'CapsLock' && kbKey('walk') === 'CapsLock')) e.preventDefault();
+  keys[e.code] = true; if (e.repeat) { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); return; } if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const touch = { joy: null, jx: 0, jy: 0, cam: null, act: false, sprint: false, gas: false, brake: false, hand: false, punch: false, crouch: false, left: false, right: false, aim: false, reload: false, weapon: false, stomp: false };
 let mouseFire = false, jumpEdge = false, punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
@@ -4528,6 +4554,7 @@ addEventListener('pointerdown', e => {
   if (e.target.closest && e.target.closest('.tb, #pauseBtn, #mapWrap')) return;
   if (e.pointerType === 'mouse') {
     if (ctrlMode() !== 'mobile' && document.pointerLockElement !== canvas && canvas.requestPointerLock && !(e.target.closest && e.target.closest('#hud button, #mapWrap'))) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (_) { } }
+    if (e.button === 1) { e.preventDefault && e.preventDefault(); mouseBack = true; return; }
     if (e.button === 2) { mouseAim = true; return; }
     const ready = document.pointerLockElement === canvas || ctrlMode() === 'mobile';
     if (e.button === 0 && !P.inCar && ready) { if (W && W.cur === 'glock') { fireEdge = true; mouseFire = true; } else if (document.pointerLockElement === canvas) { if (nearDownedQuick()) stompEdge = true; else punchEdge = true; } }
@@ -4541,7 +4568,7 @@ addEventListener('pointerdown', e => {
   } else if (!touch.cam) touch.cam = { id: e.pointerId, x: e.clientX, y: e.clientY };
 });
 addEventListener('mousemove', e => { if (document.pointerLockElement === canvas && state === 'play') { camDelta.x += e.movementX * 0.8; camDelta.y += e.movementY * 0.8; } });
-addEventListener('wheel', e => { if (state === 'play' && document.pointerLockElement === canvas && !P.inCar) switchEdge = true; }, { passive: true });
+addEventListener('wheel', e => { if (state === 'play') camZoom = clamp(camZoom * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 0.55, 2.4); }, { passive: true });
 document.addEventListener('pointerlockchange', () => { document.body.classList.toggle('mouselook', document.pointerLockElement === canvas); if (document.pointerLockElement !== canvas && state === 'play' && ctrlMode() === 'computer') pauseGame(); });
 addEventListener('pointermove', e => {
   if (touch.joy && e.pointerId === touch.joy.id) {
@@ -4559,6 +4586,7 @@ const endPtr = e => {
   if (touch.cam && e.pointerId === touch.cam.id) touch.cam = null;
   if (mouseCam && e.pointerId === mouseCam.id) mouseCam = null;
   if (e.pointerType === 'mouse' && e.button === 2) mouseAim = false;
+  if (e.pointerType === 'mouse' && e.button === 1) mouseBack = false;
   if (e.pointerType === 'mouse' && e.button === 0) mouseFire = false;
 };
 addEventListener('pointerup', endPtr); addEventListener('pointercancel', endPtr);
@@ -4588,29 +4616,29 @@ function pollInput(dt) {
     mx = dead(pad.axes[0] || 0); my = -dead(pad.axes[1] || 0); cx = dead(pad.axes[2] || 0); cy = dead(pad.axes[3] || 0);
     if (bt(14)) mx = -1; if (bt(15)) mx = 1; if (bt(12)) my = 1; if (bt(13)) my = -1;
   }
-  if (keys.KeyA || keys.ArrowLeft) mx = -1; if (keys.KeyD || keys.ArrowRight) mx = 1;
-  if (keys.KeyW || keys.ArrowUp) my = 1; if (keys.KeyS || keys.ArrowDown) my = -1;
+  if (kbDown('left')) mx = -1; if (kbDown('right')) mx = 1;
+  if (kbDown('forward')) my = 1; if (kbDown('back')) my = -1;
   if (touch.joy) { mx = touch.jx; my = touch.jy; }
   if (touch.left || touch.right) mx = (touch.right ? 1 : 0) - (touch.left ? 1 : 0);
   inp.mx = mx; inp.my = my; inp.cx = cx; inp.cy = cy;
-  inp.sprint = bt(1) || bt(10) || keys.ShiftLeft || keys.ShiftRight || touch.sprint;
-  inp.act = bt(0) || keys.KeyE || keys.Enter || touch.act;
+  inp.sprint = bt(1) || bt(10) || kbDown('sprint') || touch.sprint;
+  inp.act = bt(0) || kbDown('action') || touch.act;
   inp.actEdge = edge(0) || actEdge; actEdge = false;
-  inp.jump = jumpEdge || (!P.inCar && keys.Space && !inp.spaceHeld) || (!P.inCar && edge(0) && !(state === 'play' && currentInteraction())); inp.spaceHeld = !!keys.Space; jumpEdge = false;
+  inp.jump = jumpEdge || (!P.inCar && kbDown('jump') && !inp.spaceHeld) || (!P.inCar && edge(0) && !(state === 'play' && currentInteraction())); inp.spaceHeld = kbDown('jump'); jumpEdge = false;
   const armed = W && W.cur === 'glock' && !P.inCar;
   if (!armed) touch.aimOn = false;
-  inp.aim = (armed && (bv(6) > 0.3 || touch.aimOn || mouseAim || keys.KeyV));
-  inp.fire = armed && (bt(7) || fireEdge || touch.punch || keys.KeyK || mouseFire); touch.punchHeld = touch.punch; fireEdge = false;
-  inp.reload = (armed && edge(2) && !nearDownedQuick()) || reloadEdge || keys.KeyR; reloadEdge = false;
+  inp.aim = (armed && (bv(6) > 0.3 || touch.aimOn || mouseAim || kbDown('aim')));
+  inp.fire = armed && (bt(7) || fireEdge || touch.punch || kbDown('fire') || mouseFire); touch.punchHeld = touch.punch; fireEdge = false;
+  inp.reload = (armed && edge(2) && !nearDownedQuick()) || reloadEdge || kbDown('reload'); reloadEdge = false;
   inp.switchW = (!P.inCar && (edge(4) || edge(5))) || switchEdge; switchEdge = false;
   inp.stomp = stompEdge || (edge(2) && nearDownedQuick()); stompEdge = false;
   inp.punch = !armed && ((edge(2) && !nearDownedQuick()) || punchEdge); punchEdge = false;
   inp.crouch = edge(3) || crouchEdge; crouchEdge = false;
   inp.horn = P.inCar && (edge(4) || edge(5)) || hornEdge; hornEdge = false;
-  inp.thr = Math.max(bv(7), (keys.KeyW || keys.ArrowUp) ? 1 : 0, touch.gas ? 1 : 0, (!touch.gas && touch.joy && touch.jy > 0.35) ? touch.jy : 0, pad && !bv(7) && !bv(6) ? Math.max(0, my) * 0 : 0);
-  inp.brk = Math.max(bv(6), (keys.KeyS || keys.ArrowDown) ? 1 : 0, touch.brake ? 1 : 0, (!touch.brake && touch.joy && touch.jy < -0.35) ? -touch.jy : 0);
+  inp.thr = Math.max(bv(7), kbDown('forward') ? 1 : 0, touch.gas ? 1 : 0, (!touch.gas && touch.joy && touch.jy > 0.35) ? touch.jy : 0, pad && !bv(7) && !bv(6) ? Math.max(0, my) * 0 : 0);
+  inp.brk = Math.max(bv(6), kbDown('back') ? 1 : 0, touch.brake ? 1 : 0, (!touch.brake && touch.joy && touch.jy < -0.35) ? -touch.jy : 0);
   if (pad && bv(7) < 0.05 && bv(6) < 0.05) { if (bt(12)) inp.thr = 1; if (bt(13)) inp.brk = 1; }
-  inp.hand = (bt(1) || keys.Space || touch.hand) ? 1 : 0;
+  inp.hand = (bt(1) || kbDown('jump') || touch.hand) ? 1 : 0;
   if (pad && state === 'map') { pollMapPad(pad, bt, edge, dt); padPrev = pad.buttons.map(b => b.pressed || b.value > 0.5); return; }
   if (pad && edge(8) && state === 'play') { openMap(); padPrev = pad.buttons.map(b => b.pressed || b.value > 0.5); return; }
   if (pad) {
@@ -4630,26 +4658,33 @@ function pollInput(dt) {
 function onKeyEdge(code) {
   AU.init();
   if (state === 'map') { mapKey(code); return; }
-  if (code === 'KeyM' && state === 'play') { openMap(); return; }
-  if (code === 'Escape' || code === 'KeyP') { if (state === 'play') pauseGame(); else if (state === 'pause') resumeGame(); else menuBack(); return; }
+  if (kbIs('map', code) && state === 'play') { openMap(); return; }
+  if (code === 'Escape' || kbIs('pause', code)) { if (state === 'play') pauseGame(); else if (state === 'pause') resumeGame(); else menuBack(); return; }
   if (state === 'cine' && (code === 'Space' || code === 'Enter' || code === 'KeyE')) { skipCine(); return; }
   if (state !== 'play') {
     if (code === 'ArrowUp' || code === 'KeyW') menuMove(-1); if (code === 'ArrowDown' || code === 'KeyS') menuMove(1);
     if (code === 'ArrowLeft' || code === 'KeyA') menuCycle(-1); if (code === 'ArrowRight' || code === 'KeyD') menuCycle(1);
     if (code === 'Enter' || code === 'Space') menuActivate();
-  } else if (code === 'KeyE' || code === 'Enter') actEdge = true;
-  else if (code === 'KeyF' || code === 'KeyJ') { if (nearDownedQuick()) stompEdge = true; else if (W && W.cur === 'glock') fireEdge = true; else punchEdge = true; }
-  else if (code === 'KeyG') stompEdge = true;
-  else if (code === 'KeyQ' || code === 'Digit1' || code === 'Digit2') switchEdge = true;
-  else if (code === 'KeyC') crouchEdge = true;
-  else if (code === 'KeyH') hornEdge = true;
+  } else if (kbIs('action', code)) actEdge = true;
+  else if (kbIs('attack', code)) { if (nearDownedQuick()) stompEdge = true; else if (W && W.cur === 'glock') fireEdge = true; else punchEdge = true; }
+  else if (kbIs('stomp', code)) stompEdge = true;
+  else if (kbIs('weapon', code)) switchEdge = true;
+  else if (kbIs('fists', code)) { if (W && W.cur !== 'fists' && !P.inCar) switchEdge = true; }
+  else if (kbIs('gun', code)) { if (W && W.cur !== 'glock' && !P.inCar) switchEdge = true; }
+  else if (kbIs('crouch', code)) crouchEdge = true;
+  else if (kbIs('horn', code)) hornEdge = true;
+  else if (kbIs('lights', code)) { headOn = !headOn; toast(headOn ? 'HEADLIGHTS ON' : 'HEADLIGHTS OFF', 1); }
+  else if (kbIs('camera', code)) { camView = (camView + 1) % 3; toast(['CAMERA: NORMAL', 'CAMERA: FAR', 'CAMERA: CLOSE'][camView], 1); }
+  else if (kbIs('walk', code)) { P.walk = !P.walk; toast(P.walk ? 'WALKING' : 'JOGGING', 1); }
+  else if (kbIs('flip', code)) { if (P.inCar && car.speed < 3) { car.set(car.x, car.z, car.h); toast('CAR FLIPPED UPRIGHT', 1.2); } }
+  else if (kbIs('save', code)) { if (MS.free) saveGame(); else toast('SAVE IN FREE ROAM', 1.4); }
 }
 
 // ============================================================================
 //  MENUS
 // ============================================================================
 let state = 'loading', prevState = null, menuSel = 0, settingsFrom = 'menu';
-const overlays = { howto: 'howto', menu: 'mainMenu', settings: 'settings', brief: 'brief', pause: 'pause', passed: 'passed', failed: 'failed', missions: 'missions' };
+const overlays = { keys: 'keysPanel', howto: 'howto', menu: 'mainMenu', settings: 'settings', brief: 'brief', pause: 'pause', passed: 'passed', failed: 'failed', missions: 'missions' };
 function menuItems() { const id = overlays[state]; if (!id) return []; return [...$(id).querySelectorAll('.btn')].filter(b => b.offsetParent !== null); }
 function menuShowSel() { const it = menuItems(); it.forEach((b, i) => b.classList.toggle('sel', i === menuSel)); }
 function menuMove(d) { const it = menuItems(); if (!it.length) return; menuSel = (menuSel + d + it.length) % it.length; menuShowSel(); AU.beep(660, 0.05, 'square', 0.04); }
@@ -4657,6 +4692,25 @@ function menuCycle(d) { const b = menuItems()[menuSel]; if (b && b.dataset.cycle
 function menuActivate() { const b = menuItems()[menuSel]; if (b) b.click(); }
 function menuBack() { const id = overlays[state]; if (!id) return; const b = $(id).querySelector('[data-back]'); if (b) b.click(); }
 let howFrom = 'menu';
+function fillKeys() {
+  const el = $('keyList'); el.innerHTML = '';
+  for (const a in KB_DEF) {
+    const b = document.createElement('button'); b.className = 'btn kb'; b.dataset.act = 'rebind'; b.dataset.k = a;
+    const alt = (KB_ALT[a] || []).map(keyLabel).join(' / ');
+    b.innerHTML = `<span>${KB_NAMES[a]}</span><span class="val">${keyLabel(kbKey(a))}${alt ? ' <small>or ' + alt + '</small>' : ''}</span>`;
+    el.appendChild(b);
+  }
+  menuShowSel();
+}
+function finishRebind(code) {
+  const a = rebinding; rebinding = null;
+  if (code !== 'Escape' || a === 'pause') {
+    settings.keys = settings.keys || {};
+    for (const o in KB_DEF) if (o !== a && kbKey(o) === code) settings.keys[o] = kbKey(a); // swap with whatever used that key
+    settings.keys[a] = code; store.set('sl.settings', settings);
+  }
+  fillKeys();
+}
 function ctrlMode() { const s = settings.controls || 'auto'; if (s !== 'auto') return s; return getPad() ? 'console' : isTouch ? 'mobile' : 'computer'; }
 function applyControls() {
   const m = ctrlMode();
@@ -4669,9 +4723,11 @@ function fillHowTo() {
   const m = ctrlMode(), K = (k, t) => `<div><kbd>${k}</kbd>${t}</div>`, H = t => `<h4>${t}</h4>`;
   $('howMode').textContent = 'Controls: ' + ({ mobile: 'Mobile (touch)', computer: 'Computer (keyboard + mouse)', console: 'Console (controller)' })[m] + ' — change it in Settings';
   let h = '';
-  if (m === 'computer') h = H('ON FOOT') + K('W A S D', 'Move') + K('Mouse', 'Look around') + K('Shift', 'Run') + K('Space', 'Jump') + K('C', 'Crouch') + K('E', 'Get in car / action') + K('Left click', 'Punch / fire') + K('Right click', 'Aim (hold)') + K('R', 'Reload') + K('Q / wheel', 'Switch weapon') + K('G', 'Stomp') + K('M', 'Map') + K('Esc', 'Pause')
-    + H('DRIVING') + K('W', 'Gas') + K('S', 'Brake / reverse') + K('A D', 'Steer') + K('Space', 'Handbrake') + K('H', 'Horn') + K('E', 'Get out') + K('Mouse', 'Look around')
-    + H('TIP') + '<div style="grid-column:1/-1">Click the game once to lock the mouse for looking around. Press Esc to free it (the game pauses).</div>';
+  const KK = a => keyLabel(kbKey(a));
+  if (m === 'computer') h = H('ON FOOT') + K(KK('forward') + ' ' + KK('left') + ' ' + KK('back') + ' ' + KK('right'), 'Move') + K('Mouse', 'Look around') + K(KK('sprint'), 'Run') + K(KK('walk'), 'Walk slowly') + K(KK('jump'), 'Jump') + K(KK('crouch'), 'Crouch') + K(KK('action'), 'Get in car / action') + K('Left click / ' + KK('attack'), 'Punch / fire') + K('Right click / ' + KK('aim'), 'Aim (hold)') + K(KK('reload'), 'Reload') + K(KK('weapon') + ' / ' + KK('fists') + ' / ' + KK('gun'), 'Switch weapon') + K(KK('stomp'), 'Stomp')
+    + H('DRIVING') + K(KK('forward'), 'Gas') + K(KK('back'), 'Brake / reverse') + K(KK('left') + ' ' + KK('right'), 'Steer') + K(KK('jump'), 'Handbrake') + K(KK('horn'), 'Horn') + K(KK('lights'), 'Headlights') + K(KK('flip'), 'Flip car upright') + K(KK('action'), 'Get out')
+    + H('CAMERA & MORE') + K('Wheel', 'Zoom in / out') + K(KK('camera'), 'Camera view') + K('Middle click / ' + KK('lookBack'), 'Look behind') + K(KK('map') + ' / Tab', 'Map') + K(KK('save'), 'Quick save') + K('Esc', 'Pause')
+    + H('TIP') + '<div style="grid-column:1/-1">Click the game once to lock the mouse for looking around. Press Esc to free it (the game pauses). Change any key in Settings → Key Bindings.</div>';
   else if (m === 'console') h = H('ON FOOT') + K('Left stick', 'Move') + K('Right stick', 'Look') + K('A', 'Jump / action') + K('B', 'Run') + K('X', 'Punch / reload / stomp') + K('Y', 'Crouch') + K('LT', 'Aim') + K('RT', 'Fire') + K('LB / RB', 'Switch weapon') + K('View', 'Map') + K('Start', 'Pause')
     + H('DRIVING') + K('RT', 'Gas') + K('LT', 'Brake / reverse') + K('Left stick', 'Steer') + K('B', 'Handbrake') + K('LB / RB', 'Horn') + K('A', 'Get out')
     + H('MAP') + K('Stick', 'Move cursor') + K('A', 'Set waypoint') + K('X', 'Clear waypoint') + K('LT / RT', 'Zoom') + K('B', 'Close');
@@ -4697,6 +4753,10 @@ document.addEventListener('click', e => {
   else if (a === 'continue') continueGame();
   else if (a === 'save') { if (MS.free) { saveGame(); resumeGame(); } else toast('SAVE IN FREE ROAM', 1.6); }
   else if (a === 'freeroam') startFreeRoam();
+  else if (a === 'keys') { fillKeys(); show('keys'); }
+  else if (a === 'keysBack') { rebinding = null; show('settings'); }
+  else if (a === 'keysReset') { settings.keys = {}; store.set('sl.settings', settings); fillKeys(); toast('CONTROLS RESET', 1.2); }
+  else if (a === 'rebind') { rebinding = b.dataset.k; b.querySelector('.val').textContent = 'Press a key…'; }
   else if (a === 'howto') { howFrom = state; fillHowTo(); show('howto'); }
   else if (a === 'howBack') { show(howFrom === 'pause' ? 'pause' : howFrom === 'settings' ? 'settings' : 'menu'); }
   else if (a === 'settings') { settingsFrom = state === 'pause' ? 'pause' : 'menu'; show('settings'); }
@@ -4714,6 +4774,7 @@ function cycleSetting(k, d) {
   if (k === 'music') { settings.music = !settings.music; if (settings.music) { AU.init(); AU.musicOn(); } else AU.musicOff(); }
   if (k === 'sens') { const o = [0.6, 1, 1.5]; settings.sens = o[(o.indexOf(settings.sens) + d + 3) % 3] || 1; }
   if (k === 'fps') { settings.fps = !settings.fps; $('fps').classList.toggle('hidden', !settings.fps); }
+  if (k === 'invertY') settings.invertY = !settings.invertY;
   if (k === 'controls') { const o = ['auto', 'mobile', 'computer', 'console']; settings.controls = o[(o.indexOf(settings.controls || 'auto') + d + 4) % 4]; applyControls(); }
   if (k === 'gore') { const o = ['medium', 'high', 'ultra']; settings.gore = o[(o.indexOf(settings.gore) + d + 3) % 3]; }
   store.set('sl.settings', settings); refreshSettings();
@@ -4725,12 +4786,22 @@ function refreshSettings() {
   $('vGore').textContent = ({ medium: 'Medium', high: 'High', ultra: 'Ultra' })[settings.gore] || 'Ultra';
   $('fps').classList.toggle('hidden', !settings.fps);
   $('vMusic').textContent = settings.music ? 'On' : 'Off';
+  $('vInvert').textContent = settings.invertY ? 'On' : 'Off';
   $('vControls').textContent = ({ auto: 'Auto (' + ({ mobile: 'Mobile', computer: 'Computer', console: 'Console' })[ctrlMode()] + ')', mobile: 'Mobile (touch)', computer: 'Computer (keyboard + mouse)', console: 'Console (controller)' })[settings.controls || 'auto'];
+}
+const PIX_BUDGET = { low: 0.9e6, medium: 1.6e6, high: 2.6e6, ultra: 3.8e6 };
+let resScale = 1, ftAvg = 16, resT = 0;
+function basePixelRatio() { const q = QUAL[settings.quality]; return Math.max(0.5, Math.min(window.devicePixelRatio || 1, q.pr, Math.sqrt(PIX_BUDGET[settings.quality] / Math.max(1, innerWidth * innerHeight)))); }
+// keeps the frame rate up: lowers the render resolution a little when frames get slow, raises it back when there's headroom
+function adaptResolution(rawDt) {
+  ftAvg = lerp(ftAvg, Math.min(rawDt * 1000, 200), 0.05); resT += rawDt; if (resT < 2) return; resT = 0;
+  let s = resScale; if (ftAvg > 36 && s > 0.55) s *= 0.87; else if (ftAvg < 21 && s < 1) s = Math.min(1, s * 1.07);
+  if (Math.abs(s - resScale) > 0.01) { resScale = s; renderer.setPixelRatio(basePixelRatio() * resScale); resize(); }
 }
 function applyQuality() {
   if (!sun) return;
   const q = QUAL[settings.quality];
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, q.pr));
+  resScale = 1; renderer.setPixelRatio(basePixelRatio());
   if (renderer.shadowMap.enabled !== q.shadows) {
     renderer.shadowMap.enabled = q.shadows;
     scene.traverse(o => { if (o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m => m.needsUpdate = true); });
@@ -5073,13 +5144,13 @@ function resolvePunch() {
 // ============================================================================
 let baseFov = 60, camYaw = 0, camPitch = 0.3, camDist = 4, camIdle = 0;
 const camPos = new THREE.Vector3(), camLook = new THREE.Vector3();
-let camLift = 0;
+let camLift = 0, camView = 0, camZoom = 1, headOn = true, mouseBack = false;
 function updateCamera(dt) {
   if (!Number.isFinite(camYaw + camPitch + camDist + camLift)) { camYaw = P.inCar ? car.h + Math.PI : P.h + Math.PI; camPitch = 0.25; camDist = 5; camLift = 0; }
   const sens = settings.sens;
   const dragging = Math.abs(camDelta.x) + Math.abs(camDelta.y) > 0 || Math.abs(inp.cx) + Math.abs(inp.cy) > 0;
   camYaw -= (camDelta.x * 0.0055 * sens + inp.cx * dt * 2.6 * sens) * (W && W.aim > 0.3 && !P.inCar ? 0.55 : 1);
-  const aiming = W && W.aim > 0.3 && !P.inCar; camPitch = clamp(camPitch + camDelta.y * 0.004 * sens * (aiming ? 0.6 : 1) + inp.cy * dt * 1.8 * sens * (aiming ? 0.6 : 1), aiming ? -0.7 : -0.25, 1.2);
+  const aiming = W && W.aim > 0.3 && !P.inCar; camPitch = clamp(camPitch + camDelta.y * 0.004 * sens * (settings.invertY ? -1 : 1) * (aiming ? 0.6 : 1) + inp.cy * dt * 1.8 * sens * (aiming ? 0.6 : 1), aiming ? -0.7 : -0.25, 1.2);
   if (aiming && W.lock && (camDelta.x || camDelta.y || inp.cx || inp.cy)) { W.lockYO = clamp((W.lockYO || 0) - camDelta.x * 0.003 - inp.cx * dt * 0.8, -0.3, 0.3); W.lockPO = clamp((W.lockPO || 0) + camDelta.y * 0.003 + inp.cy * dt * 0.8, -0.35, 0.4); }
   camDelta.x = camDelta.y = 0;
   camIdle = dragging ? 0 : camIdle + dt;
@@ -5096,8 +5167,10 @@ function updateCamera(dt) {
     tx = P.x; ty = (P.sprint ? 1.55 : 1.5 - sneakAmt * 0.3) + (P.y || 0) * 0.6; tz = P.z; dist = lerp(ins || INTERIORS.some(I => P.x > I.x1 && P.x < I.x2 && P.z > I.z1 && P.z < I.z2) ? 3.0 : combat.fightT > 0 ? 3.4 : 4.0, 1.7, W ? W.aim : 0);
     if (camIdle > 2.5 && P.spd > 1) { camYaw += wrapA(P.h + Math.PI - camYaw) * Math.min(1, dt * 0.8); }
   }
+  dist *= [1, 1.6, 0.62][camView] * camZoom;
   camDist = lerp(camDist, dist, Math.min(1, dt * 3));
-  const cp = Math.cos(camPitch), ox = Math.sin(camYaw) * cp, oy = Math.sin(camPitch), oz = Math.cos(camYaw) * cp;
+  const lookBack = state === 'play' && (kbDown('lookBack') || mouseBack), yawC = camYaw + (lookBack ? Math.PI : 0);
+  const cp = Math.cos(camPitch), ox = Math.sin(yawC) * cp, oy = Math.sin(camPitch), oz = Math.cos(yawC) * cp;
   // shoulder offset
   const so = P.inCar ? 0 : 0.45 + (W ? W.aim * 0.2 : 0); const sx = Math.cos(camYaw) * so, sz = -Math.sin(camYaw) * so;
   let d = camDist;
@@ -5237,7 +5310,7 @@ function updatePlayer(dt) {
   if (P.sprint) P.crouch = false;
   const fighting = combat.fightT > 0;
   const inside = insideWH(P.x, P.z, 2);
-  const top = player.busy() ? 0.6 : W.aim > 0.5 ? 2.0 : P.sprint ? 6.3 : P.crouch ? 1.55 : fighting ? 1.7 : (!MS.free && MS.stage <= 2 && inside ? 2.2 : 2.8);
+  const top = player.busy() ? 0.6 : W.aim > 0.5 ? 2.0 : P.sprint ? 6.3 : P.crouch ? 1.55 : fighting ? 1.7 : P.walk ? 1.3 : (!MS.free && MS.stage <= 2 && inside ? 2.2 : 2.8);
   const tvx = mx * mag * top, tvz = mz * mag * top;
   const dvx = tvx - P.vx, dvz = tvz - P.vz, dl = Math.hypot(dvx, dvz);
   const accel = (Math.hypot(tvx, tvz) > P.spd ? (P.sprint ? 7.5 : 6) : 11) * dt * (P.y > 0 ? 0.22 : 1);
@@ -5463,7 +5536,7 @@ function update(dt) {
   cityAmbience(dt);
   const q = QUAL[settings.quality];
   const lightsOn = q.lights;
-  headL.intensity = lightsOn && P.inCar && !car.headBroken ? 14 : 0; if (!car.headBroken) car.m.head.emissiveIntensity = 0.9; for (const f of car.m.flares) f.visible = !car.headBroken; car.lightsOn = true;
+  headL.intensity = lightsOn && headOn && P.inCar && !car.headBroken ? 14 : 0; if (!car.headBroken) car.m.head.emissiveIntensity = headOn ? 0.9 : 0.05; for (const f of car.m.flares) f.visible = !car.headBroken && headOn; car.lightsOn = true;
   for (const a of traffic) if (!a.v.headBroken) a.v.m.head.emissiveIntensity = 0.9;
   // shadow camera follows the action (texel snapped)
   const fx = P.inCar ? car.x : P.x, fz = P.inCar ? car.z : P.z;
@@ -5504,6 +5577,7 @@ function loop(now) {
   requestAnimationFrame(loop);
   const rawDt = (now - lastT) / 1000, dt = Math.min(0.05, rawDt); lastT = now;
   pollInput(dt);
+  if (state === 'play' && !window.__reps) adaptResolution(rawDt);
   { const on = (state === 'play' || state === 'cine') && !document.hidden; AU.gate(on); AU.idle(on); }
   if (state === 'loading') return;
   if (state === 'play' || state === 'cine') {
