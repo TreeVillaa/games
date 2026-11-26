@@ -320,7 +320,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0612</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0729</div>
   </div>
 </div>
 
@@ -329,7 +329,6 @@
   <div class="card">
     <h2 class="display">MISSIONS</h2>
     <button class="btn" data-act="m1" id="mBtn1">1 · The Quiet Job <span class="st"></span></button>
-    <button class="btn" data-act="m2" id="mBtn2">2 · House Call <span class="st"></span></button>
     <button class="btn primary" data-act="back" data-back>Back</button>
   </div>
 </div>
@@ -2789,12 +2788,12 @@ function makePerson(o) {
       // ---- jumping: stride in the air, arms up for balance, squash on landing
       if (c.air) {
         const up = clamp((c.vy || 0) / 5, -1, 1);
-        lL[0] = -0.75 - 0.2 * up; lL[1] = 1.15 + 0.2 * up; lL[2] = -0.2;
-        lR[0] = 0.15 + 0.15 * up; lR[1] = 0.55 + 0.4 * Math.max(0, -up); lR[2] = 0.3;
+        lL[0] = -0.45 - 0.1 * up; lL[1] = 0.6 + 0.1 * up; lL[2] = -0.1;
+        lR[0] = 0.1 + 0.05 * up; lR[1] = 0.3 + 0.2 * Math.max(0, -up); lR[2] = 0.15;
         if (!c.gun) { pose.L.x = 0.35; pose.R.x = -0.9; pose.L.z = 0.35; pose.R.z = -0.35; pose.L.el = -0.4; pose.R.el = -0.6; }
         torsoX = 0.12 - 0.08 * up; hipY = 0.97;
       }
-      if (c.land > 0) { const k = c.land; hipY -= 0.16 * k; lL[0] -= 0.55 * k; lR[0] -= 0.55 * k; lL[1] += 1.0 * k; lR[1] += 1.0 * k; lL[2] -= 0.4 * k; lR[2] -= 0.4 * k; torsoX += 0.3 * k; }
+      if (c.land > 0) { const k = c.land * 0.6; hipY -= 0.12 * k; lL[0] -= 0.45 * k; lR[0] -= 0.45 * k; lL[1] += 0.85 * k; lR[1] += 0.85 * k; lL[2] -= 0.38 * k; lR[2] -= 0.38 * k; torsoX += 0.25 * k; }
       // ---- sitting
       if (c.sit) { hipY = 0.55; lL[0] = lR[0] = -1.5; lL[1] = lR[1] = 1.5; lL[2] = lR[2] = 0; torsoX = -0.08; pose.L.x = pose.R.x = -0.35; pose.L.el = pose.R.el = -0.6; }
       // ---- wounded: clutching the stomach, hunched
@@ -4130,7 +4129,8 @@ function updateNPCs(dt) {
 //  INPUT
 // ============================================================================
 const keys = {};
-addEventListener('keydown', e => { keys[e.code] = true; if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+addEventListener('keydown', e => { keys[e.code] = true; if (e.repeat) { if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); return; } if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault(); onKeyEdge(e.code); });
 addEventListener('keyup', e => { keys[e.code] = false; });
 const touch = { joy: null, jx: 0, jy: 0, cam: null, act: false, sprint: false, gas: false, brake: false, hand: false, punch: false, crouch: false, left: false, right: false, aim: false, reload: false, weapon: false, stomp: false };
 let mouseFire = false, jumpEdge = false, punchEdge = false, crouchEdge = false, hornEdge = false, fireEdge = false, reloadEdge = false, switchEdge = false, stompEdge = false, mouseAim = false;
@@ -4256,7 +4256,7 @@ function onKeyEdge(code) {
   else if (code === 'KeyF' || code === 'KeyJ') { if (nearDownedQuick()) stompEdge = true; else if (W && W.cur === 'glock') fireEdge = true; else punchEdge = true; }
   else if (code === 'KeyG') stompEdge = true;
   else if (code === 'KeyQ' || code === 'Digit1' || code === 'Digit2') switchEdge = true;
-  else if (code === 'KeyC' || code === 'ControlLeft') crouchEdge = true;
+  else if (code === 'KeyC') crouchEdge = true;
   else if (code === 'KeyH') hornEdge = true;
 }
 
@@ -4308,7 +4308,7 @@ document.addEventListener('click', e => {
   if (b.dataset.cycle) { cycleSetting(b.dataset.cycle, 1); return; }
   const a = b.dataset.act;
   if (a === 'play') { AU.musicOn(); refreshMissionList(); show('missions'); }
-  else if (a === 'm1' || a === 'm2') { const id = +a[1]; if (id > 1 && !(save.missions || {})[id - 1]) { toast('LOCKED', 1); return; } MS.next = id; fillBrief(id); show('brief'); }
+  else if (a === 'm1') { const id = +a[1]; if (id > 1 && !(save.missions || {})[id - 1]) { toast('LOCKED', 1); return; } MS.next = id; fillBrief(id); show('brief'); }
   else if (a === 'continue') continueGame();
   else if (a === 'save') { if (MS.free) { saveGame(); resumeGame(); } else toast('SAVE IN FREE ROAM', 1.6); }
   else if (a === 'freeroam') startFreeRoam();
@@ -4405,7 +4405,7 @@ function fillBrief(id) {
 }
 function refreshMissionList() {
   const ms = save.missions || {};
-  for (const id of [1, 2]) { const b = $('mBtn' + id), open = id === 1 || ms[id - 1]; b.classList.toggle('locked', !open); b.querySelector('.st').textContent = ms[id] ? 'PASSED' : open ? '' : 'LOCKED'; }
+  for (const id of [1]) { const b = $('mBtn' + id), open = id === 1 || ms[id - 1]; b.classList.toggle('locked', !open); b.querySelector('.st').textContent = ms[id] ? 'PASSED' : open ? '' : 'LOCKED'; }
 }
 function continueGame() {
   const s = save.pos; if (!s) return startFreeRoam();
@@ -4429,10 +4429,10 @@ function clearGore() {
   CAS.list.length = 0;
 }
 function startMission(id = 1) {
+  id = 1; // only one mission for now
   AU.musicOff(); fadeOut(() => {
     resetWorld(); MS.id = id;
     MS.free = false; MS.stage = 0; MS.t = 0;
-    if (id > 1) { startContract(id); fadeIn(); return; }
     clearMissionEnts(); W.has.glock = !!save.glock; W.suppressed = !!save.glock; W.infinite = true; if (W.cur === 'glock' && !W.has.glock) switchWeapon();
     P.x = PLAYER_START.x; P.z = PLAYER_START.z; P.h = Math.PI;
     camYaw = 0.0; camPitch = 0.3;
@@ -4471,7 +4471,7 @@ function passMission() {
   store.set('sl.save', save);
   $('passed').querySelector('.sub').textContent = id === 1 ? "You've passed your first mission!" : 'Contract complete. Vance paid in full.';
   $('passed').querySelector('.money').textContent = '+$' + M.pay.toLocaleString('en-US');
-  $('passed').querySelector('.note').textContent = 'Mission ' + id + ' — ' + M.title + (id < 2 ? ' · Next mission unlocked' : ' · More missions coming soon') + ' · Game saved';
+  $('passed').querySelector('.note').textContent = 'Mission ' + id + ' — ' + M.title + ' · More missions coming soon' + ' · Game saved';
   setObjective(''); $('timer').classList.add('hidden');
   state = 'cine'; cine = { t: 0, dur: 3.2, outro: true };
   setTimeout(() => { AU.passed(); show('passed'); }, 1800);
@@ -4843,7 +4843,7 @@ function updatePlayer(dt) {
   // ---- jumping (gravity arc, air control, landing squash + dust)
   if (inp.jump && P.y <= 0 && !player.busy() && (W.aim < 0.5) && !seq) {
     if (P.crouch) P.crouch = false;
-    P.vy = 4.7 + Math.min(Math.hypot(P.vx, P.vz), 6.5) * 0.12; P.y = 0.001; AU.hit(0.07, 500, 0.05);
+    P.vy = 3.7 + Math.min(Math.hypot(P.vx, P.vz), 6.5) * 0.08; P.y = 0.001; AU.hit(0.07, 500, 0.05);
   }
   const armed = W.cur === 'glock';
   W.aim = damp(W.aim, armed && inp.aim && W.reloadT < 0 ? 1 : 0, 14, dt);
@@ -4873,7 +4873,7 @@ function updatePlayer(dt) {
   if (act && act.t > 0.25 && act.t < 0.5) { P.vx += Math.sin(P.h) * act.def.lunge * dt * 9; P.vz += Math.cos(P.h) * act.def.lunge * dt * 9; }
   P.x += P.vx * dt; P.z += P.vz * dt;
   if (P.y > 0 || P.vy > 0) {
-    P.vy -= (P.vy > 0 ? 11 : 16) * dt; P.y += P.vy * dt;
+    P.vy -= (P.vy > 0 ? 13 : 17) * dt; P.y += P.vy * dt;
     if (P.y <= 0) { const imp = -P.vy; P.y = 0; P.vy = 0; P.land = Math.min(1, imp / 6); FX.dust(P.x, P.z, 3 + (imp > 5 ? 3 : 0)); AU.hit(0.1 + imp * 0.02, 300, 0.08); P.noise = Math.max(P.noise, 0.45); if (imp > 6) shakeAmt = Math.max(shakeAmt, 0.08); }
   }
   P.land = Math.max(0, (P.land || 0) - dt * 4.5);
@@ -5167,7 +5167,7 @@ async function boot() {
   const steps = [
     ['Mixing paint', buildTextures], ['Preparing materials', buildMaterials], ['Painting the Texas sky', buildSky], ['Grading the land', buildGround],
     ['Paving FM 427', () => { buildRoadGraph(); buildRoads(); }], ['Building Ritter Feed & Supply', buildWarehouse],
-    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building 412 Oak Street', () => { buildHitHouse(); }], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing grass', buildGrass],
+    ['Raising the water tower', buildLandmarks], ['Building San Felipe, Westlake and the Port of Galveston', buildTowns], ['Building houses', placeHouses], ['Planting mesquite trees', buildTrees], ['Growing grass', buildGrass],
     ['Assembling the state', flushBatches], ['Drawing the map', renderMapCanvas], ['Fueling the Corolla', () => { spawnActors(); buildMarker(); initCombat(); }],
     ['Photographing the state from above', renderSatMap], ['Warming up', () => { applyQuality(); camera.position.set(-830, 20, -200); camera.lookAt(-860, 0, -250); renderer.compile(scene, camera); renderer.render(scene, camera); }],
   ];
@@ -5776,7 +5776,6 @@ function hurtPlayer(dmg, fx, fz) {
 const MS2 = { ents: [] };
 const MISSIONS = {
   1: { title: 'THE QUIET JOB', pay: 48500 },
-  2: { title: 'HOUSE CALL', pay: 25000, brief: 'A man called Vance has hired you as a hitman. Three men who owe him are holed up at 412 Oak Street in town. Two of them are armed and will shoot back. You start with a Glock 19.', obj: ['Drive from your house to 412 Oak Street.', 'Kill all three men inside. Two of them have guns. Do not let anyone get away.', 'Drive back home to get paid.'] },
 };
 function makeTarget(x, z, h, o, extra) {
   const m = makePerson(Object.assign({ lo: true }, o)); scene.add(m.root);
