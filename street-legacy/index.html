@@ -313,6 +313,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0412</div>
   </div>
 </div>
 
@@ -1252,9 +1253,9 @@ function worldMaterials() {
     });
     return [map, em];
   };
-  const [fA, fAe] = facade('#46525c', '#2a3036', '#203040', '#5a7088', 0.36, 512, 8, 8);
+  const [fA, fAe] = facade('#6a7c8a', '#3a4450', '#3a5870', '#8aa8c8', 0.4, 512, 8, 8);
   M.facade = std({ vertexColors: true, map: fA, emissiveMap: fAe, emissive: 0xffffff, emissiveIntensity: 1.25, roughness: 0.25, metalness: 0.55, envMapIntensity: 1.3 });
-  const [fB, fBe] = facade('#cfc6b6', '#b8ae9c', '#2a3038', '#4a5664', 0.3, 512, 8, 8);
+  const [fB, fBe] = facade('#e4dccc', '#c8bea8', '#3a4858', '#6a7a8c', 0.34, 512, 8, 8);
   M.facade2 = std({ vertexColors: true, map: fB, emissiveMap: fBe, emissive: 0xffffff, emissiveIntensity: 1.1, roughness: 0.8 });
   const [fC, fCe] = facade('#e2c9a4', '#cdb08a', '#3a3028', '#5a4a3a', 0.2, 256, 4, 4);
   M.adobe = std({ vertexColors: true, map: fC, emissiveMap: fCe, emissive: 0xffffff, emissiveIntensity: 0.7, roughness: 0.95 });
@@ -1395,6 +1396,10 @@ function signQuad(w, h, cell, cols, rows) { const g = new THREE.PlaneGeometry(w,
 function cityDress(x, z, w, d, h, R, big) {
   const faces = [[0, d / 2 + 0.08, 0, w], [Math.PI, -d / 2 - 0.08, 0, w], [Math.PI / 2, 0, w / 2 + 0.08, d], [-Math.PI / 2, 0, -w / 2 - 0.08, d]];
   for (const [rot, oz, ox, fw] of faces) {
+    if (fw > 6) { // glowing shop windows along the sidewalk
+      addB('glassLit', boxG(fw * 0.86, 2.5, 0.06), mat(x + ox * 1.001, 1.55, z + oz * 1.001, rot));
+      addB('paint', boxG(fw * 0.9, 0.35, 1.4), mat(x + ox + Math.sin(rot) * 0.7, 3.05, z + oz + Math.cos(rot) * 0.7, rot), [0xc8283c, 0x1c5ac8, 0x1e8a4a, 0xe0a020, 0x8a2ac8, 0x222222][(R() * 6) | 0]);
+    }
     if (R() < 0.35 || fw < 8) continue;
     const sw = Math.min(fw * 0.7, 7 + R() * 3), sh = sw / 4, y = 3.6 + R() * Math.min(6, h - 6);
     addB('signAtlas', signQuad(sw, sh, (R() * SIGN_N) | 0, 2, 12), mat(x + ox, y, z + oz, rot));
@@ -4937,10 +4942,11 @@ function update(dt) {
   // lighting: eye adaptation indoors
   const inside = insideWH(camera.position.x, camera.position.z, 0) || INTERIORS.some(I => camera.position.x > I.x1 && camera.position.x < I.x2 && camera.position.z > I.z1 && camera.position.z < I.z2) ? 1 : 0;
   inAdapt = lerp(inAdapt, inside, Math.min(1, dt * 2.5));
-  hemi.intensity = lerp(1.0, 0.14, inAdapt);
-  scene.environmentIntensity = lerp(0.55, 0.1, inAdapt);
+  hemi.intensity = lerp(1.45, 0.14, inAdapt);
+  scene.environmentIntensity = lerp(0.8, 0.1, inAdapt);
   sun.intensity = renderer.shadowMap.enabled ? 3.2 : lerp(3.2, 0.2, inAdapt);
-  renderer.toneMappingExposure = lerp(1.05, 1.5, inAdapt);
+  renderer.toneMappingExposure = lerp(1.18, 1.5, inAdapt);
+  cityAmbience(dt);
   const q = QUAL[settings.quality];
   const lightsOn = q.lights;
   headL.intensity = lightsOn && P.inCar && !car.headBroken ? 14 : 0; if (!car.headBroken) car.m.head.emissiveIntensity = 0.9; for (const f of car.m.flares) f.visible = !car.headBroken; car.lightsOn = true;
@@ -6180,6 +6186,36 @@ function drawBigMap(dt) {
 }
 window.__W = { ROADS, NODES, INTERSECTIONS, colliders, HOUSE_SPOTS, terrSDF, terrH, toMapPx, PX, mapCls, gpsRoute, onRoad, get traffic() { return traffic; }, get npcs() { return npcs; }, worldMeshes, openMap, closeMap, setWaypoint, clearWaypoint, get WAYPT() { return WAYPT; }, BM, regionName };
 window.__AU = AU;
+// ---- city sound: traffic roar, crowd murmur, horns and the odd siren when you're in town
+const CITY = { lvl: 0, hornT: 3, sirenT: 20, nodes: null };
+function cityAmbience(dt) {
+  if (!AU.ctx || !AU.bus || !AU.noise) return;
+  const c = AU.ctx;
+  if (!CITY.nodes) {
+    const mk = (type, f, q) => { const s = c.createBufferSource(); s.buffer = AU.noise; s.loop = true; s.playbackRate.value = 0.7 + Math.random() * 0.3; const b = c.createBiquadFilter(); b.type = type; b.frequency.value = f; b.Q.value = q; const g = c.createGain(); g.gain.value = 0; s.connect(b); b.connect(g); g.connect(AU.bus); s.start(); return g; };
+    const roar = mk('lowpass', 380, 0.4), crowd = mk('bandpass', 1100, 1.6);
+    const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 0.7; lg.gain.value = 0.012; lfo.connect(lg); lg.connect(crowd.gain); lfo.start();
+    CITY.nodes = { roar, crowd };
+  }
+  const px = P.inCar ? car.x : P.x, pz = P.inCar ? car.z : P.z;
+  let people = 0; for (const n of npcs) if (!n.dead && Math.hypot(n.x - px, n.z - pz) < 45) people++;
+  let cars = 0; for (const a of traffic) if (Math.hypot(a.v.x - px, a.v.z - pz) < 120) cars++;
+  const town = [...roadsNear(px - 60, pz - 60, px + 60, pz + 60)].some(r => r.type === 'street' && r.town);
+  const want = town ? clamp(0.35 + people * 0.04 + cars * 0.03, 0, 1) : clamp(cars * 0.02, 0, 0.25);
+  CITY.lvl = lerp(CITY.lvl, want, Math.min(1, dt * 0.8));
+  const t = c.currentTime;
+  CITY.nodes.roar.gain.setTargetAtTime(CITY.lvl * 0.09, t, 0.3);
+  CITY.nodes.crowd.gain.setTargetAtTime(town ? CITY.lvl * 0.035 : 0, t, 0.3);
+  if (!town || state !== 'play') return;
+  CITY.hornT -= dt;
+  if (CITY.hornT <= 0) { // distant honks
+    CITY.hornT = 1.5 + Math.random() * 5 / (0.4 + CITY.lvl);
+    const f = [392, 415, 440, 349, 466][(Math.random() * 5) | 0], v = 0.02 + Math.random() * 0.03, d = 0.12 + Math.random() * 0.35;
+    AU.beep(f, d, 'sawtooth', v); AU.beep(f * 1.26, d, 'sawtooth', v * 0.7); if (Math.random() < 0.4) { AU.beep(f, d * 0.7, 'sawtooth', v, d + 0.08); AU.beep(f * 1.26, d * 0.7, 'sawtooth', v * 0.7, d + 0.08); }
+  }
+  CITY.sirenT -= dt;
+  if (CITY.sirenT <= 0) { CITY.sirenT = 25 + Math.random() * 40; for (let i = 0; i < 6; i++) AU.beep(700, 0.55, 'sine', 0.018, i * 0.6, 1300); }
+}
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
