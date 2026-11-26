@@ -320,7 +320,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0549</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-0612</div>
   </div>
 </div>
 
@@ -4142,9 +4142,10 @@ addEventListener('pointerdown', e => {
   if (state !== 'play') return;
   if (e.target.closest && e.target.closest('.tb, #pauseBtn, #mapWrap')) return;
   if (e.pointerType === 'mouse') {
-    if (ctrlMode() !== 'mobile' && document.pointerLockElement !== canvas && canvas.requestPointerLock && !(e.target.closest && e.target.closest('#hud button, #mapWrap'))) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (_) { } return; }
+    if (ctrlMode() !== 'mobile' && document.pointerLockElement !== canvas && canvas.requestPointerLock && !(e.target.closest && e.target.closest('#hud button, #mapWrap'))) { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(() => { }); } catch (_) { } }
     if (e.button === 2) { mouseAim = true; return; }
-    if (e.button === 0 && !P.inCar) { if (W && W.cur === 'glock') { fireEdge = true; mouseFire = true; } else if (document.pointerLockElement === canvas) { if (nearDownedQuick()) stompEdge = true; else punchEdge = true; } }
+    const ready = document.pointerLockElement === canvas || ctrlMode() === 'mobile';
+    if (e.button === 0 && !P.inCar && ready) { if (W && W.cur === 'glock') { fireEdge = true; mouseFire = true; } else if (document.pointerLockElement === canvas) { if (nearDownedQuick()) stompEdge = true; else punchEdge = true; } }
     if (document.pointerLockElement !== canvas) mouseCam = { id: e.pointerId, x: e.clientX, y: e.clientY };
     return;
   }
@@ -4164,7 +4165,7 @@ addEventListener('pointermove', e => {
     touch.jx = dx / m; touch.jy = -dy / m; $('joyKnob').style.transform = `translate(${dx}px,${dy}px)`;
   } else if (touch.cam && e.pointerId === touch.cam.id) {
     camDelta.x += e.clientX - touch.cam.x; camDelta.y += e.clientY - touch.cam.y; touch.cam.x = e.clientX; touch.cam.y = e.clientY;
-  } else if (mouseCam && e.pointerId === mouseCam.id) {
+  } else if (mouseCam && e.pointerId === mouseCam.id && document.pointerLockElement !== canvas) {
     camDelta.x += e.clientX - mouseCam.x; camDelta.y += e.clientY - mouseCam.y; mouseCam.x = e.clientX; mouseCam.y = e.clientY;
   }
 });
@@ -4732,7 +4733,7 @@ function updateCamera(dt) {
   }
   camPos.set(tx + sx + ox * d, Math.max(0.35, ty + oy * d), tz + sz + oz * d);
   if (P.inCar) { // never let a wall pull the camera inside the car: rise over the obstacle instead
-    let top = 0; for (const c of queryCols(camPos.x, camPos.z, 0.6)) if (c.on && c.h > camPos.y - 0.3 && camPos.x > c.x1 - 0.6 && camPos.x < c.x2 + 0.6 && camPos.z > c.z1 - 0.6 && camPos.z < c.z2 + 0.6) top = Math.max(top, c.h);
+    let top = 0; for (const c of queryCols(camPos.x, camPos.z, 0.6)) if (c.on && c.x2 - c.x1 > 1.5 && c.z2 - c.z1 > 1.5 && c.tag !== 'tree' && c.h > camPos.y - 0.3 && camPos.x > c.x1 - 0.6 && camPos.x < c.x2 + 0.6 && camPos.z > c.z1 - 0.6 && camPos.z < c.z2 + 0.6) top = Math.max(top, c.h);
     camLift = lerp(camLift, top ? Math.min(top + 0.6, ty + 7) : 0, Math.min(1, dt * 4));
     if (camLift > camPos.y) camPos.y = camLift;
   } else camLift = 0;
