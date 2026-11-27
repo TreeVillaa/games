@@ -449,7 +449,7 @@ const BLOCS = [
   { key: "brics", name: "BRICS", icon: "brics", color: "#ffb02e", codes: new Set("BR RU IN CN ZA EG ET IR AE ID".split(" ")) },
 ];
 const staticBloc = code => BLOCS.findIndex(b => b.codes.has(code));
-const POWER = {GL:0.15,US:7,RU:5.0,CN:6.74,IN:2.1,GB:1.8,FR:1.8,DE:1.6,JP:1.6,KR:1.6,TR:1.5,IL:1.7,IR:1.4,PK:1.4,BR:1.3,IT:1.4,EG:1.3,SA:1.3,UA:1.4,AU:1.4,PL:1.4,ID:1.2,KP:1.4,TW:1.3,ES:1.3,CA:1.3,VN:1.3,TH:1.2,MX:1.15,AE:1.25,GR:1.2,SE:1.2,NL:1.2,DZ:1.15,NG:1.1,AR:1.1,ZA:1.15,CO:1.1,NO:1.2,FI:1.2,CH:1.2,BY:1.1,KZ:1.05,ET:1.05,MA:1.05,SG:1.4,CL:1.1,PH:1.05,MY:1.05,BD:1.0,IQ:1.0,AZ:1.05,RO:1.1,CZ:1.1,PT:1.1,HU:1.05,DK:1.1,BE:1.1,AT:1.05,QA:1.1,KW:1.05,MM:1.0,PE:1.0,VE:1.0,CU:1.0};
+const POWER = {GL:0.15,US:8,RU:2.05,CN:7.67,IN:2.1,GB:1.8,FR:1.8,DE:1.6,JP:1.6,KR:1.6,TR:1.5,IL:1.7,IR:1.4,PK:1.4,BR:1.3,IT:1.4,EG:1.3,SA:1.3,UA:1.4,AU:1.4,PL:1.4,ID:1.2,KP:1.4,TW:1.3,ES:1.3,CA:1.3,VN:1.3,TH:1.2,MX:1.15,AE:1.25,GR:1.2,SE:1.2,NL:1.2,DZ:1.15,NG:1.1,AR:1.1,ZA:1.15,CO:1.1,NO:1.2,FI:1.2,CH:1.2,BY:1.1,KZ:1.05,ET:1.05,MA:1.05,SG:1.4,CL:1.1,PH:1.05,MY:1.05,BD:1.0,IQ:1.0,AZ:1.05,RO:1.1,CZ:1.1,PT:1.1,HU:1.05,DK:1.1,BE:1.1,AT:1.05,QA:1.1,KW:1.05,MM:1.0,PE:1.0,VE:1.0,CU:1.0};
 const N = MAPDATA.countries.length;
 const M = N + 1;
 const C = [null];
@@ -513,7 +513,7 @@ function newGame(player) {
     allies: [], allyCd: {}, peaceOffer: {}, nextWar: 300 + Math.floor(rnd() * 300) };
   rebuild();
   for (let id = 1; id <= N; id++) { G.alive[id] = cells[id] > 0; G.troops[id] = capOf(id); G.money[id] = capOf(id) * 0.05; }
-  { const us = CODEIDX.US + 1; G.money[us] = Math.max(G.money[CODEIDX.RU + 1], G.money[CODEIDX.CN + 1]) + 10; }
+  { const us = CODEIDX.US + 1; G.money[us] = 5000; }
   initArsenal(); initThreats();
 }
 function rebuild() {
@@ -673,7 +673,8 @@ function strengthScore(id) {
   if (!STR_REF) { const us = CODEIDX.US + 1, bc = baseCells[us]; STR_REF = (C[us].power * (25 + 0.91 * Math.pow(bc, 0.73)) + 1) / Math.sqrt(bc + 4); }
   return G.alive[id] ? Math.round(98 * strength(id) / STR_REF) : 0;
 }
-function strength(id) { return (G.troops[id] + 1) * (G.boost[id] > 0 ? 2 : 1) * (G.fallout[id] > 0 ? 0.5 : 1) * (G.airhit[id] > 0 ? 0.8 : 1) / Math.sqrt(cells[id] + 4); }
+const QUAL = { RU: 2.8 };
+function strength(id) { return (QUAL[C[id].code] || 1) * (G.troops[id] + 1) * (G.boost[id] > 0 ? 2 : 1) * (G.fallout[id] > 0 ? 0.5 : 1) * (G.airhit[id] > 0 ? 0.8 : 1) / Math.sqrt(cells[id] + 4); }
 
 /* ---------- simulation ---------- */
 const captures = [];
@@ -732,7 +733,7 @@ function tick() {
     if (warCount[id]) G.troops[id] *= 0.9996;
     { const im = incomeMult(id); G.money[id] = Math.min(G.money[id] + cap * 0.002 * im, cap * 0.6 * im); }
     if (G.boost[id] > 0) G.boost[id]--;
-    if (id !== G.player && warCount[id] && G.money[id] >= recruitCost(id) && G.troops[id] < cap * 2.5) recruit(id);
+    if (id !== G.player && warCount[id] && G.money[id] >= recruitCost(id) && G.troops[id] < cap * 1.35) recruit(id);
   }
   if (G.offCd > 0) G.offCd--; if (G.airCd > 0) G.airCd--; if (G.nukeCd > 0) G.nukeCd--;
   if (G.day % 90 === 0) for (let id = 1; id <= N; id++) if (G.navy[id] < maxNavy(id)) G.navy[id]++;
@@ -772,8 +773,7 @@ const WARGAP = [Infinity, 1200, 840, 300];
 // the USA has the strongest economy: it earns a bit more than Russia/China and starts $10B ahead
 let ECON = null;
 function econ(id) {
-  if (!ECON) { ECON = new Array(M).fill(1); const base = c => { const i = CODEIDX[c] + 1; return C[i].power * (25 + 0.91 * Math.pow(baseCells[i], 0.73)); };
-    ECON[CODEIDX.US + 1] = Math.max(base("RU"), base("CN")) * 1.08 / base("US"); }
+  if (!ECON) { ECON = new Array(M).fill(1); ECON[CODEIDX.US + 1] = 1.2; ECON[CODEIDX.CN + 1] = 1.15; ECON[CODEIDX.RU + 1] = 0.75; }
   return ECON[id];
 }
 const B = id => (G.build && G.build[id]) || { city: 0, factory: 0, base: 0 };
@@ -1635,14 +1635,16 @@ $("hMenu").onclick = pauseMenu;
 $("hRank").onclick = () => showLeaderboard("power");
 $("hThreat").onclick = threatsList;
 const LBT = { power: ["Strength", id => strengthScore(id) + G.troops[id] * 1e-6, v => Math.floor(v)],
+  nuclear: ["Nuclear", id => hasSite(id) ? (G.nukes[id] || 0) * (nukeMax(id) + 1) + (G.eow[id] > 0 ? 20 : 0) : 0, v => v ? Math.round(v) + " pts" : "None"],
   land: ["Land", id => cells[id], v => pctOf(v)], army: ["Army", id => G.troops[id], fmtT], money: ["Money", id => G.money[id], fmtM] };
 function ranking(tab) { const f = LBT[tab][1]; const ids = []; for (let id = 1; id <= N; id++) ids.push(id);
   return ids.sort((a, b) => (G.alive[b] - G.alive[a]) || f(b) - f(a)); }
 function showLeaderboard(tab) {
   const r = ranking(tab), [title, f, fmt] = LBT[tab], p = G.player;
   const tabs = Object.keys(LBT).map(k => `<button class="btn small nav lbtab${k === tab ? " on" : ""}" data-tab="${k}">${LBT[k][0]}</button>`).join("");
+  const val = r.map(id => f(id)), rankOf = i => 1 + val.filter((v, j) => G.alive[r[j]] && v > val[i] + 1e-9).length;
   const rows = r.map((id, i) => { const alive = G.alive[id], kb = blocOf(id);
-    return `<button class="lbrow nav${id === p ? " me" : ""}${alive ? "" : " dead"}" data-id="${id}"><span class="rk">${alive ? "#" + (i + 1) : "—"}</span><span class="fl2">${C[id].flag}</span><span class="nm2">${C[id].name}${id === p ? " (You)" : isAlly(id) ? " · ally" : ""}${atWar(p, id) ? ` <em>${ic("swords")}</em>` : ""}</span>${kb >= 0 && alive ? blocTag(kb) : ""}<span class="val">${alive ? fmt(f(id)) : "Fallen"}</span></button>`; }).join("");
+    return `<button class="lbrow nav${id === p ? " me" : ""}${alive ? "" : " dead"}" data-id="${id}"><span class="rk">${alive ? "#" + rankOf(i) : "—"}</span><span class="fl2">${C[id].flag}</span><span class="nm2">${C[id].name}${id === p ? " (You)" : isAlly(id) ? " · ally" : ""}${atWar(p, id) ? ` <em>${ic("swords")}</em>` : ""}</span>${kb >= 0 && alive ? blocTag(kb) : ""}<span class="val">${alive ? fmt(f(id)) + (tab === "nuclear" && f(id) ? `<br><small style="font-weight:600;color:#aab">${G.nukes[id]} nukes${G.eow[id] > 0 ? " + MIRV" : ""}</small>` : "") : "Fallen"}</span></button>`; }).join("");
   modal(`<h3>${ic("trophy")} World Leaderboard</h3><div class="lbtabs">${tabs}</div><div class="lblist">${rows}</div>`, [{ label: "Close", cancel: true }]);
   $("mbox").classList.add("wide");
   $("mbox").querySelectorAll(".lbtab").forEach(b => b.onclick = () => showLeaderboard(b.dataset.tab));
@@ -1988,7 +1990,7 @@ const NUKES = [
 ];
 const NUKEMAX = { US: 5, RU: 5, CN: 5, GB: 4, FR: 4, IN: 4, PK: 3, IL: 3, KP: 3 };
 // limited arsenals: nukes never come back; fleets and jet squadrons slowly rebuild
-const NUKESTOCK = { US: 20, RU: 12, CN: 10, GB: 4, FR: 4, IN: 3, PK: 2, IL: 2, KP: 2 };
+const NUKESTOCK = { US: 20, RU: 20, CN: 10, GB: 4, FR: 4, IN: 3, PK: 2, IL: 2, KP: 2 };
 const NAVYMAX = { US: 12, RU: 7, CN: 8 }, AIRMAX = { US: 20, RU: 12, CN: 12 };
 const maxNavy = id => NAVYMAX[C[id].code] ?? (C[id].power >= 1.2 ? Math.min(6, Math.round(C[id].power * 1.5)) : 1);
 const maxAir = id => (AIRMAX[C[id].code] ?? Math.min(10, Math.max(1, Math.round(C[id].power * 2.5)))) + ((G && G.build && G.build[id] && G.build[id].factory) || 0);
