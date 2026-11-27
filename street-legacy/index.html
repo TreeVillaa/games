@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.26-2246</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.27-0023</div>
   </div>
 </div>
 
@@ -1054,7 +1054,8 @@ function terrH(x, z) {
     h += Math.min(1, d / 160) * 46 * (vnoise(x / 85, z / 85) - 0.5) + Math.min(1, d / 420) * 150 * (Math.abs(vnoise(x / 260 + 7, z / 260) - 0.5) * 2 - 0.4);
     h = Math.max(h, 0.012 * Math.min(d, 40) ** 2 * 0.6);
   }
-  if (sw < 0) { const d = -sw; h -= Math.min(30, 0.06 * d + 0.012 * d * d); }
+  if (sw < 0) { const d = -sw; h -= 0.7 + Math.min(30, 0.06 * d + 0.012 * d * d); }
+  else if (sw < 70) h -= 0.7 * (1 - sw / 70) * (1 - sw / 70); // beaches slope gently into the water
   const rs = riverSDF(x, z); if (rs < 10) h -= 3.2 * (1 - smoothstep(-6, 10, rs)) + (rs < 0 ? Math.min(2.5, -rs * 0.15) : 0);
   return h;
 }
@@ -2249,45 +2250,70 @@ const NEON_COLORS = [0xff3fb0, 0x3fd8ff, 0x9a5aff, 0x3fff9a, 0xffb43a, 0xff4a4a,
 // ============================================================================
 const WATERX = { patch: null, rivers: [], uni: null };
 function buildWaterLife() {
-  // ---- mask texture: R = open ocean (waves), G = water depth (0 at the shore)
+  // ---- mask texture: R = open ocean, G = water depth (0 at the shore), B = surf zone along ocean coasts (both sides of the shoreline)
   const data = new Uint8Array(MAP_W * MAP_H * 4);
+  const nearOcean = (i, j) => { for (let dj = -3; dj <= 3; dj++) for (let di = -3; di <= 3; di++) { const ii = i + di, jj = j + dj; if (ii >= 0 && jj >= 0 && ii < MAP_W && jj < MAP_H && MAPCLS[jj * MAP_W + ii] === 0) return true; } return false; };
   for (let j = 0; j < MAP_H; j++) for (let i = 0; i < MAP_W; i++) {
     const k = j * MAP_W + i, c = MAPCLS[k], d = SDF_W[k];
-    data[k * 4] = c === 0 ? 255 : 0; data[k * 4 + 1] = clamp(-d / 160, 0, 1) * 255; data[k * 4 + 2] = 0; data[k * 4 + 3] = 255;
+    data[k * 4] = c === 0 ? 255 : 0; data[k * 4 + 1] = clamp(-d / 160, 0, 1) * 255;
+    data[k * 4 + 2] = nearOcean(i, j) && d < 30 ? clamp(1 - Math.max(0, d) / 30, 0, 1) * clamp(1 + d / 140, 0, 1) * 255 : 0; data[k * 4 + 3] = 255;
   }
   const mask = new THREE.DataTexture(data, MAP_W, MAP_H, THREE.RGBAFormat); mask.magFilter = mask.minFilter = THREE.LinearFilter; mask.needsUpdate = true;
   const uni = WATERX.uni = { uTime: { value: 0 }, uMask: { value: mask }, uB: { value: new THREE.Vector4(WB.x1, WB.z1, WB.x2 - WB.x1, WB.z2 - WB.z1) } };
-  const m = std({ color: 0x1d6a8c, roughness: 0.12, metalness: 0.1, transparent: true, opacity: 0.94, envMapIntensity: 1.5 });
+  const m = std({ color: 0x0e4f5a, roughness: 0.06, metalness: 0.05, transparent: true, opacity: 1, envMapIntensity: 1.6 });
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
-    const WAVES = `
-      uniform float uTime; uniform sampler2D uMask; uniform vec4 uB; varying float vDepth; varying float vCrest; varying float vOcean;
+    const COMMON = `
+      uniform float uTime; uniform sampler2D uMask; uniform vec4 uB; varying float vDepth; varying float vCrest; varying float vOcean; varying float vSurf; varying vec3 vWP; varying float vSwash;
+      float h12(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float vn(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(h12(i), h12(i + vec2(1, 0)), f.x), mix(h12(i + vec2(0, 1)), h12(i + vec2(1, 1)), f.x), f.y); }
+      float fbm(vec2 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * vn(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }
       float wv(vec2 p, vec2 d, float k, float w, float a, inout vec2 g) { float ph = dot(d, p) * k + uTime * w; g += d * k * a * cos(ph); return a * sin(ph); }`;
-    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + WAVES)
+    sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\n' + COMMON)
       .replace('#include <beginnormal_vertex>', `
         vec4 wp0 = modelMatrix * vec4(position, 1.0);
         vec4 mk = texture2D(uMask, (wp0.xz - uB.xy) / uB.zw);
         float ef = 1.0 - smoothstep(280.0, 390.0, max(abs(position.x), abs(position.z)));
-        float amp = mk.r * (0.35 + 0.65 * smoothstep(0.0, 0.25, mk.g)) * ef;
+        float amp = mk.r * smoothstep(0.0, 0.2, mk.g) * ef;
         vec2 g = vec2(0.0); float h = 0.0;
-        h += wv(wp0.xz, normalize(vec2(-0.6, -0.8)), 0.075, 1.1, 0.55, g);
-        h += wv(wp0.xz, normalize(vec2(-0.9, -0.3)), 0.13, 1.6, 0.28, g);
-        h += wv(wp0.xz, normalize(vec2(-0.2, -1.0)), 0.21, 2.1, 0.16, g);
+        h += wv(wp0.xz, normalize(vec2(-0.6, -0.8)), 0.075, 1.1, 0.5, g);
+        h += wv(wp0.xz, normalize(vec2(-0.9, -0.3)), 0.13, 1.6, 0.26, g);
+        h += wv(wp0.xz, normalize(vec2(-0.2, -1.0)), 0.21, 2.1, 0.15, g);
         h += wv(wp0.xz, normalize(vec2(0.7, -0.7)), 0.37, 2.9, 0.07, g);
-        vDepth = mk.g; vOcean = mk.r; vCrest = h * amp;
+        h += wv(wp0.xz, normalize(vec2(0.3, 0.95)), 0.6, 3.6, 0.03, g);
+        // swash: the thin sheet of water that runs up the sand and drains back (period ~7 s)
+        float sw = sin(uTime * 0.9) * 0.6 + sin(uTime * 0.37 + 1.3) * 0.4;
+        float swash = mk.b * sw * 0.2 * ef;
+        vDepth = mk.g; vOcean = mk.r; vSurf = mk.b; vCrest = h * amp; vSwash = sw;
         vec3 objectNormal = normalize(vec3(-g.x * amp, 1.0, -g.y * amp));`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n        transformed.y += h * amp;');
-    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uTime; varying float vDepth; varying float vCrest; varying float vOcean;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n        transformed.y += h * amp + swash;')
+      .replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\n        vWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    if (!sh.vertexShader.includes('vWP =')) sh.vertexShader = sh.vertexShader.replace('#include <fog_vertex>', '#include <fog_vertex>\n        vWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\n' + COMMON)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        // turquoise shallows, deep blue offshore; surf lines rolling up the beach and foam on the crests
-        diffuseColor.rgb = mix(vec3(0.16, 0.62, 0.66), diffuseColor.rgb, smoothstep(0.0, 0.22, vDepth));
-        float shore = 1.0 - smoothstep(0.0, 0.07, vDepth);
-        float surf = shore * smoothstep(0.55, 1.0, 0.5 + 0.5 * sin(vDepth * 240.0 + uTime * 2.2)) * vOcean;
-        float crest = smoothstep(0.55, 0.95, vCrest) * vOcean;
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.96, 0.97), clamp(surf + crest * 0.6 + shore * 0.25 * vOcean, 0.0, 0.9));`);
+        float dm = vDepth * 160.0;                 // metres from the shoreline (water side)
+        // deep teal offshore -> green-turquoise -> clear water over the sand at the edge
+        vec3 deep = vec3(0.03, 0.27, 0.32), mid = vec3(0.07, 0.45, 0.45), shal = vec3(0.45, 0.62, 0.55);
+        vec3 wc = mix(shal, mid, smoothstep(0.0, 14.0, dm)); wc = mix(wc, deep, smoothstep(14.0, 70.0, dm));
+        diffuseColor.rgb = mix(diffuseColor.rgb, wc, vSurf > 0.01 || vOcean > 0.5 ? 1.0 : 0.0);
+        float n1 = fbm(vWP.xz * 0.35 + vec2(uTime * 0.05, 0.0)), n2 = fbm(vWP.xz * 1.3 - vec2(0.0, uTime * 0.12));
+        // breaking waves: foam bands travelling toward the beach, churning white where they break
+        float fronts = sin(dm * 0.55 + uTime * 1.6 + n1 * 3.0);
+        float breakZone = smoothstep(24.0, 10.0, dm) * smoothstep(2.0, 6.0, dm);
+        float foam = breakZone * smoothstep(0.55, 0.98, fronts) * smoothstep(0.3, 0.7, n1 + n2 * 0.5);
+        foam += smoothstep(9.0, 5.0, dm) * smoothstep(2.0, 4.0, dm) * smoothstep(0.55, 0.8, n2) * 0.55;            // churned water behind the break
+        // lacy foam edge riding the swash up and down the sand
+        float edge = smoothstep(1.6, 0.0, abs(dm - 1.5 - vSwash * 2.5)) * smoothstep(0.35, 0.6, n2);
+        foam += edge * vSurf;
+        foam += smoothstep(0.6, 0.95, vCrest) * 0.5 * vOcean;
+        foam = clamp(foam * vSurf + smoothstep(0.6, 0.95, vCrest) * 0.4 * vOcean, 0.0, 1.0);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.95, 0.97, 0.97), foam);
+        // shallow water is see-through over the sand
+        diffuseColor.a *= mix(0.35, 1.0, smoothstep(0.0, 8.0, dm)) + foam * 0.5;
+        diffuseColor.a *= smoothstep(-0.02, 0.006, vDepth - 0.0) * 0.0 + 1.0;`);
   };
-  const g = new THREE.PlaneGeometry(800, 800, LITE ? 100 : 160, LITE ? 100 : 160); g.rotateX(-Math.PI / 2);
-  const patch = new THREE.Mesh(g, m); patch.position.y = WATER_Y + 0.06; patch.frustumCulled = false; patch.receiveShadow = true; patch.renderOrder = 1;
+  const g = new THREE.PlaneGeometry(800, 800, LITE ? 120 : 200, LITE ? 120 : 200); g.rotateX(-Math.PI / 2);
+  const patch = new THREE.Mesh(g, m); patch.position.y = WATER_Y + 0.04; patch.frustumCulled = false; patch.receiveShadow = true; patch.renderOrder = 1;
   scene.add(patch); WATERX.patch = patch;
   // ---- river current: ribbons with flow streaks that scroll downstream
   const flow = tex(64, 256, (c, w, h) => {
@@ -7602,6 +7628,7 @@ function updateSkyLife(dt) {
 }
 window.__SKYLIFE = SKYLIFE;
 window.__BEACH = BEACH_PTS;
+window.__WX = WATERX;
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
