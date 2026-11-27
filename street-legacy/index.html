@@ -326,7 +326,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.27-0023</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.27-1702</div>
   </div>
 </div>
 
@@ -1036,10 +1036,13 @@ function mapCls(x, z) {
 const PIERS = []; // walkable decks over water [x1,z1,x2,z2]
 // > 0 where you can stand; mountains block at their foot, water about 6 m out from the shore
 function terrSDF(x, z) { return Math.min(sampleGrid(SDF_M, x, z), sampleGrid(SDF_W, x, z) + 6, riverSDF(x, z) + 3); }
+// what actually stops you: you can wade ~20 m into the sea before it gets too deep
+function walkSDF(x, z) { return Math.min(sampleGrid(SDF_M, x, z), sampleGrid(SDF_W, x, z) + 22, riverSDF(x, z) + 3); }
 function terrPush(p, r) {
-  const f = terrSDF(p.x, p.z); if (f >= r) return null;
+  const f = walkSDF(p.x, p.z); if (f >= r) return null;
+  if (onRoad(p.x, p.z)) return null; // roads (and their bridges) are always passable
   for (const q of PIERS) if (p.x > q[0] && p.x < q[2] && p.z > q[1] && p.z < q[3]) return null;
-  const e = 3; let gx = terrSDF(p.x + e, p.z) - terrSDF(p.x - e, p.z), gz = terrSDF(p.x, p.z + e) - terrSDF(p.x, p.z - e);
+  const e = 3; let gx = walkSDF(p.x + e, p.z) - walkSDF(p.x - e, p.z), gz = walkSDF(p.x, p.z + e) - walkSDF(p.x, p.z - e);
   const l = Math.hypot(gx, gz); if (l < 1e-6) return null; gx /= l; gz /= l;
   const push = Math.min(r - f, 40); p.x += gx * push; p.z += gz * push;
   return { x: gx, z: gz };
@@ -1700,7 +1703,7 @@ function buildTowns() {
     PAVED.push([px1, pz1, px2, pz2]); reserve(px1, pz1, px2, pz2);
     const CC = [0xb03a2e, 0x2e5a9a, 0x2e7a4a, 0xd8862a, 0x8a8a8a, 0x5a2a6a, 0xd8c8a0];
     for (let x = px1 + 30; x < px2 - 90; x += 16) for (let z = pz1 + 25; z < pz2 - 25; z += 30) {
-      if (R() < 0.2) continue; const hgt = 1 + ((R() * 4) | 0);
+      if (R() < 0.2 || nearRoad(x - 6.5, z - 1.5, x + 6.5, z + 4.5, 2)) continue; const hgt = 1 + ((R() * 4) | 0);
       for (let k = 0; k < hgt; k++) addB('metal', boxG(12.2, 2.6, 2.44, 2.4), mat(x, 1.3 + k * 2.6, z + (k % 2) * 0.1), CC[(R() * CC.length) | 0]);
       addCol(x - 6.1, z - 1.22, x + 6.1, z + 1.22, hgt * 2.6, 'bldg');
       for (let k = 0; k < hgt; k++) addB('metal', boxG(12.2, 2.6, 2.44, 2.4), mat(x, 1.3 + k * 2.6, z + 3), CC[(R() * CC.length) | 0]);
@@ -1712,7 +1715,7 @@ function buildTowns() {
       addB('paint', boxG(70, 3, 3), mat(x + 22, 43, z - 6), 0xc83a2a); addB('paint', boxG(70, 3, 3), mat(x + 22, 43, z + 6), 0xc83a2a);
       addB('paint', boxG(8, 5, 15), mat(x - 6, 46, z), 0xe8e8e8); addB('steel', boxG(2, 18, 0.6), mat(x + 30, 33, z), 0x444444);
     }
-    for (let k = 0; k < 2; k++) { const x = px1 + 40, z = pz1 + 80 + k * 120; addB('metal', boxG(50, 12, 70, 3), mat(x, 6, z), 0xc8ccd0); addCol(x - 25, z - 35, x + 25, z + 35, 12, 'bldg'); }
+    for (let k = 0; k < 2; k++) { const x = px1 + 40, z = pz1 + 80 + k * 120; if (nearRoad(x - 25, z - 35, x + 25, z + 35, 2)) continue; addB('metal', boxG(50, 12, 70, 3), mat(x, 6, z), 0xc8ccd0); addCol(x - 25, z - 35, x + 25, z + 35, 12, 'bldg'); }
   }
   // ---- Oil Fields: pump jacks, derricks, tanks
   {
@@ -2344,7 +2347,7 @@ function buildBridges() {
     let run = null; const step = 3;
     const flush = t1 => {
       if (!run) return; const t0 = run, len = t1 - t0; run = null;
-      if (len > 260 || len < 4) return;
+      if (len > 1500 || len < 2) return;
       const a = t0 - 8, b = t1 + 8, mx = r.x1 + r.ux * (a + b) / 2, mz = r.z1 + r.uz * (a + b) / 2, L = b - a, rot = Math.atan2(r.ux, r.uz), nx = r.uz, nz = -r.ux, hw = r.w / 2 + 1.2;
       addB('concreteBox', boxG(r.w + 2.4, 1.2, L, 3), mat(mx, -0.58, mz, rot), 0xb8b4ac);
       for (const s of [-1, 1]) {
@@ -7629,6 +7632,7 @@ function updateSkyLife(dt) {
 window.__SKYLIFE = SKYLIFE;
 window.__BEACH = BEACH_PTS;
 window.__WX = WATERX;
+window.__pushCircle = pushCircle; window.__RIVERS = RIVERS;
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
