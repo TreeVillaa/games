@@ -333,7 +333,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.28-0122</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.28-0143</div>
   </div>
 </div>
 
@@ -2120,6 +2120,14 @@ function hollowShell(L, o) {
   const [ix, iz] = W(0, zc); LIGHT_ANCHORS.push({ x: ix, y: ceil - 0.5, z: iz, int: 22, dist: Math.max(w, d) + 4, color: 0xfff4e4 });
   return { zf, zc, ceil };
 }
+// tall two-sided pole sign by the road
+function poleSign(L, lx, lz, m, w, h, top = 7) {
+  const { P, col, W } = L, [x, z] = W(lx, lz);
+  P('steel', boxG(0.35, top, 0.35), lx, top / 2, lz, 0x5a5e64); col(lx - 0.25, lz - 0.25, lx + 0.25, lz + 0.25, top);
+  P('dark', boxG(w + 0.3, h + 0.3, 0.25), lx, top + h / 2, lz);
+  signPlane(m, w, h, ...[W(lx, lz + 0.14)].flat().flatMap((v, i) => i ? [v] : [v, top + h / 2]), L.rot);
+  signPlane(m, w, h, ...[W(lx, lz - 0.14)].flat().flatMap((v, i) => i ? [v] : [v, top + h / 2]), L.rot + Math.PI);
+}
 function desk(L, lx, lz, ry = 0) { const { P, col } = L; P('wood', boxG(1.6, 0.06, 0.8), lx, 0.76, lz, 0x6a4a32, ry); for (const s of [-0.7, 0.7]) P('steel', boxG(0.06, 0.74, 0.7), lx + s, 0.37, lz, 0x3a3d42, ry); P('dark', boxG(0.55, 0.35, 0.04), lx, 1.0, lz - 0.2, 0x111111, ry); P('emit', boxG(0.5, 0.3, 0.01), lx, 1.0, lz - 0.17, 0xffffff, ry); P('paint', boxG(0.5, 0.06, 0.5), lx, 0.45, lz + 0.7, 0x1c1c1e); P('paint', boxG(0.5, 0.55, 0.06), lx, 0.75, lz + 0.95, 0x1c1c1e); col(lx - 0.8, lz - 0.4, lx + 0.8, lz + 0.4, 0.8); }
 function policeStation(cx, cz, rot, bw, bd, R) {
   const C = cityMaterials(), L = localPlacer(cx, cz, rot), { P, col, W } = L;
@@ -2138,6 +2146,7 @@ function policeStation(cx, cz, rot, bw, bd, R) {
   P('steel', boxG(0.12, 9, 0.12), w / 2 - 2, 4.5, zf + 5, 0xdddddd); col(w / 2 - 2.1, zf + 4.9, w / 2 - 1.9, zf + 5.1, 9);
   P('asphalt', planeG(bw - 6, bd - d - 10, (bw - 6) / 6, (bd - d - 10) / 6), 0, 0.03, zf + (bd - d - 10) / 2 + 2);
   for (let k = 0; k < 5; k++) if (R() < 0.9) propVehicle(...W(-w / 2 + 4 + k * 5, zf + 11), rot + Math.PI, 'police');
+  poleSign(L, w / 2 + 3, bd / 2 - 3, C.sPolice, 5, 0.95, 6);
   SPECIAL_LOG.push({ sp: 'police-in', x: W(0, zf - 6)[0], z: W(0, zf - 6)[1], rot });
 }
 function fireStation(cx, cz, rot, bw, bd, R) {
@@ -2156,6 +2165,7 @@ function fireStation(cx, cz, rot, bw, bd, R) {
   for (const [lx, lz, hh, o] of [[bx(1) - 2.2, zf + 2.0, 0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [bx(1) + 2.2, zf + 1.4, -0.6, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [bx(0), zf - 4, 0.2, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [w / 2 - 4, z0 + 4, 3.0, { shirt: 0xd8b02a, pants: 0x3a3020, capHat: 0xc8102e }]]) {
     const [x, z] = W(lx, lz); FIXED_PEOPLE.push({ x, z, h: rot + hh, o });
   }
+  poleSign(L, -w / 2 - 3, bd / 2 - 3, C.sFire, 5.5, 0.9, 6);
   SPECIAL_LOG.push({ sp: 'fire-in', x: W(bx(1), zf - 2)[0], z: W(bx(1), zf - 2)[1], rot });
 }
 // ---- fast food: counter, menu boards, booths, a drive-thru window and a tall sign out front
@@ -2231,6 +2241,7 @@ function gunStore(cx, cz, rot, R) {
   { const [x, z] = W(1.5, z0 + 6.4); GUN_COUNTERS.push({ x, z }); }
   P('asphalt', planeG(30, 26, 5, 4), 0, 0.03, 0);
   const a = W(-15, -13), b = W(15, 13); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; reserve(...bx); PAVED.push(bx);
+  poleSign(L, 11, 11, GUN_SIGN, 5, 1.25, 6.5);
   SPECIAL_LOG.push({ sp: 'gun', x: W(1.5, z0 + 6.4)[0], z: W(1.5, z0 + 6.4)[1], rot });
 }
 // ---- neighbourhood market: aisles of shelves, produce stands, fridges, two checkouts
@@ -2248,6 +2259,7 @@ function market(cx, cz, rot, R) {
   for (let k = 0; k < 3; k++) { P('wood', boxG(1.6, 0.8, 1.0), -w / 2 + 2, 0.4, z0 + 4 + k * 2.6, 0x8a6a4a); P('paint', boxG(1.5, 0.25, 0.9), -w / 2 + 2, 0.9, z0 + 4 + k * 2.6, [0x2ac87a, 0xe83a3a, 0xf2a01a][k]); col(-w / 2 + 1.2, z0 + 3.5 + k * 2.6, -w / 2 + 2.8, z0 + 4.5 + k * 2.6, 1); }
   P('asphalt', planeG(36, 34, 6, 6), 0, 0.03, 2);
   const a = W(-18, -16), b = W(18, 18); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; reserve(...bx); PAVED.push(bx);
+  poleSign(L, -14, 14, MKT_SIGN, 5, 1.25, 6.5);
   SPECIAL_LOG.push({ sp: 'market', x: W(0, zf - 6)[0], z: W(0, zf - 6)[1], rot });
 }
 // spread gas stations and fast food along the highways and roads, far apart from each other
@@ -6028,6 +6040,7 @@ function drawMinimap() {
     for (let a = -0.75; a <= 0.75; a += 0.15) mg.lineTo(guard.x - px + Math.sin(guard.h + a) * 11, guard.z - pz + Math.cos(guard.h + a) * 11);
     mg.fill(); mg.fillStyle = '#ff4040'; mg.beginPath(); mg.arc(guard.x - px, guard.z - pz, 1.6, 0, TAU); mg.fill();
   }
+  drawMiniPOIs(mg, px, pz, k, S * 0.75 / k);
   for (const e of MS2.ents) if (!e.dead) { mg.fillStyle = '#ff3030'; mg.strokeStyle = '#000'; mg.lineWidth = 1.5 / k; mg.beginPath(); mg.arc(e.x - px, e.z - pz, 3 / k + 1.2, 0, TAU); mg.fill(); mg.stroke(); }
   mg.restore();
   // target blip
@@ -7398,6 +7411,7 @@ function drawBigMap(dt) {
     g.lineJoin = 'round'; g.lineCap = 'round';
     for (const [c, w] of [['rgba(0,0,0,.7)', 7], [WAYPT ? '#c86bff' : '#ff4fb0', 4]]) { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); MS.route.forEach((p, i) => { const [sx, sy] = S(p.x, p.z); i ? g.lineTo(sx, sy) : g.moveTo(sx, sy); }); g.stroke(); }
   }
+  drawMapPOIs(g);
   // safehouse
   { const [sx, sy] = S(HOME.x, HOME.z); g.fillStyle = '#3ad16a'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.moveTo(sx, sy - 11); g.lineTo(sx + 10, sy - 2); g.lineTo(sx + 7, sy - 2); g.lineTo(sx + 7, sy + 8); g.lineTo(sx - 7, sy + 8); g.lineTo(sx - 7, sy - 2); g.lineTo(sx - 10, sy - 2); g.closePath(); g.fill(); g.stroke(); }
   // mission target
@@ -7510,7 +7524,9 @@ function drawScaleBar(g, x, y) {
 }
 function drawLegend(g, x, y) {
   const items = [['#3ad16a', 'Safehouse'], ['#ffd23f', 'Mission'], ['#c86bff', 'Waypoint'], ['#ffffff', 'You']];
-  g.fillStyle = 'rgba(12,18,30,0.6)'; g.fillRect(x, y, 112, 20 + items.length * 17);
+  const pk = ['gas', 'police', 'fire', 'hospital', 'gun', 'market', 'food'];
+  g.fillStyle = 'rgba(12,18,30,0.6)'; g.fillRect(x, y, 122, 20 + (items.length + pk.length) * 17);
+  pk.forEach((k, i) => { drawPOI(g, x + 15, y + 28 + (items.length + i) * 17, k, 6.5); g.fillStyle = '#fff'; g.font = '700 11px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(POI_STYLE[k][1].replace('STATION', '').trim().toLowerCase().replace(/^./, c => c.toUpperCase()), x + 27, y + 28 + (items.length + i) * 17); });
   g.font = '900 10px system-ui, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#ffd23f'; g.fillText('MAP KEY', x + 10, y + 11);
   items.forEach(([c, t], i) => { g.fillStyle = c; g.beginPath(); g.arc(x + 15, y + 28 + i * 17, 5, 0, TAU); g.fill(); g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#fff'; g.font = '700 11px system-ui, sans-serif'; g.fillText(t, x + 27, y + 28 + i * 17); });
 }
@@ -7856,6 +7872,68 @@ function buyGun(k) {
   toast('BOUGHT ' + G.name.toUpperCase(), 1.8); fillShop();
 }
 window.__equip = equipGun;
+
+// ============================================================================
+//  MAP ICONS — every gas station, police & fire station, hospital, gun store,
+//  market and fast food place, plus beach labels (big map + minimap)
+// ============================================================================
+const POI_STYLE = {
+  gas: ['#1c4aa8', 'GAS STATION'], police: ['#123a8a', 'POLICE'], fire: ['#c8102e', 'FIRE STATION'], hospital: ['#ffffff', 'HOSPITAL'],
+  gun: ['#1c1c1e', 'GUN STORE'], market: ['#1e7a3a', 'MARKET'], food: ['#e8a020', 'FAST FOOD'], store: ['#6a6e78', 'STORE'],
+};
+let POIS = null, BEACH_LABELS = null;
+function buildPOIs() {
+  POIS = [];
+  for (const s of SPECIAL_LOG) {
+    const k = s.sp === 'gas' ? 'gas' : s.sp === 'police' ? 'police' : s.sp === 'fire' ? 'fire' : s.sp === 'hospital' ? 'hospital' : s.sp === 'gun' ? 'gun' : s.sp === 'market' ? 'market' : s.sp.startsWith('food:') ? 'food' : (s.sp === 'pear' || s.sp === 'pear2' || s.sp === 'skyware') ? 'store' : null;
+    if (k) POIS.push({ k, x: s.x, z: s.z, name: s.sp.startsWith('food:') ? s.sp.slice(5) : s.sp === 'skyware' ? 'SKYWARE' : s.sp.startsWith('pear') ? 'PEAR STORE' : POI_STYLE[k][1] });
+  }
+  // beaches: group the sandy coast into stretches and label each one
+  const cells = new Map();
+  for (const [x, z] of (typeof BEACH_PTS !== 'undefined' ? BEACH_PTS : [])) { const key = Math.floor(x / 1500) + ',' + Math.floor(z / 1500); if (!cells.has(key)) cells.set(key, []); cells.get(key).push([x, z]); }
+  const names = ['GALVESTON BEACH', 'SURFSIDE BEACH', 'GULF SHORES', 'PELICAN BEACH', 'SANDY POINT', 'SEAWALL BEACH', 'PADRE BEACH', 'DOLPHIN COVE', 'SUNSET BEACH', 'COAST BEACH'];
+  BEACH_LABELS = [...cells.values()].filter(l => l.length >= 4).map((l, i) => { let sx = 0, sz = 0; for (const p of l) { sx += p[0]; sz += p[1]; } return { x: sx / l.length, z: sz / l.length, name: names[i % names.length] }; });
+}
+// small hand-drawn glyphs, no emoji
+function poiGlyph(g, k, r) {
+  g.fillStyle = k === 'hospital' ? '#e8102e' : '#ffffff'; g.strokeStyle = g.fillStyle; g.lineWidth = Math.max(1.2, r * 0.18); g.lineCap = 'round'; g.lineJoin = 'round';
+  const s = r * 0.55;
+  if (k === 'gas') { g.fillRect(-s * 0.6, -s * 0.7, s * 0.8, s * 1.4); g.beginPath(); g.moveTo(s * 0.2, -s * 0.3); g.lineTo(s * 0.65, -s * 0.1); g.lineTo(s * 0.65, s * 0.5); g.stroke(); }
+  else if (k === 'police') { g.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? s * 0.42 : s; g.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } g.closePath(); g.fill(); }
+  else if (k === 'fire') { g.beginPath(); g.moveTo(0, -s); g.quadraticCurveTo(s * 0.9, -s * 0.1, s * 0.55, s * 0.6); g.quadraticCurveTo(0, s * 1.05, -s * 0.55, s * 0.6); g.quadraticCurveTo(-s * 0.9, -s * 0.1, 0, -s); g.fill(); }
+  else if (k === 'hospital') { g.fillRect(-s * 0.25, -s * 0.85, s * 0.5, s * 1.7); g.fillRect(-s * 0.85, -s * 0.25, s * 1.7, s * 0.5); }
+  else if (k === 'gun') { g.beginPath(); g.arc(0, 0, s * 0.62, 0, TAU); g.moveTo(0, -s); g.lineTo(0, s); g.moveTo(-s, 0); g.lineTo(s, 0); g.stroke(); }
+  else if (k === 'market') { g.beginPath(); g.moveTo(-s, -s * 0.6); g.lineTo(-s * 0.6, -s * 0.6); g.lineTo(-s * 0.35, s * 0.35); g.lineTo(s * 0.75, s * 0.35); g.lineTo(s * 0.9, -s * 0.35); g.lineTo(-s * 0.5, -s * 0.35); g.stroke(); g.beginPath(); g.arc(-s * 0.2, s * 0.7, s * 0.16, 0, TAU); g.arc(s * 0.55, s * 0.7, s * 0.16, 0, TAU); g.fill(); }
+  else if (k === 'food') { g.beginPath(); g.ellipse(0, -s * 0.25, s * 0.85, s * 0.45, 0, Math.PI, 0); g.fill(); g.fillRect(-s * 0.85, -s * 0.05, s * 1.7, s * 0.22); g.fillRect(-s * 0.8, s * 0.3, s * 1.6, s * 0.3); }
+  else { g.fillRect(-s * 0.7, -s * 0.4, s * 1.4, s); g.beginPath(); g.moveTo(-s * 0.4, -s * 0.4); g.arc(0, -s * 0.4, s * 0.4, Math.PI, 0); g.stroke(); }
+}
+function drawPOI(g, sx, sy, k, r) {
+  const c = POI_STYLE[k][0];
+  g.save(); g.translate(sx, sy);
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.beginPath(); g.arc(0, r * 0.15, r + 1.5, 0, TAU); g.fill();
+  g.fillStyle = c; g.strokeStyle = k === 'hospital' ? '#e8102e' : '#ffffff'; g.lineWidth = 2; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill(); g.stroke();
+  poiGlyph(g, k, r); g.restore();
+}
+// big map: icons always, names once you zoom in
+function drawMapPOIs(g) {
+  if (!POIS) buildPOIs();
+  const z = BM.z / bmFit(), r = clamp(6 + z * 1.6, 7, 13);
+  g.font = '900 10px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (const b of BEACH_LABELS) { const [sx, sy] = bmToScreen(...toMapPx(b.x, b.z)); if (sx < -60 || sy < -20 || sx > BM.W + 60 || sy > BM.H + 20) continue; g.font = `900 ${Math.round(9 + z)}px system-ui, sans-serif`; g.lineWidth = 3; g.strokeStyle = 'rgba(10,30,50,.8)'; g.strokeText(b.name, sx, sy); g.fillStyle = '#ffe9a8'; g.fillText(b.name, sx, sy); }
+  for (const p of POIS) {
+    const [sx, sy] = bmToScreen(...toMapPx(p.x, p.z)); if (sx < -20 || sy < -20 || sx > BM.W + 20 || sy > BM.H + 20) continue;
+    drawPOI(g, sx, sy, p.k, r);
+    if (z > 3.2) { g.font = '800 10px system-ui, sans-serif'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.75)'; g.strokeText(p.name, sx, sy + r + 9); g.fillStyle = '#fff'; g.fillText(p.name, sx, sy + r + 9); }
+  }
+}
+// minimap: nearby icons in world units (the minimap context is already rotated & scaled around the player)
+function drawMiniPOIs(g, px, pz, k, rad) {
+  if (!POIS) buildPOIs();
+  for (const p of POIS) {
+    const dx = p.x - px, dz = p.z - pz; if (Math.abs(dx) > rad || Math.abs(dz) > rad) continue;
+    g.save(); g.translate(dx, dz); g.rotate(-camYaw); g.scale(1 / k, 1 / k); drawPOI(g, 0, 0, p.k, 11); g.restore();
+  }
+}
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
