@@ -333,7 +333,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.28-0143</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.28-0212</div>
   </div>
 </div>
 
@@ -1880,6 +1880,112 @@ function paintTerrain(img, x0, z0, w, d) {
 const ROAD_STYLE = { hwy: ['#8a4a12', '#ffb43a'], road: ['#6a6458', '#fffdf6'], street: ['#4a4e58', '#e9e7e2'] };
 
 // ============================================================================
+//  FURNITURE & INTERIOR DETAIL — shelves stocked with products, drink fridges,
+//  counters with registers, posters, desks & chairs, couches, lockers, plants…
+//  (all batched geometry, so a busy room costs almost nothing to draw)
+// ============================================================================
+let FM_READY = false;
+function furnitureMats() {
+  if (FM_READY) return; FM_READY = true;
+  const tile = tex(256, 256, (g, w, h) => { const n = 4, s = w / n; for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) { g.fillStyle = (i + j) % 2 ? '#e8e4dc' : '#d4cec2'; g.fillRect(i * s, j * s, s, s); } g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 2; for (let i = 0; i <= n; i++) { g.beginPath(); g.moveTo(i * s, 0); g.lineTo(i * s, h); g.moveTo(0, i * s); g.lineTo(w, i * s); g.stroke(); } });
+  M.tile = std({ vertexColors: true, map: tile, roughness: 0.35, polygonOffset: true, polygonOffsetFactor: -6, polygonOffsetUnits: -6 }); M.tile.userData.batch = true;
+  const P = [['WANTED', '#f4e8c8', '#2a1a10', 'face'], ['WANTED', '#f4e8c8', '#2a1a10', 'face2'], ['COLD DRINKS', '#1c6ab8', '#ffffff', 'bottle'], ['HOT COFFEE $1', '#4a2a1a', '#ffd8a0', 'cup'],
+    ['FIRE SAFETY', '#c8102e', '#ffffff', 'flame'], ['TARGET', '#f4f0e8', '#111111', 'rings'], ['SALE 2 FOR 1', '#ffd23f', '#c8102e', 'none'], ['SERVE & PROTECT', '#123a8a', '#ffffff', 'star']];
+  const atlas = tex(1024, 512, (g, w, h) => {
+    P.forEach(([t, bg, fg, art], i) => {
+      const x = (i % 4) * 256, y = ((i / 4) | 0) * 256, cx = x + 128;
+      g.fillStyle = bg; g.fillRect(x + 4, y + 4, 248, 248); g.strokeStyle = fg; g.lineWidth = 6; g.strokeRect(x + 14, y + 14, 228, 228);
+      g.fillStyle = fg; g.textAlign = 'center'; g.textBaseline = 'middle'; let fs = 40; g.font = `900 ${fs}px Arial Black, sans-serif`; while (g.measureText(t).width > 210) { fs -= 3; g.font = `900 ${fs}px Arial Black, sans-serif`; } g.fillText(t, cx, y + 50);
+      g.fillStyle = fg; g.strokeStyle = fg;
+      if (art.startsWith('face')) { g.fillStyle = '#c8b090'; g.fillRect(x + 70, y + 80, 116, 130); g.fillStyle = '#3a2a1a'; g.beginPath(); g.ellipse(cx, y + 128, 34, 42, 0, 0, TAU); g.fill(); g.fillRect(cx - 40, y + 170, 80, 40); g.fillStyle = fg; g.font = '800 20px sans-serif'; g.fillText(art === 'face' ? '$5,000 REWARD' : '$10,000 REWARD', cx, y + 228); }
+      else if (art === 'bottle') { for (let k = 0; k < 3; k++) { g.fillStyle = ['#e83a3a', '#2ac87a', '#f2c21a'][k]; g.fillRect(x + 62 + k * 50, y + 110, 34, 100); g.fillRect(x + 70 + k * 50, y + 86, 18, 26); } }
+      else if (art === 'cup') { g.fillStyle = '#ffffff'; g.fillRect(cx - 40, y + 100, 80, 100); g.fillStyle = '#4a2a1a'; g.fillRect(cx - 40, y + 130, 80, 30); g.strokeStyle = '#ffd8a0'; g.lineWidth = 5; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(cx - 25 + k * 25, y + 92); g.bezierCurveTo(cx - 15 + k * 25, y + 80, cx - 35 + k * 25, y + 72, cx - 25 + k * 25, y + 62); g.stroke(); } }
+      else if (art === 'flame') { g.fillStyle = '#ffd23f'; g.beginPath(); g.moveTo(cx, y + 80); g.quadraticCurveTo(cx + 70, y + 150, cx + 40, y + 210); g.quadraticCurveTo(cx, y + 230, cx - 40, y + 210); g.quadraticCurveTo(cx - 70, y + 150, cx, y + 80); g.fill(); }
+      else if (art === 'rings') { for (let k = 5; k >= 1; k--) { g.fillStyle = k % 2 ? '#111' : '#f4f0e8'; g.beginPath(); g.arc(cx, y + 150, k * 18, 0, TAU); g.fill(); } g.fillStyle = '#e8102e'; g.beginPath(); g.arc(cx, y + 150, 9, 0, TAU); g.fill(); }
+      else if (art === 'star') { g.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, r = k % 2 ? 32 : 70; g.lineTo(cx + Math.cos(a) * r, y + 150 + Math.sin(a) * r); } g.fill(); }
+      else { g.font = '900 70px Arial Black, sans-serif'; g.fillText('%', cx, y + 150); }
+    });
+  });
+  atlas.wrapS = atlas.wrapT = THREE.ClampToEdgeWrapping;
+  M.poster = std({ vertexColors: true, map: atlas, roughness: 0.7, side: THREE.DoubleSide }); M.poster.userData.batch = true;
+}
+const PROD = [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a, 0xff8a2a, 0xf2f2ee, 0x8a2ac8, 0x1c1c1e, 0xd85a8a, 0x6ac8e8];
+// a poster on the wall (idx 0..7 in the atlas), lz is the wall plane, facing local +z (ry turns it)
+function poster(L, lx, ly, lz, idx, ry = 0, s = 0.9) { L.P('poster', signQuad(s, s, idx, 4, 2), lx, ly, lz, 0xffffff, ry); }
+// metal shelving stocked with boxes and bottles of different sizes and colours
+function shelfUnit(L, lx, lz, len, ry = 0, R = Math.random, levels = 4, both = true) {
+  const { P, col } = L, c = Math.cos(ry), s = Math.sin(ry), at = (u, v) => [lx + u * c + v * s, lz - u * s + v * c];
+  const dep = both ? 0.9 : 0.5;
+  P('steel', boxG(len, 0.06, dep), lx, 0.12, lz, 0x9aa0a8, ry);
+  for (let k = 1; k <= levels; k++) P('steel', boxG(len, 0.035, dep), lx, 0.12 + k * 0.42, lz, 0xb8bcc2, ry);
+  P('steel', boxG(len, 1.9, 0.04), ...[at(0, both ? 0 : -dep / 2)].flat().flatMap((v, i) => i ? [v] : [v, 0.95]), 0x8a8e94, ry);
+  for (const e of [-1, 1]) P('steel', boxG(0.04, 1.9, dep), ...[at(e * len / 2, 0)].flat().flatMap((v, i) => i ? [v] : [v, 0.95]), 0x8a8e94, ry);
+  for (let k = 0; k < levels; k++) for (const side of both ? [-1, 1] : [1]) {
+    let u = -len / 2 + 0.06; const y0 = 0.15 + k * 0.42;
+    while (u < len / 2 - 0.15) {
+      const bw = 0.12 + R() * 0.22, bh = 0.12 + R() * 0.24, col2 = PROD[(R() * PROD.length) | 0];
+      if (u + bw > len / 2 - 0.05) break;
+      const [x, z] = at(u + bw / 2, side * dep * 0.25);
+      if (R() < 0.3) for (let b = 0; b < 3; b++) P('paint', new THREE.CylinderGeometry(0.03, 0.035, bh, 6), ...[at(u + 0.04 + b * 0.07, side * dep * 0.25)].flat().flatMap((v, i) => i ? [v] : [v, y0 + bh / 2]), col2);
+      else P('paint', boxG(bw, bh, dep * 0.4), x, y0 + bh / 2, z, col2, ry);
+      u += bw + 0.02 + R() * 0.04;
+    }
+  }
+  const [a1, b1] = at(-len / 2, -dep / 2), [a2, b2] = at(len / 2, dep / 2); col(Math.min(a1, a2), Math.min(b1, b2), Math.max(a1, a2), Math.max(b1, b2), 1.9);
+}
+// glass-door drink coolers glowing from inside, bottles on every shelf
+function fridgeWall(L, lx, lz, len, ry = 0, R = Math.random) {
+  const { P, col } = L, c = Math.cos(ry), s = Math.sin(ry), at = (u, v) => [lx + u * c + v * s, lz - u * s + v * c];
+  P('steel', boxG(len, 2.3, 0.75), lx, 1.15, lz, 0xd8dade, ry);
+  P('emit', boxG(len - 0.2, 1.9, 0.05), ...[at(0, 0.05)].flat().flatMap((v, i) => i ? [v] : [v, 1.15]), 0xe8f4ff, ry);
+  for (let k = 0; k < 4; k++) for (let u = -len / 2 + 0.15; u < len / 2 - 0.1; u += 0.11) P('paint', new THREE.CylinderGeometry(0.035, 0.04, 0.26, 6), ...[at(u, 0.22)].flat().flatMap((v, i) => i ? [v] : [v, 0.42 + k * 0.45]), PROD[(R() * PROD.length) | 0]);
+  for (let u = -len / 2; u <= len / 2 + 0.01; u += 0.9) P('steel', boxG(0.05, 2.0, 0.05), ...[at(u, 0.39)].flat().flatMap((v, i) => i ? [v] : [v, 1.15]), 0x6a6e74, ry);
+  P('glass', boxG(len, 1.95, 0.02), ...[at(0, 0.38)].flat().flatMap((v, i) => i ? [v] : [v, 1.15]), 0xffffff, ry);
+  const [a1, b1] = at(-len / 2, -0.4), [a2, b2] = at(len / 2, 0.42); col(Math.min(a1, a2), Math.min(b1, b2), Math.max(a1, a2), Math.max(b1, b2), 2.3);
+}
+// checkout counter: register, card reader, screen, candy rack, lottery display
+function checkout(L, lx, lz, w, ry = 0, R = Math.random) {
+  const { P, col } = L, c = Math.cos(ry), s = Math.sin(ry), at = (u, v) => [lx + u * c + v * s, lz - u * s + v * c];
+  P('wood', boxG(w, 1.0, 0.8), lx, 0.5, lz, 0x5a4030, ry); P('dark', boxG(w + 0.05, 0.05, 0.85), lx, 1.02, lz, 0x2a2a2e, ry);
+  const r = at(w * 0.25, -0.1); P('dark', boxG(0.4, 0.15, 0.35), r[0], 1.12, r[1], 0x1c1c1e, ry); P('emit', boxG(0.3, 0.22, 0.03), r[0], 1.32, r[1], 0x9ae8ff, ry);
+  const cr = at(-w * 0.1, 0.25); P('dark', boxG(0.1, 0.16, 0.06), cr[0], 1.12, cr[1], 0x111111, ry);
+  for (let k = 0; k < 3; k++) for (let b = 0; b < 5; b++) { const q = at(-w / 2 + 0.25 + b * 0.16, 0.48); P('paint', boxG(0.12, 0.05, 0.12), q[0], 0.35 + k * 0.25, q[1], PROD[(R() * PROD.length) | 0], ry); }
+  const lt = at(-w * 0.35, -0.2); P('emit', boxG(0.5, 0.35, 0.08), lt[0], 1.25, lt[1], 0xffd23f, ry);
+  const [a1, b1] = at(-w / 2, -0.4), [a2, b2] = at(w / 2, 0.55); col(Math.min(a1, a2), Math.min(b1, b2), Math.max(a1, a2), Math.max(b1, b2), 1.1);
+}
+function coffeeStation(L, lx, lz, ry = 0) { const { P, col } = L; P('wood', boxG(1.6, 0.9, 0.6), lx, 0.45, lz, 0x6a4a32, ry); P('dark', boxG(0.45, 0.55, 0.4), lx - 0.4, 1.18, lz, 0x1c1c1e, ry); P('steel', boxG(0.4, 0.5, 0.35), lx + 0.3, 1.15, lz, 0xc8ccd0, ry); P('paint', new THREE.CylinderGeometry(0.04, 0.035, 0.1, 8), lx + 0.6, 0.95, lz, 0xf2f2ee); col(lx - 0.8, lz - 0.3, lx + 0.8, lz + 0.3, 1); }
+function atm(L, lx, lz, ry = 0) { const { P, col } = L; P('steel', boxG(0.8, 1.6, 0.6), lx, 0.8, lz, 0x3a5a8a, ry); P('emit', boxG(0.45, 0.32, 0.04), lx, 1.25, lz + 0.31, 0x9ae8ff, ry); P('dark', boxG(0.3, 0.05, 0.05), lx, 0.95, lz + 0.31, 0x111111, ry); col(lx - 0.4, lz - 0.3, lx + 0.4, lz + 0.3, 1.6); }
+function trashCan(L, lx, lz) { const { P, col } = L; P('paint', new THREE.CylinderGeometry(0.25, 0.22, 0.75, 10), lx, 0.37, lz, 0x3a4a3a); P('dark', new THREE.CylinderGeometry(0.27, 0.27, 0.05, 10), lx, 0.76, lz, 0x222222); col(lx - 0.25, lz - 0.25, lx + 0.25, lz + 0.25, 0.8); }
+function plant(L, lx, lz, big = 1) { const { P, col } = L; P('paint', new THREE.CylinderGeometry(0.22 * big, 0.17 * big, 0.45 * big, 10), lx, 0.22 * big, lz, 0x8a5a3a); for (let k = 0; k < 6; k++) { const a = k / 6 * TAU; P('paint', new THREE.IcosahedronGeometry(0.22 * big, 0), lx + Math.cos(a) * 0.12 * big, 0.65 * big + (k % 2) * 0.18 * big, lz + Math.sin(a) * 0.12 * big, 0x3a7a3a); } col(lx - 0.22, lz - 0.22, lx + 0.22, lz + 0.22, 1); }
+function chair(L, lx, lz, ry = 0, c = 0x1c1c1e) { const { P } = L, cs = Math.cos(ry), sn = Math.sin(ry); P('paint', boxG(0.45, 0.06, 0.45), lx, 0.46, lz, c, ry); P('paint', boxG(0.45, 0.5, 0.05), lx - sn * 0.21, 0.72, lz - cs * 0.21, c, ry); for (const [a, b] of [[-0.19, -0.19], [0.19, -0.19], [-0.19, 0.19], [0.19, 0.19]]) P('steel', boxG(0.03, 0.45, 0.03), lx + a * cs + b * sn, 0.22, lz - a * sn + b * cs, 0x555555); }
+function officeChair(L, lx, lz, ry = 0) { const { P } = L, cs = Math.cos(ry), sn = Math.sin(ry); P('dark', boxG(0.5, 0.08, 0.5), lx, 0.5, lz, 0x1c1c1e, ry); P('dark', boxG(0.48, 0.6, 0.07), lx - sn * 0.24, 0.85, lz - cs * 0.24, 0x1c1c1e, ry); P('steel', new THREE.CylinderGeometry(0.03, 0.03, 0.42, 6), lx, 0.25, lz, 0x666666); P('steel', new THREE.CylinderGeometry(0.28, 0.28, 0.03, 5), lx, 0.04, lz, 0x444444); }
+function table(L, lx, lz, w, d, c = 0x6a4a32) { const { P, col } = L; P('wood', boxG(w, 0.06, d), lx, 0.75, lz, c); for (const [a, b] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) P('steel', boxG(0.05, 0.72, 0.05), lx + a * (w / 2 - 0.08), 0.36, lz + b * (d / 2 - 0.08), 0x555555); col(lx - w / 2, lz - d / 2, lx + w / 2, lz + d / 2, 0.8); }
+function couch(L, lx, lz, ry = 0, c = 0x4a5a7a) { const { P, col } = L, cs = Math.cos(ry), sn = Math.sin(ry); P('paint', boxG(2.0, 0.45, 0.85), lx, 0.3, lz, c, ry); P('paint', boxG(2.0, 0.55, 0.2), lx - sn * 0.35, 0.75, lz - cs * 0.35, c, ry); for (const e of [-1, 1]) P('paint', boxG(0.2, 0.3, 0.85), lx + e * 0.95 * cs, 0.62, lz - e * 0.95 * sn, c, ry); for (const e of [-0.48, 0.48]) P('paint', boxG(0.9, 0.12, 0.6), lx + e * cs + sn * 0.05, 0.58, lz - e * sn + cs * 0.05, new THREE.Color(c).multiplyScalar(1.2).getHex(), ry); const ex = Math.abs(cs) * 1 + Math.abs(sn) * 0.45, ez = Math.abs(sn) * 1 + Math.abs(cs) * 0.45; col(lx - ex, lz - ez, lx + ex, lz + ez, 0.9); }
+function tvStand(L, lx, lz, ry = 0) { const { P, col } = L; P('wood', boxG(1.6, 0.5, 0.45), lx, 0.25, lz, 0x2a2420, ry); P('dark', boxG(1.4, 0.8, 0.06), lx, 1.0, lz, 0x0a0a0c, ry); P('emit', boxG(1.3, 0.72, 0.01), lx + Math.sin(ry) * 0.035, 1.0, lz + Math.cos(ry) * 0.035, 0x5a8ac8, ry); col(lx - 0.8, lz - 0.25, lx + 0.8, lz + 0.25, 1.4); }
+function lockers(L, lx, lz, n, ry = 0, c = 0x5a6a7a) { const { P, col } = L, cs = Math.cos(ry), sn = Math.sin(ry); for (let k = 0; k < n; k++) { const u = (k - (n - 1) / 2) * 0.48, x = lx + u * cs, z = lz - u * sn; P('steel', boxG(0.46, 1.9, 0.5), x, 0.95, z, c, ry); for (let v = 0; v < 3; v++) P('dark', boxG(0.3, 0.02, 0.01), x + sn * 0.255, 1.6 - v * 0.04, z + cs * 0.255, 0x222222, ry); P('steel', boxG(0.03, 0.12, 0.02), x + sn * 0.26 + cs * 0.15, 1.0, z + cs * 0.26 - sn * 0.15, 0xcccccc, ry); } const ex = Math.abs(cs) * n * 0.24 + Math.abs(sn) * 0.25, ez = Math.abs(sn) * n * 0.24 + Math.abs(cs) * 0.25; col(lx - ex, lz - ez, lx + ex, lz + ez, 1.9); }
+function fileCabinet(L, lx, lz, ry = 0) { const { P, col } = L; P('steel', boxG(0.5, 1.3, 0.6), lx, 0.65, lz, 0x8a8e94, ry); for (let k = 0; k < 4; k++) P('steel', boxG(0.2, 0.03, 0.03), lx + Math.sin(ry) * 0.31, 0.25 + k * 0.3, lz + Math.cos(ry) * 0.31, 0x444444, ry); col(lx - 0.3, lz - 0.3, lx + 0.3, lz + 0.3, 1.3); }
+function waterCooler(L, lx, lz) { const { P, col } = L; P('paint', boxG(0.35, 0.95, 0.35), lx, 0.47, lz, 0xf2f2ee); P('glass', new THREE.CylinderGeometry(0.15, 0.15, 0.4, 10), lx, 1.15, lz, 0x6ac8ff); col(lx - 0.18, lz - 0.18, lx + 0.18, lz + 0.18, 1.3); }
+function flagStand(L, lx, lz, colr = 0x123a8a) { const { P, col } = L; P('steel', new THREE.CylinderGeometry(0.025, 0.025, 2.3, 6), lx, 1.15, lz, 0xd8b050); P('paint', boxG(0.02, 0.6, 0.9), lx, 1.9, lz + 0.45, colr); P('steel', new THREE.CylinderGeometry(0.18, 0.22, 0.08, 8), lx, 0.04, lz, 0x333333); col(lx - 0.15, lz - 0.15, lx + 0.15, lz + 0.15, 2.3); }
+function bench(L, lx, lz, len, ry = 0) { const { P, col } = L, cs = Math.cos(ry), sn = Math.sin(ry); P('wood', boxG(len, 0.06, 0.45), lx, 0.45, lz, 0x8a6a4a, ry); P('wood', boxG(len, 0.4, 0.05), lx - sn * 0.22, 0.7, lz - cs * 0.22, 0x8a6a4a, ry); for (const e of [-1, 1]) P('steel', boxG(0.05, 0.45, 0.4), lx + e * (len / 2 - 0.1) * cs, 0.22, lz - e * (len / 2 - 0.1) * sn, 0x444444, ry); const ex = Math.abs(cs) * len / 2 + Math.abs(sn) * 0.25, ez = Math.abs(sn) * len / 2 + Math.abs(cs) * 0.25; col(lx - ex, lz - ez, lx + ex, lz + ez, 0.8); }
+function clock(L, lx, ly, lz, ry = 0) { const { P } = L; P('trim', new THREE.CylinderGeometry(0.22, 0.22, 0.04, 16).rotateX(Math.PI / 2), lx, ly, lz, 0xffffff, ry); P('dark', boxG(0.02, 0.15, 0.01), lx, ly + 0.06, lz + Math.cos(ry) * 0.025, 0x111111, ry); P('dark', boxG(0.11, 0.02, 0.01), lx + 0.05, ly, lz + Math.cos(ry) * 0.025, 0x111111, ry); }
+function rug(L, lx, lz, w, d, c) { L.P('paint', planeG(w, d, 1, 1), lx, 0.075, lz, c); }
+function hoseReel(L, lx, lz) { const { P, col } = L; P('paint', new THREE.CylinderGeometry(0.45, 0.45, 0.25, 14).rotateZ(Math.PI / 2), lx, 0.6, lz, 0xc8102e); P('paint', new THREE.TorusGeometry(0.33, 0.06, 6, 14).rotateY(Math.PI / 2), lx, 0.6, lz, 0xf2f2ee); col(lx - 0.25, lz - 0.45, lx + 0.25, lz + 0.45, 1.1); }
+function gearRack(L, lx, lz, ry = 0) { // turnout coats, helmets and boots hanging in a row
+  const { P, col } = L, cs = Math.cos(ry), sn = Math.sin(ry);
+  P('steel', boxG(3.2, 0.05, 0.05), lx, 1.95, lz, 0x666666, ry);
+  for (let k = 0; k < 5; k++) { const u = -1.3 + k * 0.65, x = lx + u * cs, z = lz - u * sn; P('paint', boxG(0.5, 0.9, 0.25), x, 1.45, z, 0xb89a3a, ry); P('paint', boxG(0.52, 0.06, 0.27), x, 1.25, z, 0xd8e0a0, ry); P('paint', new THREE.SphereGeometry(0.17, 10, 6, 0, TAU, 0, Math.PI / 2), x, 2.05, z, k % 2 ? 0xc8102e : 0xf2c21a); for (const e of [-0.1, 0.1]) P('dark', boxG(0.13, 0.35, 0.22), x + e * cs, 0.18, z - e * sn, 0x1c1c1e, ry); }
+  const ex = Math.abs(cs) * 1.6 + Math.abs(sn) * 0.2, ez = Math.abs(sn) * 1.6 + Math.abs(cs) * 0.2; col(lx - ex, lz - ez, lx + ex, lz + ez, 2.1);
+}
+function pegboard(L, lx, ly, lz, w, ry = 0, R = Math.random) { // accessories on hooks: holsters, scopes, knives, cases
+  const { P } = L, cs = Math.cos(ry), sn = Math.sin(ry);
+  P('wood', boxG(w, 1.6, 0.05), lx, ly, lz, 0xc8a878, ry);
+  for (let j = 0; j < 4; j++) for (let i = 0; i < Math.floor(w / 0.45); i++) { const u = -w / 2 + 0.3 + i * 0.45, x = lx + u * cs + sn * 0.06, z = lz - u * sn + cs * 0.06; const k = (i + j) % 4; if (R() < 0.2) continue;
+    if (k === 0) P('dark', boxG(0.14, 0.24, 0.06), x, ly + 0.55 - j * 0.38, z, 0x3a2a1a, ry); else if (k === 1) P('dark', new THREE.CylinderGeometry(0.03, 0.03, 0.28, 8).rotateZ(Math.PI / 2), x, ly + 0.55 - j * 0.38, z, 0x1c1c1e, ry);
+    else if (k === 2) P('paint', boxG(0.25, 0.18, 0.06), x, ly + 0.55 - j * 0.38, z, PROD[(R() * PROD.length) | 0], ry); else P('steel', boxG(0.04, 0.24, 0.02), x, ly + 0.55 - j * 0.38, z, 0xcccccc, ry); }
+}
+function gunCase(L, lx, lz, ry = 0) { const { P, col } = L; P('dark', boxG(1.4, 0.9, 0.6), lx, 0.45, lz, 0x2a2a2e, ry); P('glass', boxG(1.4, 0.35, 0.6), lx, 1.08, lz, 0xffffff, ry); P('emit', boxG(1.3, 0.02, 0.5), lx, 0.92, lz, 0xfff0d0, ry); col(lx - 0.7, lz - 0.3, lx + 0.7, lz + 0.3, 1.25); }
+
+// ============================================================================
 //  CITY LIFE — varied skyscrapers, enterable stores, offices, hospitals,
 //  police & fire stations, hot dog stands, billboards and colored lighting
 // ============================================================================
@@ -2113,7 +2219,9 @@ function hollowShell(L, o) {
   if (o.windows) for (const s of [-1, 1]) P('glassLit', boxG(w * 0.22, 1.6, 0.06), s * w * 0.3, 1.9, zf + 0.02);
   P('concreteBox', boxG(w + 0.5, 0.5, d + 0.5, 4), 0, h + 0.25, zc, o.roof ?? 0x5a5e64);
   P('dark', boxG(w - 0.7, 0.08, d - 0.7), 0, ceil, zc, 0xe8e6e2);
-  P('concrete', planeG(w - 0.7, d - 0.7, (w - 0.7) / 2, (d - 0.7) / 2), 0, 0.06, zc, o.floor ?? 0xcfc8bc);
+  furnitureMats();
+  P(o.tile === false ? 'concrete' : 'tile', planeG(w - 0.7, d - 0.7, (w - 0.7) / 2.4, (d - 0.7) / 2.4), 0, 0.06, zc, o.floor ?? 0xffffff);
+  P('trim', boxG(w - 0.7, 0.12, 0.04), 0, 0.12, z0 + 0.38, 0x3a3a3a); for (const s of [-1, 1]) P('trim', boxG(0.04, 0.12, d - 0.7), s * (w / 2 - 0.38), 0.12, zc, 0x3a3a3a); // skirting
   for (let lx = -w / 2 + 3; lx < w / 2 - 2; lx += 5) for (let lz = z0 + 3; lz < zf - 1.5; lz += 5) P('emit', boxG(1.6, 0.05, 0.6), lx, ceil - 0.06, lz);
   const a = W(-w / 2, z0), b = W(w / 2, zf);
   INTERIORS.push({ x1: Math.min(a[0], b[0]) + 0.4, z1: Math.min(a[1], b[1]) + 0.4, x2: Math.max(a[0], b[0]) - 0.4, z2: Math.max(a[1], b[1]) - 0.4, ceil: ceil - 0.15 });
@@ -2139,10 +2247,18 @@ function policeStation(cx, cz, rot, bw, bd, R) {
   P('concreteBox', boxG(8, 0.3, 3.4), 0, 3.4, zf + 1.6, 0x9aa0a8);
   // inside: front desk, bullpen of desks, lockers, a holding cell
   P('wood', boxG(6, 1.1, 0.8), 0, 0.55, zf - 3.5, 0x4a3a2a); col(-3, zf - 3.9, 3, zf - 3.1, 1.1);
-  for (let i = 0; i < 4; i++) desk(L, -w / 2 + 4 + (i % 2) * 4, z0 + 4 + Math.floor(i / 2) * 3.5);
+  for (let i = 0; i < 4; i++) { const dx = -w / 2 + 4 + (i % 2) * 4, dz = z0 + 4 + Math.floor(i / 2) * 3.5; desk(L, dx, dz); officeChair(L, dx, dz + 0.9, Math.PI); }
+  // waiting area, flags, wanted posters, filing cabinets, water cooler, plants, coffee, clock
+  bench(L, -w / 2 + 3, zf - 1.1, 2.6, Math.PI); bench(L, w / 2 - 3, zf - 1.1, 2.6, Math.PI); plant(L, -1.9, zf - 0.9); plant(L, 1.9, zf - 0.9);
+  flagStand(L, -3.6, zf - 4.2, 0x123a8a); flagStand(L, 3.6, zf - 4.2, 0xb8102e);
+  P('dark', boxG(4.2, 2.2, 0.08), 0, 2.3, z0 + 0.45, 0x2a3a2a); P('trim', boxG(4.4, 0.08, 0.1), 0, 1.15, z0 + 0.5, 0x8a6a4a);
+  for (let k = 0; k < 4; k++) poster(L, -1.5 + k * 1.0, 2.5, z0 + 0.52, k % 2, 0, 0.75); poster(L, 0, 3.8, z0 + 0.45, 7, 0, 1.1);
+  for (let k = 0; k < 3; k++) fileCabinet(L, -w / 2 + 1.0, z0 + 2 + k * 0.7, Math.PI / 2);
+  waterCooler(L, -w / 2 + 1.0, zf - 3.5); coffeeStation(L, -w / 2 + 1.1, z0 + 6.5, Math.PI / 2); clock(L, 0, 4.0, zf - 0.45, Math.PI);
+  poster(L, w / 2 - 0.42, 2.6, zf - 4, 7, -Math.PI / 2); poster(L, -w / 2 + 0.42, 2.6, zf - 6.5, 0, Math.PI / 2);
   for (let i = 0; i < 6; i++) P('steel', boxG(0.6, 1.9, 0.5), w / 2 - 1.2, 0.95, z0 + 2 + i * 0.65, 0x5a6a7a); col(w / 2 - 1.5, z0 + 1.6, w / 2 - 0.4, z0 + 5.8, 2);
   const cx0 = w / 2 - 6; for (let k = 0; k <= 10; k++) P('steel', boxG(0.06, 2.6, 0.06), cx0 + k * 0.45, 1.3, z0 + 9, 0x888c90); col(cx0, z0 + 8.9, cx0 + 4.5, z0 + 9.1, 2.6);
-  P('paint', boxG(2, 0.4, 0.8), cx0 + 2.5, 0.35, z0 + 7, 0x6a6e74);
+  P('paint', boxG(2, 0.4, 0.8), cx0 + 2.5, 0.35, z0 + 7, 0x6a6e74); P('steel', boxG(0.5, 0.4, 0.5), cx0 + 0.6, 0.2, z0 + 2.5, 0xc8ccd0); // bunk & toilet in the cell
   P('steel', boxG(0.12, 9, 0.12), w / 2 - 2, 4.5, zf + 5, 0xdddddd); col(w / 2 - 2.1, zf + 4.9, w / 2 - 1.9, zf + 5.1, 9);
   P('asphalt', planeG(bw - 6, bd - d - 10, (bw - 6) / 6, (bd - d - 10) / 6), 0, 0.03, zf + (bd - d - 10) / 2 + 2);
   for (let k = 0; k < 5; k++) if (R() < 0.9) propVehicle(...W(-w / 2 + 4 + k * 5, zf + 11), rot + Math.PI, 'police');
@@ -2162,6 +2278,13 @@ function fireStation(cx, cz, rot, bw, bd, R) {
   propVehicle(...W(bx(0), zf + 6), rot, 'fire'); propVehicle(...W(bx(1), zf + 4.5), rot, 'ambulance'); propVehicle(...W(bx(2), zf + 6), rot, 'fire'); if (w > 30) propVehicle(...W(w / 2 + 2, zf + 4.5), rot, 'ambulance');
   for (let i = 0; i < 8; i++) P('paint', boxG(0.6, 1.8, 0.5), -w / 2 + 2 + i * 0.7, 0.9, z0 + 0.8, 0xd8b02a); col(-w / 2 + 1.6, z0 + 0.4, -w / 2 + 7.6, z0 + 1.2, 1.9);
   P('steel', new THREE.CylinderGeometry(0.06, 0.06, 6.4, 8), w / 2 - 2, 3.2, z0 + 3, 0xd0d4d8);
+  // crew area: turnout gear racks, hose reels, kitchen table, couch and TV, lockers, workbench, posters
+  gearRack(L, -w / 2 + 6, z0 + 2.6, 0); gearRack(L, -w / 2 + 11, z0 + 2.6, 0);
+  hoseReel(L, bx(0) - 1.6, z0 + 6); hoseReel(L, bx(2) + 1.6, z0 + 6);
+  table(L, w / 2 - 5, z0 + 8, 2.2, 1.1, 0x8a6a4a); for (const [a, b, ry] of [[-0.7, -0.9, 0], [0.7, -0.9, 0], [-0.7, 0.9, Math.PI], [0.7, 0.9, Math.PI]]) chair(L, w / 2 - 5 + a, z0 + 8 + b, ry, 0xc8102e);
+  couch(L, w / 2 - 5, z0 + 13, Math.PI, 0x5a4a3a); tvStand(L, w / 2 - 5, z0 + 15.5, Math.PI); lockers(L, w / 2 - 1.0, z0 + 11.5, 6, -Math.PI / 2, 0xc8102e);
+  table(L, -w / 2 + 2, z0 + 12, 1.0, 3.0, 0x5a5e64); for (let k = 0; k < 4; k++) P('steel', boxG(0.15, 0.15, 0.4), -w / 2 + 2, 0.86, z0 + 10.8 + k * 0.8, 0xf2c21a);
+  poster(L, -w / 2 + 0.42, 3.0, z0 + 6, 4, Math.PI / 2, 1.1); poster(L, w / 2 - 0.42, 3.0, z0 + 6, 4, -Math.PI / 2, 1.1); clock(L, 0, 5.4, z0 + 0.45);
   for (const [lx, lz, hh, o] of [[bx(1) - 2.2, zf + 2.0, 0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [bx(1) + 2.2, zf + 1.4, -0.6, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [bx(0), zf - 4, 0.2, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [w / 2 - 4, z0 + 4, 3.0, { shirt: 0xd8b02a, pants: 0x3a3020, capHat: 0xc8102e }]]) {
     const [x, z] = W(lx, lz); FIXED_PEOPLE.push({ x, z, h: rot + hh, o });
   }
@@ -2183,6 +2306,11 @@ function fastFood(cx, cz, rot, R, bi) {
   for (let k = 0; k < 3; k++) { P('dark', boxG(0.4, 0.3, 0.3), -1 + k * 3, 1.25, z0 + 3.2); P('emit', boxG(2.6, 1.0, 0.05), -1 + k * 3, 3.2, z0 + 0.5, 0xffd8a0); }
   P('steel', boxG(8, 0.9, 1.4), 2, 0.45, z0 + 1.0, 0x9aa0a6); col(-2, z0 + 0.3, 6, z0 + 1.7, 1);
   for (let k = 0; k < 4; k++) { const tx = -6.5 + (k % 2) * 4, tz = z0 + 7 + Math.floor(k / 2) * 3; P('paint', boxG(1.6, 0.06, 0.9), tx, 0.75, tz, 0xf2f2ee); P('steel', boxG(0.1, 0.72, 0.1), tx, 0.37, tz, 0x666666); for (const s of [-1, 1]) P('paint', boxG(1.6, 0.9, 0.5), tx, 0.45, tz + s * 0.85, brandC); col(tx - 0.8, tz - 1.1, tx + 0.8, tz + 1.1, 0.9); }
+  // soda fountain, trash bins, napkin stand, posters, plants, high chairs
+  P('steel', boxG(1.8, 1.4, 0.6), -7.5, 0.7, z0 + 1.0, 0xd8dade); P('emit', boxG(1.5, 0.5, 0.03), -7.5, 1.15, z0 + 1.31, 0xffd8a0); col(-8.4, z0 + 0.7, -6.6, z0 + 1.3, 1.4);
+  trashCan(L, -8.2, zf - 1.3); trashCan(L, 0.5, zf - 1.3); plant(L, 8.2, zf - 1);
+  poster(L, -w / 2 + 0.42, 2.6, z0 + 5, 6, Math.PI / 2, 1.0); poster(L, w / 2 - 0.42, 2.6, z0 + 9, 2, -Math.PI / 2, 1.0);
+  for (let k = 0; k < 4; k++) chair(L, 1 + k * 1.6, zf - 2.4, Math.PI, brandC); table(L, 3.4, zf - 1.6, 6.2, 0.6, 0xf2f2ee);
   // drive-thru window on the side and a tall pole sign by the road
   P('glassLit', boxG(0.06, 1.2, 1.6), w / 2 + 0.03, 1.4, z0 + 4);
   P('steel', boxG(0.5, 10, 0.5), -w / 2 - 3, 5, zf + 8, 0x777b80); col(-w / 2 - 3.3, zf + 7.7, -w / 2 - 2.7, zf + 8.3, 10);
@@ -2206,10 +2334,17 @@ function gasStation(cx, cz, rot, R) {
   // the store
   const { zf } = hollowShell(L, { w: 16, d: 10, h: 4.4, z0: -16, key: 'brick', tint: 0xf4efe6, doors: [{ x: -3, w: 2.2, h: 2.6 }], windows: true, floor: 0xe8e4dc, roof: 0x1c4aa8 });
   P('paint', boxG(16.4, 0.6, 0.3), 0, 4.0, zf + 0.1, 0x1c4aa8);
-  for (let k = 0; k < 3; k++) { P('steel', boxG(4.2, 1.6, 0.6), -4 + k * 4.4 - 1.5, 0.8, -12, 0x8a8e94); for (let y = 0; y < 3; y++) P('paint', boxG(4, 0.25, 0.5), -4 + k * 4.4 - 1.5, 0.35 + y * 0.5, -12, [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a][(k + y) % 4]); col(-4 + k * 4.4 - 3.6, -12.3, -4 + k * 4.4 + 0.6, -11.7, 1.6); }
-  P('glassLit', boxG(10, 2.2, 0.1), 0, 1.3, -15.6, 0xc8f0ff);
-  P('wood', boxG(3.2, 1.05, 0.8), 4.5, 0.52, -9, 0x6a4a32); col(2.9, -9.4, 6.1, -8.6, 1.1);
-  { const [x, z] = W(4.5, -10); FIXED_PEOPLE.push({ x, z, h: rot, o: { shirt: 0x1c4aa8, pants: 0x2a2c30 } }); }
+  // inside: two stocked aisles, a fridge wall, checkout with register, coffee, ATM, posters
+  shelfUnit(L, -3.8, -12, 4.2, 0, R); shelfUnit(L, 2.2, -12, 4.2, 0, R);
+  fridgeWall(L, 1.5, -15.2, 9.5, 0, R);
+  checkout(L, 5.2, -8.8, 3.2, Math.PI, R);
+  coffeeStation(L, -7.3, -11.5, Math.PI / 2); atm(L, -7.1, -7.4, Math.PI / 2);
+  poster(L, -5.5, 3.0, -15.72, 2); poster(L, 6.5, 3.0, -15.72, 3); poster(L, 7.62, 2.4, -12, 6, -Math.PI / 2); poster(L, -7.62, 2.6, -9.5, 0, Math.PI / 2);
+  shelfUnit(L, -6.9, -14, 2.0, Math.PI / 2, R, 4, false); plant(L, 7.2, -6.9); trashCan(L, -6, -4.9); trashCan(L, 2.5, -4.9);
+  P('paint', boxG(1.6, 0.9, 0.8), 5.5, 0.45, -4.9, 0x2a7ac8); P('emit', boxG(1.3, 0.25, 0.02), 5.5, 0.7, -4.48, 0xe8f4ff); col(4.7, -5.3, 6.3, -4.5, 0.9); // ice chest
+  if (false) { for (let k = 0; k < 3; k++) { P('steel', boxG(4.2, 1.6, 0.6), -4 + k * 4.4 - 1.5, 0.8, -12, 0x8a8e94); for (let y = 0; y < 3; y++) P('paint', boxG(4, 0.25, 0.5), -4 + k * 4.4 - 1.5, 0.35 + y * 0.5, -12, [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a][(k + y) % 4]); col(-4 + k * 4.4 - 3.6, -12.3, -4 + k * 4.4 + 0.6, -11.7, 1.6); }
+  }
+  { const [x, z] = W(5.2, -9.9); FIXED_PEOPLE.push({ x, z, h: rot, o: { shirt: 0x1c4aa8, pants: 0x2a2c30 } }); }
   const [sx, sz] = W(19, 17); const sg = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3, 0.25), GAS_SIGN); sg.position.set(sx, 7, sz); sg.rotation.y = rot; scene.add(sg);
   P('steel', boxG(0.3, 6, 0.3), 19, 3, 17, 0x888888); col(18.8, 16.8, 19.2, 17.2, 6);
   const a = W(-23, -20), b = W(23, 20); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])];
@@ -2236,6 +2371,13 @@ function gunStore(cx, cz, rot, R) {
   P('wood', boxG(14, 2.6, 0.15), 1.5, 2.0, z0 + 0.5, 0x5a3a22);
   for (let k = 0; k < (LITE ? 2 : 6); k++) { const gp = (k % 2 ? buildSniper : buildShotgun)(); gp.g.rotation.set(-Math.PI / 2 + 0.05, 0, 0); gp.g.scale.setScalar(2.0); const [x, z] = W(-4.5 + k * 2.2, z0 + 0.75); gp.g.position.set(x, 1.6, z); gp.g.rotation.y = rot + Math.PI / 2; scene.add(gp.g); }
   P('paint', boxG(0.6, 1.8, 1.4), w / 2 - 1.2, 0.9, z0 + 3, 0x3a3f2c); P('paint', boxG(0.6, 1.8, 1.4), w / 2 - 1.2, 0.9, z0 + 5, 0x3a3f2c); col(w / 2 - 1.5, z0 + 2.2, w / 2 - 0.9, z0 + 5.8, 1.8); // ammo crates
+  // furniture: accessory pegboards, glass gun cases, a target range poster wall, flag, bench, rug, clock, register
+  pegboard(L, -w / 2 + 0.45, 2.1, z0 + 6.5, 5.5, Math.PI / 2, R); pegboard(L, w / 2 - 0.45, 2.1, z0 + 9.5, 4.0, -Math.PI / 2, R);
+  gunCase(L, -5.5, z0 + 9.3); gunCase(L, 3.5, z0 + 9.3); gunCase(L, 6.8, z0 + 10.6, Math.PI / 2);
+  poster(L, -7.5, 3.6, z0 + 0.55, 5, 0, 1.1); poster(L, 8.6, 3.6, z0 + 0.55, 5, 0, 1.1); poster(L, -w / 2 + 0.42, 3.4, z0 + 11.5, 0, Math.PI / 2); poster(L, -w / 2 + 0.42, 3.4, z0 + 2.5, 1, Math.PI / 2);
+  flagStand(L, -8.6, z0 + 1.4, 0xb8102e); bench(L, -7.5, zf - 1.2, 2.2, Math.PI); rug(L, -2, zf - 3, 5, 2.4, 0x5a1e1e); clock(L, 1.5, 3.9, z0 + 0.6);
+  { const r = [4.5, z0 + 5]; P('dark', boxG(0.4, 0.15, 0.35), r[0], 1.1, r[1], 0x1c1c1e); P('emit', boxG(0.3, 0.22, 0.03), r[0], 1.3, r[1] + 0.1, 0x9ae8ff); }
+  shelfUnit(L, w / 2 - 1.0, z0 + 2.2, 2.6, -Math.PI / 2, R, 4, false); plant(L, 9.3, zf - 0.8);
   // the clerk, and the spot where you buy
   { const [x, z] = W(1.5, z0 + 3.8); FIXED_PEOPLE.push({ x, z, h: rot, o: { shirt: 0x3a3f2c, pants: 0x2a2620, capHat: 0x1c1c1e, beard: 0.6 } }); }
   { const [x, z] = W(1.5, z0 + 6.4); GUN_COUNTERS.push({ x, z }); }
@@ -2253,8 +2395,10 @@ function market(cx, cz, rot, R) {
   const { zf } = hollowShell(L, { w, d, h, z0, key: 'brick', tint: 0xf0e4d0, doors: [{ x: -7, w: 2.6, h: 2.7 }, { x: 7, w: 2.6, h: 2.7 }], windows: true, floor: 0xece8e0, roof: 0x1e7a3a });
   signPlane(MKT_SIGN, 11, 2.75, ...[W(0, zf + 0.26)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.0]), rot);
   const goods = [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a, 0xff8a2a, 0xf2f2ee, 0x8a2ac8];
-  for (let a = 0; a < 4; a++) { const x = -8 + a * 5; P('steel', boxG(1.0, 1.8, 9), x, 0.9, z0 + 6.5, 0xb8bcc2); for (let y = 0; y < 4; y++) for (const s of [-1, 1]) P('paint', boxG(0.25, 0.3, 8.6), x + s * 0.4, 0.3 + y * 0.42, z0 + 6.5, goods[(a * 4 + y + (s > 0 ? 2 : 0)) % goods.length]); col(x - 0.5, z0 + 2, x + 0.5, z0 + 11, 1.8); }
-  P('glassLit', boxG(w - 2, 2.2, 0.15), 0, 1.3, z0 + 0.5, 0xc8f0ff);
+  for (let a = 0; a < 4; a++) shelfUnit(L, -8 + a * 5, z0 + 6.5, 8.5, Math.PI / 2, R);
+  if (false) for (let a = 0; a < 4; a++) { const x = -8 + a * 5; P('steel', boxG(1.0, 1.8, 9), x, 0.9, z0 + 6.5, 0xb8bcc2); for (let y = 0; y < 4; y++) for (const s of [-1, 1]) P('paint', boxG(0.25, 0.3, 8.6), x + s * 0.4, 0.3 + y * 0.42, z0 + 6.5, goods[(a * 4 + y + (s > 0 ? 2 : 0)) % goods.length]); col(x - 0.5, z0 + 2, x + 0.5, z0 + 11, 1.8); }
+  fridgeWall(L, 0, z0 + 0.8, w - 3, 0, R); poster(L, -9, 3.8, z0 + 0.45, 6, 0, 1.1); poster(L, 9, 3.8, z0 + 0.45, 2, 0, 1.1); plant(L, -w / 2 + 1.2, zf - 1); plant(L, w / 2 - 1.2, zf - 1); clock(L, 0, 4.4, zf - 0.45, Math.PI);
+  for (let k = 0; k < 4; k++) { P('steel', boxG(0.6, 0.9, 0.9), -w / 2 + 1.2 + k * 0.7, 0.45, zf - 2.2, 0x9aa0a8); } // shopping carts
   for (const s of [-1, 1]) { const x = s * 4; P('steel', boxG(2.4, 0.95, 0.9), x, 0.47, zf - 3, 0x3a3e44); P('dark', boxG(0.4, 0.3, 0.3), x + 0.6, 1.1, zf - 3); col(x - 1.2, zf - 3.45, x + 1.2, zf - 2.55, 1); const [px, pz] = W(x, zf - 4); FIXED_PEOPLE.push({ x: px, z: pz, h: rot, o: { shirt: 0x1e7a3a, pants: 0x2a2c30 } }); }
   for (let k = 0; k < 3; k++) { P('wood', boxG(1.6, 0.8, 1.0), -w / 2 + 2, 0.4, z0 + 4 + k * 2.6, 0x8a6a4a); P('paint', boxG(1.5, 0.25, 0.9), -w / 2 + 2, 0.9, z0 + 4 + k * 2.6, [0x2ac87a, 0xe83a3a, 0xf2a01a][k]); col(-w / 2 + 1.2, z0 + 3.5 + k * 2.6, -w / 2 + 2.8, z0 + 4.5 + k * 2.6, 1); }
   P('asphalt', planeG(36, 34, 6, 6), 0, 0.03, 2);
