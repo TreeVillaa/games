@@ -126,6 +126,13 @@
     border: 3px solid rgba(0,0,0,.65); box-shadow: 0 0 0 2px rgba(255,255,255,.25), 0 4px 16px rgba(0,0,0,.5); overflow: hidden; background: #222; }
   #minimap { width: 100%; height: 100%; display: block; }
   #mapWrap { pointer-events: auto; cursor: pointer; }
+  #scope { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .12s; background: radial-gradient(circle at 50% 50%, transparent 0, transparent min(34vw, 40vh), #000 calc(min(34vw, 40vh) + 2px)); }
+  #scope.on { opacity: 1; }
+  #scope::before, #scope::after { content: ''; position: absolute; left: 50%; top: 50%; background: rgba(0,0,0,.85); }
+  #scope::before { width: min(68vw, 80vh); height: 2px; transform: translate(-50%, -50%); }
+  #scope::after { width: 2px; height: min(68vw, 80vh); transform: translate(-50%, -50%); }
+  #scope i { position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #e8102e; }
+  body:has(#scope.on) #cross { display: none; }
   #keyList { display: grid; gap: 6px; margin: 10px 0; }
   .btn.kb { display: flex; justify-content: space-between; align-items: center; gap: 10px; text-align: left; font-size: .8rem; padding: 10px 14px; }
   .btn.kb .val { font-weight: 900; color: #ffd23f; white-space: nowrap; } .btn.kb small { color: #c8b8d8; font-weight: 600; }
@@ -326,7 +333,7 @@
     <div class="hint" id="qualNote" style="margin-top:10px"></div>
     <button class="btn primary" data-act="back" data-back>Back</button>
     <div class="hint" style="margin-top:8px">Controller: Up/Down to pick · Left/Right or A to change · B to go back</div>
-    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.27-1702</div>
+    <div class="hint" style="margin-top:4px;opacity:.6">Version 2026.11.28-0122</div>
   </div>
 </div>
 
@@ -361,6 +368,14 @@
 </div>
 
 <!-- ================= PAUSE ================= -->
+<div id="shopPanel" class="panel hidden">
+  <div class="card" style="max-height:92vh;overflow:auto;max-width:520px">
+    <h2 class="display">GUN SHOP</h2>
+    <div class="sub">Cash: <b id="shopCash" style="color:#7dff9c"></b> · Pick a gun to buy or equip</div>
+    <div id="shopList"></div>
+    <button class="btn primary" data-act="shopClose" data-back>Leave</button>
+  </div>
+</div>
 <div id="keysPanel" class="panel hidden">
   <div class="card" style="max-height:92vh;overflow:auto;max-width:560px">
     <h2 class="display">KEY BINDINGS</h2>
@@ -432,6 +447,7 @@
 
 <!-- ================= HUD ================= -->
 <div id="hud">
+  <div id="scope"><i></i></div>
   <div id="mapWrap"><canvas id="minimap" width="256" height="256"></canvas></div>
   <div id="hpb"><div id="hpF"></div></div>
   <div id="ammo" class="hidden"><svg viewBox="0 0 32 32" aria-hidden="true" class="ic"><path fill="currentColor" d="M4 9h20l2 2h2v4H17l-1 2h-3l-2 7H5l2.5-8.5L4 15z"/><rect x="12" y="15" width="3" height="3" fill="rgba(0,0,0,.4)"/></svg><span id="ammoT">15 / 60</span></div>
@@ -2131,12 +2147,13 @@ function fireStation(cx, cz, rot, bw, bd, R) {
   const { zf } = hollowShell(L, { w, d, h, z0, key: 'brick', tint: 0xb05040, doors: [0, 1, 2].map(k => ({ x: bx(k), w: bayW, h: 5.2 })).concat([{ x: w / 2 - 3, w: 1.6, h: 2.6 }]), ceil: 6.4, floor: 0xb8b4ac, roof: 0x5a2a22 });
   for (let k = 0; k < 3; k++) P('trim', boxG(bayW + 0.6, 0.4, 0.3), bx(k), 5.4, zf + 0.12);
   signPlane(C.sFire, 14, 2.2, ...[W(0, zf + 0.25)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.5]), rot);
-  P('concrete', planeG(w + 4, 14, (w + 4) / 3, 14 / 3), 0, 0.035, zf + 7, 0xd0ccc4);
+  P('concrete', planeG(w + 8, 16, (w + 8) / 3, 16 / 3), 0, 0.035, zf + 8, 0xd0ccc4);
   // trucks and the ambulance parked inside the bays, paramedics by the ambulance
-  propVehicle(...W(bx(0), zf - 7), rot, 'fire'); propVehicle(...W(bx(1), zf - 6), rot, 'ambulance'); propVehicle(...W(bx(2), zf - 7), rot, 'fire');
+  // fire trucks and ambulances parked out on the driveway, ready to roll
+  propVehicle(...W(bx(0), zf + 6), rot, 'fire'); propVehicle(...W(bx(1), zf + 4.5), rot, 'ambulance'); propVehicle(...W(bx(2), zf + 6), rot, 'fire'); if (w > 30) propVehicle(...W(w / 2 + 2, zf + 4.5), rot, 'ambulance');
   for (let i = 0; i < 8; i++) P('paint', boxG(0.6, 1.8, 0.5), -w / 2 + 2 + i * 0.7, 0.9, z0 + 0.8, 0xd8b02a); col(-w / 2 + 1.6, z0 + 0.4, -w / 2 + 7.6, z0 + 1.2, 1.9);
   P('steel', new THREE.CylinderGeometry(0.06, 0.06, 6.4, 8), w / 2 - 2, 3.2, z0 + 3, 0xd0d4d8);
-  for (const [lx, lz, hh, o] of [[bx(1) - 2.0, zf - 3.2, 0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [bx(1) + 2.0, zf - 4, -0.6, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [w / 2 - 4, z0 + 4, 3.0, { shirt: 0xd8b02a, pants: 0x3a3020, capHat: 0xc8102e }]]) {
+  for (const [lx, lz, hh, o] of [[bx(1) - 2.2, zf + 2.0, 0.5, { shirt: 0x1c2a4a, pants: 0x1c2a4a, capHat: 0x1c2a4a }], [bx(1) + 2.2, zf + 1.4, -0.6, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [bx(0), zf - 4, 0.2, { shirt: 0x1c2a4a, pants: 0x1c2a4a }], [w / 2 - 4, z0 + 4, 3.0, { shirt: 0xd8b02a, pants: 0x3a3020, capHat: 0xc8102e }]]) {
     const [x, z] = W(lx, lz); FIXED_PEOPLE.push({ x, z, h: rot + hh, o });
   }
   SPECIAL_LOG.push({ sp: 'fire-in', x: W(bx(1), zf - 2)[0], z: W(bx(1), zf - 2)[1], rot });
@@ -2189,6 +2206,50 @@ function gasStation(cx, cz, rot, R) {
   reserve(...bx); PAVED.push(bx);
   SPECIAL_LOG.push({ sp: 'gas', x: W(0, 0)[0], z: W(0, 0)[1], rot });
 }
+// ---- gun store: armored front, long glass counter with pistols inside, rifles and shotguns racked on the wall
+let GUN_SIGN = null;
+function gunStore(cx, cz, rot, R) {
+  const L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  if (!GUN_SIGN) GUN_SIGN = signMat('gunshop', 1024, 256, (g, w, h) => { g.fillStyle = '#141414'; g.fillRect(0, 0, w, h); g.strokeStyle = '#e8102e'; g.lineWidth = 10; g.strokeRect(14, 14, w - 28, h - 28);
+    g.beginPath(); g.arc(150, h / 2, 70, 0, TAU); g.moveTo(150, h / 2 - 95); g.lineTo(150, h / 2 + 95); g.moveTo(55, h / 2); g.lineTo(245, h / 2); g.stroke();
+    g.font = '900 120px Arial Black, Impact, sans-serif'; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillStyle = '#ffffff'; g.shadowColor = '#e8102e'; g.shadowBlur = 14; g.fillText('GUN SHOP', 270, h / 2 + 8); }, 1.4);
+  const w = 20, d = 14, h = 5, z0 = -10;
+  const { zf } = hollowShell(L, { w, d, h, z0, key: 'concreteBox', tint: 0xb8bcc4, doors: [{ x: -6, w: 2.2, h: 2.6 }], windows: true, floor: 0xa89a88, roof: 0x2a2c30 });
+  P('wood', boxG(w - 0.8, 3.0, 0.1), 0, 1.6, z0 + 0.42, 0xc8a070);
+  signPlane(GUN_SIGN, 10, 2.5, ...[W(0, zf + 0.26)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.2]), rot);
+  for (let k = 0; k < 7; k++) P('steel', boxG(0.06, 1.6, 0.06), -w / 2 + 2 + k * 2.6, 1.9, zf + 0.12, 0x222222); // window bars
+  // glass display counter with pistols inside
+  P('dark', boxG(12, 0.9, 1.0), 1.5, 0.45, z0 + 5, 0x2a2a2e); P('glass', boxG(12, 0.06, 1.0), 1.5, 1.0, z0 + 5); col(-4.5, z0 + 4.5, 7.5, z0 + 5.5, 1.1);
+  const shown = [];
+  for (let k = 0; k < 4; k++) { const gp = [buildGlock, buildDeagle, buildGlock, buildDeagle][k](); gp.g.rotation.set(-Math.PI / 2, 0, Math.PI / 2); gp.g.scale.setScalar(2.2); gp.g.position.set(...W(-3 + k * 3, z0 + 5).flatMap((v, i) => i ? [v] : [v, 0.94])); gp.g.rotation.y = rot; scene.add(gp.g); shown.push(gp.g); }
+  // back wall rack: shotguns and sniper rifles standing upright
+  P('wood', boxG(14, 2.6, 0.15), 1.5, 2.0, z0 + 0.5, 0x5a3a22);
+  for (let k = 0; k < (LITE ? 2 : 6); k++) { const gp = (k % 2 ? buildSniper : buildShotgun)(); gp.g.rotation.set(-Math.PI / 2 + 0.05, 0, 0); gp.g.scale.setScalar(2.0); const [x, z] = W(-4.5 + k * 2.2, z0 + 0.75); gp.g.position.set(x, 1.6, z); gp.g.rotation.y = rot + Math.PI / 2; scene.add(gp.g); }
+  P('paint', boxG(0.6, 1.8, 1.4), w / 2 - 1.2, 0.9, z0 + 3, 0x3a3f2c); P('paint', boxG(0.6, 1.8, 1.4), w / 2 - 1.2, 0.9, z0 + 5, 0x3a3f2c); col(w / 2 - 1.5, z0 + 2.2, w / 2 - 0.9, z0 + 5.8, 1.8); // ammo crates
+  // the clerk, and the spot where you buy
+  { const [x, z] = W(1.5, z0 + 3.8); FIXED_PEOPLE.push({ x, z, h: rot, o: { shirt: 0x3a3f2c, pants: 0x2a2620, capHat: 0x1c1c1e, beard: 0.6 } }); }
+  { const [x, z] = W(1.5, z0 + 6.4); GUN_COUNTERS.push({ x, z }); }
+  P('asphalt', planeG(30, 26, 5, 4), 0, 0.03, 0);
+  const a = W(-15, -13), b = W(15, 13); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; reserve(...bx); PAVED.push(bx);
+  SPECIAL_LOG.push({ sp: 'gun', x: W(1.5, z0 + 6.4)[0], z: W(1.5, z0 + 6.4)[1], rot });
+}
+// ---- neighbourhood market: aisles of shelves, produce stands, fridges, two checkouts
+let MKT_SIGN = null;
+function market(cx, cz, rot, R) {
+  const L = localPlacer(cx, cz, rot), { P, col, W } = L;
+  if (!MKT_SIGN) MKT_SIGN = signMat('mkt', 1024, 256, (g, w, h) => { g.fillStyle = '#1e7a3a'; g.fillRect(0, 0, w, h); g.font = '900 120px Arial Black, Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#fff'; g.fillText('FRESH MART', w / 2, h / 2 + 8); }, 1.2);
+  const w = 24, d = 18, h = 5.5, z0 = -12;
+  const { zf } = hollowShell(L, { w, d, h, z0, key: 'brick', tint: 0xf0e4d0, doors: [{ x: -7, w: 2.6, h: 2.7 }, { x: 7, w: 2.6, h: 2.7 }], windows: true, floor: 0xece8e0, roof: 0x1e7a3a });
+  signPlane(MKT_SIGN, 11, 2.75, ...[W(0, zf + 0.26)].flat().flatMap((v, i) => i ? [v] : [v, h - 1.0]), rot);
+  const goods = [0xe83a3a, 0xf2c21a, 0x2a8ae8, 0x2ac87a, 0xff8a2a, 0xf2f2ee, 0x8a2ac8];
+  for (let a = 0; a < 4; a++) { const x = -8 + a * 5; P('steel', boxG(1.0, 1.8, 9), x, 0.9, z0 + 6.5, 0xb8bcc2); for (let y = 0; y < 4; y++) for (const s of [-1, 1]) P('paint', boxG(0.25, 0.3, 8.6), x + s * 0.4, 0.3 + y * 0.42, z0 + 6.5, goods[(a * 4 + y + (s > 0 ? 2 : 0)) % goods.length]); col(x - 0.5, z0 + 2, x + 0.5, z0 + 11, 1.8); }
+  P('glassLit', boxG(w - 2, 2.2, 0.15), 0, 1.3, z0 + 0.5, 0xc8f0ff);
+  for (const s of [-1, 1]) { const x = s * 4; P('steel', boxG(2.4, 0.95, 0.9), x, 0.47, zf - 3, 0x3a3e44); P('dark', boxG(0.4, 0.3, 0.3), x + 0.6, 1.1, zf - 3); col(x - 1.2, zf - 3.45, x + 1.2, zf - 2.55, 1); const [px, pz] = W(x, zf - 4); FIXED_PEOPLE.push({ x: px, z: pz, h: rot, o: { shirt: 0x1e7a3a, pants: 0x2a2c30 } }); }
+  for (let k = 0; k < 3; k++) { P('wood', boxG(1.6, 0.8, 1.0), -w / 2 + 2, 0.4, z0 + 4 + k * 2.6, 0x8a6a4a); P('paint', boxG(1.5, 0.25, 0.9), -w / 2 + 2, 0.9, z0 + 4 + k * 2.6, [0x2ac87a, 0xe83a3a, 0xf2a01a][k]); col(-w / 2 + 1.2, z0 + 3.5 + k * 2.6, -w / 2 + 2.8, z0 + 4.5 + k * 2.6, 1); }
+  P('asphalt', planeG(36, 34, 6, 6), 0, 0.03, 2);
+  const a = W(-18, -16), b = W(18, 18); const bx = [Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]; reserve(...bx); PAVED.push(bx);
+  SPECIAL_LOG.push({ sp: 'market', x: W(0, zf - 6)[0], z: W(0, zf - 6)[1], rot });
+}
 // spread gas stations and fast food along the highways and roads, far apart from each other
 function buildServices() {
   const R = rng(1717), cands = [];
@@ -2208,6 +2269,16 @@ function buildServices() {
   const gas = [[40, -30]], food = [];
   for (const c of cands) { if (gas.length >= 21) break; if (gas.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 1150)) continue; if (!ok(c, 24)) continue; gasStation(c.x, c.z, c.rot, R); gas.push([c.x, c.z]); }
   let bi = 0;
+  // gun stores and markets: in and around every town, plus a few out on the highways
+  const guns = [], mkts = [];
+  const far = (list, c, dmin) => !list.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < dmin);
+  for (const c of cands) { if (guns.length >= 10) break; if (!far(guns, c, 1100) || !far(gas, c, 100) || !ok(c, 18)) continue; gunStore(c.x, c.z, c.rot, R); guns.push([c.x, c.z]); }
+  for (const c of cands) { if (mkts.length >= 12) break; if (!far(mkts, c, 900) || !far(gas, c, 100) || !far(guns, c, 100) || !ok(c, 22)) continue; market(c.x, c.z, c.rot, R); mkts.push([c.x, c.z]); }
+  // more police and fire stations out across the state (towns already have theirs)
+  const pol = SPECIAL_LOG.filter(s => s.sp === 'police').map(s => [s.x, s.z]), fire = SPECIAL_LOG.filter(s => s.sp === 'fire').map(s => [s.x, s.z]);
+  const deep = c => ({ x: c.x - Math.sin(c.rot) * 12, z: c.z - Math.cos(c.rot) * 12, rot: c.rot, r: c.r, town: c.town });
+  for (const c0 of cands) { if (pol.length >= 12) break; const c = deep(c0); if (!far(pol, c, 1600) || !far(gas, c, 120) || !far(guns, c, 120) || !far(mkts, c, 120) || !ok(c, 34)) continue; policeStation(c.x, c.z, c.rot, 60, 60, R); pol.push([c.x, c.z]); reserve(c.x - 32, c.z - 32, c.x + 32, c.z + 32); SPECIAL_LOG.push({ sp: 'police', x: c.x, z: c.z, rot: c.rot }); }
+  for (const c0 of cands) { if (fire.length >= 12) break; const c = deep(c0); if (!far(fire, c, 1600) || !far(pol, c, 150) || !far(gas, c, 120) || !far(guns, c, 120) || !far(mkts, c, 120) || !ok(c, 34)) continue; fireStation(c.x, c.z, c.rot, 60, 60, R); fire.push([c.x, c.z]); reserve(c.x - 32, c.z - 32, c.x + 32, c.z + 32); SPECIAL_LOG.push({ sp: 'fire', x: c.x, z: c.z, rot: c.rot }); }
   for (const c of cands) { if (food.length >= (LITE ? 10 : 14)) break; if (!c.town) continue; if (food.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 600) || gas.some(g => Math.hypot(g[0] - c.x, g[1] - c.z) < 120)) continue; if (!ok(c, 20)) continue; fastFood(c.x, c.z, c.rot, R, bi++); food.push([c.x, c.z]); }
 }
 function officeTower(cx, cz, rot, bw, bd, R) {
@@ -2318,6 +2389,11 @@ function buildWaterLife() {
   const g = new THREE.PlaneGeometry(800, 800, LITE ? 120 : 200, LITE ? 120 : 200); g.rotateX(-Math.PI / 2);
   const patch = new THREE.Mesh(g, m); patch.position.y = WATER_Y + 0.04; patch.frustumCulled = false; patch.receiveShadow = true; patch.renderOrder = 1;
   scene.add(patch); WATERX.patch = patch;
+  // the flat sea far away must not poke through the troughs of the waves: cut it out under the wave patch
+  uni.uPC = { value: new THREE.Vector2() };
+  if (waterMesh) { waterMesh.material.onBeforeCompile = sh2 => { sh2.uniforms.uPC = uni.uPC;
+    sh2.vertexShader = sh2.vertexShader.replace('#include <common>', '#include <common>\nvarying vec2 vWXZ;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvWXZ = (modelMatrix * vec4(transformed, 1.0)).xz;');
+    sh2.fragmentShader = sh2.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec2 vWXZ; uniform vec2 uPC;').replace('void main() {', 'void main() {\n  if (max(abs(vWXZ.x - uPC.x), abs(vWXZ.y - uPC.y)) < 388.0) discard;'); }; waterMesh.material.needsUpdate = true; }
   // ---- river current: ribbons with flow streaks that scroll downstream
   const flow = tex(64, 256, (c, w, h) => {
     c.clearRect(0, 0, w, h); const R = rng(9);
@@ -2372,6 +2448,7 @@ function updateWaterLife(dt) {
   WATERX.uni.uTime.value += dt;
   const cx = camera.position.x, cz = camera.position.z;
   WATERX.patch.position.x = Math.round(cx / 10) * 10; WATERX.patch.position.z = Math.round(cz / 10) * 10;
+  WATERX.uni.uPC.value.set(WATERX.patch.position.x, WATERX.patch.position.z);
   for (const t of WATERX.rivers) t.offset.y -= dt * 0.18;
 }
 // ---------------------------------------------------------------- beaches: umbrellas, towels, chairs, lifeguard towers
@@ -4900,7 +4977,7 @@ function updateDown(e, dt, getUp) {
     if (getUp && e.t > 4.5 && e.y === 0) { e.state = 'getup'; e.t = 0; e.fall = wrapA(e.fall); }
   } else if (e.state === 'getup') {
     e.fall = damp(e.fall, 0, 4, dt);
-    if (e.t > 1.1) { e.fall = 0; e.t = 0; e.hp = Math.max(e.hp || 0, 5); e.state = e.brave && e.kos < 2 && !(W && W.cur === 'glock') ? 'fight' : 'flee'; }
+    if (e.t > 1.1) { e.fall = 0; e.t = 0; e.hp = Math.max(e.hp || 0, 5); e.state = e.brave && e.kos < 2 && !(W && W.cur !== 'fists') ? 'fight' : 'flee'; }
   }
 }
 function placeBody(e, m) {
@@ -4949,7 +5026,7 @@ function separatePeople() {
 // a pedestrian who fights back: squares up, circles, closes the distance and throws punches
 function npcFight(n, dt) {
   const dx = P.x - n.x, dz = P.z - n.z, d = Math.hypot(dx, dz) || 0.01;
-  if (P.dead || P.inCar || d > 14 || (W && W.cur === 'glock' && W.aim > 0.3) || n.hp < 3) { n.state = 'flee'; n.t = 0; return 0; }
+  if (P.dead || P.inCar || d > 14 || (W && W.cur !== 'fists' && W.aim > 0.3) || n.hp < 3) { n.state = 'flee'; n.t = 0; return 0; }
   const th = Math.atan2(dx, dz); n.h += wrapA(th - n.h) * Math.min(1, dt * 8);
   n.blockT = Math.max(0, (n.blockT || 0) - dt);
   let sp = 0;
@@ -5009,7 +5086,7 @@ function updateNPCs(dt) {
       }
       else if (d > 0.01) { const want = Math.atan2(dx, dz), dh = wrapA(want - n.h); n.turn = dh * 6; n.h += dh * Math.min(1, dt * 6); n.spd = damp(n.spd, sp, 4, dt); n.x += Math.sin(n.h) * n.spd * dt; n.z += Math.cos(n.h) * n.spd * dt; spd = n.spd; }
     } else if (n.state === 'idle') { n.t -= dt; n.spd = damp(n.spd, 0, 6, dt); if (n.t <= 0) { n.state = 'walk'; n.sitting = false; if (n.beach) beachNext(n); } }
-    else if (n.state === 'hit') { n.t -= dt; n.x += n.vx * dt; n.z += n.vz * dt; n.vx *= Math.exp(-6 * dt); n.vz *= Math.exp(-6 * dt); if (n.t <= 0) { n.state = n.brave && !(W && W.cur === 'glock') && !P.inCar ? 'fight' : 'flee'; n.t = 0; n.atkT = 0.6 + Math.random() * 0.6; } }
+    else if (n.state === 'hit') { n.t -= dt; n.x += n.vx * dt; n.z += n.vz * dt; n.vx *= Math.exp(-6 * dt); n.vz *= Math.exp(-6 * dt); if (n.t <= 0) { n.state = n.brave && !(W && W.cur !== 'fists') && !P.inCar ? 'fight' : 'flee'; n.t = 0; n.atkT = 0.6 + Math.random() * 0.6; } }
     else if (n.state === 'fight') spd = npcFight(n, dt);
     else updateDown(n, dt, true);
     if (n.state !== 'down') { const p = { x: n.x, z: n.z }; const hw = pushCircle(p, 0.3), hc = pushFromCars(p, 0.32); if ((hw || hc) && n.state === 'flee') n.fleeDir = (n.fleeDir || 0) + (Math.random() < 0.5 ? 1.4 : -1.4); n.x = p.x; n.z = p.z; }
@@ -5055,7 +5132,7 @@ addEventListener('pointerdown', e => {
     if (e.button === 1) { e.preventDefault && e.preventDefault(); mouseBack = true; return; }
     if (e.button === 2) { mouseAim = true; return; }
     const ready = document.pointerLockElement === canvas || ctrlMode() === 'mobile';
-    if (e.button === 0 && !P.inCar && ready) { if (W && W.cur === 'glock') { fireEdge = true; mouseFire = true; } else if (document.pointerLockElement === canvas) { if (nearDownedQuick()) stompEdge = true; else punchEdge = true; } }
+    if (e.button === 0 && !P.inCar && ready) { if (W && W.cur !== 'fists') { fireEdge = true; mouseFire = true; } else if (document.pointerLockElement === canvas) { if (nearDownedQuick()) stompEdge = true; else punchEdge = true; } }
     if (document.pointerLockElement !== canvas) mouseCam = { id: e.pointerId, x: e.clientX, y: e.clientY };
     return;
   }
@@ -5123,7 +5200,7 @@ function pollInput(dt) {
   inp.act = bt(0) || kbDown('action') || touch.act;
   inp.actEdge = edge(0) || actEdge; actEdge = false;
   inp.jump = jumpEdge || (!P.inCar && kbDown('jump') && !inp.spaceHeld) || (!P.inCar && edge(0) && !(state === 'play' && currentInteraction())); inp.spaceHeld = kbDown('jump'); jumpEdge = false;
-  const armed = W && W.cur === 'glock' && !P.inCar;
+  const armed = W && W.cur !== 'fists' && !P.inCar;
   if (!armed) touch.aimOn = false;
   inp.aim = (armed && (bv(6) > 0.3 || touch.aimOn || mouseAim || kbDown('aim')));
   inp.fire = armed && (bt(7) || fireEdge || touch.punch || kbDown('fire') || mouseFire); touch.punchHeld = touch.punch; fireEdge = false;
@@ -5164,11 +5241,11 @@ function onKeyEdge(code) {
     if (code === 'ArrowLeft' || code === 'KeyA') menuCycle(-1); if (code === 'ArrowRight' || code === 'KeyD') menuCycle(1);
     if (code === 'Enter' || code === 'Space') menuActivate();
   } else if (kbIs('action', code)) actEdge = true;
-  else if (kbIs('attack', code)) { if (nearDownedQuick()) stompEdge = true; else if (W && W.cur === 'glock') fireEdge = true; else punchEdge = true; }
+  else if (kbIs('attack', code)) { if (nearDownedQuick()) stompEdge = true; else if (W && W.cur !== 'fists') fireEdge = true; else punchEdge = true; }
   else if (kbIs('stomp', code)) stompEdge = true;
   else if (kbIs('weapon', code)) switchEdge = true;
   else if (kbIs('fists', code)) { if (W && W.cur !== 'fists' && !P.inCar) switchEdge = true; }
-  else if (kbIs('gun', code)) { if (W && W.cur !== 'glock' && !P.inCar) switchEdge = true; }
+  else if (kbIs('gun', code)) { if (W && !P.inCar) { const l = GUN_ORDER.filter(k => W.has[k]); if (!l.length) toast('NO GUNS — VISIT A GUN SHOP', 1.6); else equipGun(l[(l.indexOf(W.cur) + 1) % l.length]); } }
   else if (kbIs('crouch', code)) crouchEdge = true;
   else if (kbIs('horn', code)) hornEdge = true;
   else if (kbIs('lights', code)) { headOn = !headOn; toast(headOn ? 'HEADLIGHTS ON' : 'HEADLIGHTS OFF', 1); }
@@ -5182,7 +5259,7 @@ function onKeyEdge(code) {
 //  MENUS
 // ============================================================================
 let state = 'loading', prevState = null, menuSel = 0, settingsFrom = 'menu';
-const overlays = { keys: 'keysPanel', howto: 'howto', menu: 'mainMenu', settings: 'settings', brief: 'brief', pause: 'pause', passed: 'passed', failed: 'failed', missions: 'missions' };
+const overlays = { shop: 'shopPanel', keys: 'keysPanel', howto: 'howto', menu: 'mainMenu', settings: 'settings', brief: 'brief', pause: 'pause', passed: 'passed', failed: 'failed', missions: 'missions' };
 function menuItems() { const id = overlays[state]; if (!id) return []; return [...$(id).querySelectorAll('.btn')].filter(b => b.offsetParent !== null); }
 function menuShowSel() { const it = menuItems(); it.forEach((b, i) => b.classList.toggle('sel', i === menuSel)); }
 function menuMove(d) { const it = menuItems(); if (!it.length) return; menuSel = (menuSel + d + it.length) % it.length; menuShowSel(); AU.beep(660, 0.05, 'square', 0.04); }
@@ -5251,6 +5328,8 @@ document.addEventListener('click', e => {
   else if (a === 'continue') continueGame();
   else if (a === 'save') { if (MS.free) { saveGame(); resumeGame(); } else toast('SAVE IN FREE ROAM', 1.6); }
   else if (a === 'freeroam') startFreeRoam();
+  else if (a === 'buyGun') buyGun(b.dataset.g);
+  else if (a === 'shopClose') show('play');
   else if (a === 'keys') { fillKeys(); show('keys'); }
   else if (a === 'keysBack') { rebinding = null; show('settings'); }
   else if (a === 'keysReset') { settings.keys = {}; store.set('sl.settings', settings); fillKeys(); toast('CONTROLS RESET', 1.2); }
@@ -5358,7 +5437,7 @@ function resetWorld() {
   document.body.classList.remove('incar');
   for (const n of npcs) resetHuman(n); resetHuman(guard); clearGore();
   if (P.ent) { P.ent = null; } P.dead = false; P.hp = 100; P.y = 0; P.vy = 0; P.hurtT = 9; restorePose(player); player.shadow.visible = true;
-  if (W) { W.reloadT = -1; W.mag = 15; W.reserve = 60; if (W.handMag) { W.handMag.removeFromParent(); W.handMag = null; } W.gun.mag.visible = true; }
+  if (W) { W.reloadT = -1; if (W.ammo) for (const k of GUN_ORDER) W.ammo[k] = GUNS[k].mag; W.mag = W.cur !== 'fists' ? GUNS[W.cur].mag : 15; W.reserve = 60; if (W.handMag) { W.handMag.removeFromParent(); W.handMag = null; } W.gun.mag.visible = true; }
   $('timer').classList.add('hidden'); seq = null; car.doorA = 0;
   for (const d of HH_DOORS) { d.open = false; d.ang = 0; d.vel = 0; d.g.rotation.y = 0; d.col.on = true; }
 }
@@ -5376,7 +5455,7 @@ function continueGame() {
   const s = save.pos; if (!s) return startFreeRoam();
   AU.musicOff(); fadeOut(() => {
     resetWorld(); MS.free = true; MS.stage = 9; MS.id = 0; clearMissionEnts();
-    W.has.glock = !!save.glock; W.suppressed = !!save.glock; W.infinite = true;
+    syncOwned(); W.suppressed = !!save.glock; W.infinite = true;
     car.set(s.cx, s.cz, s.ch); car.health = s.carHp ?? 1000;
     P.x = s.x; P.z = s.z; P.h = s.h; camYaw = s.h + Math.PI; camPitch = 0.3;
     $('intro').classList.add('hidden'); $('btnRestart').classList.add('hidden'); setObjective('');
@@ -5398,7 +5477,7 @@ function startMission(id = 1) {
   AU.musicOff(); fadeOut(() => {
     resetWorld(); MS.id = id;
     MS.free = false; MS.stage = 0; MS.t = 0;
-    clearMissionEnts(); W.has.glock = !!save.glock; W.suppressed = !!save.glock; W.infinite = true; if (W.cur === 'glock' && !W.has.glock) switchWeapon();
+    clearMissionEnts(); syncOwned(); W.suppressed = !!save.glock; W.infinite = true; 
     P.x = PLAYER_START.x; P.z = PLAYER_START.z; P.h = Math.PI;
     camYaw = 0.0; camPitch = 0.3;
     $('intro').classList.add('hidden');
@@ -5411,7 +5490,7 @@ function startMission(id = 1) {
 }
 function startFreeRoam() {
   AU.musicOff(); fadeOut(() => {
-    resetWorld(); MS.free = true; MS.stage = 9; MS.id = 0; clearMissionEnts(); W.has.glock = !!save.glock; W.suppressed = !!save.glock; W.infinite = true;
+    resetWorld(); MS.free = true; MS.stage = 9; MS.id = 0; clearMissionEnts(); syncOwned(); W.suppressed = !!save.glock; W.infinite = true;
     car.set(HOME.x, HOME.z + 3, Math.PI);
     P.x = HOME.x - 2.4; P.z = HOME.z + 2; P.h = Math.PI;
     camYaw = 0; camPitch = 0.3;
@@ -5453,6 +5532,7 @@ function skipCine() { if (cine && !cine.outro) { cine = null; show('play'); } }
 function currentInteraction() {
   if (seq) return null;
   { const tk = takedownTarget(); if (tk) return { label: 'Silent takedown', tap: true, go: () => takedown(tk) }; }
+  if (!P.inCar && nearGunCounter()) return { label: 'Buy guns', tap: true, go: openShop };
   if (!P.inCar) { const d = nearestDoor(P.x, P.z); if (d) return { label: d.open ? 'Close door' : 'Open door', tap: true, go: () => toggleDoor(d) }; }
   if (car.flipped && car.speed < 1.5 && (P.inCar || Math.hypot(P.x - car.x, P.z - car.z) < 4)) return { label: 'Flip the car back over', hold: 1.5, go: () => { car.flipUpright(); AU.hit(0.5, 200, 0.3); } };
   if (P.inCar) {
@@ -5681,7 +5761,7 @@ function updateCamera(dt) {
   if (!Number.isFinite(camYaw + camPitch + camDist + camLift)) { camYaw = P.inCar ? car.h + Math.PI : P.h + Math.PI; camPitch = 0.25; camDist = 5; camLift = 0; }
   const sens = settings.sens;
   const dragging = Math.abs(camDelta.x) + Math.abs(camDelta.y) > 0 || Math.abs(inp.cx) + Math.abs(inp.cy) > 0;
-  camYaw -= (camDelta.x * 0.0055 * sens + inp.cx * dt * 2.6 * sens) * (W && W.aim > 0.3 && !P.inCar ? 0.55 : 1);
+  camYaw -= (camDelta.x * 0.0055 * sens + inp.cx * dt * 2.6 * sens) * (W && W.aim > 0.3 && !P.inCar ? (W.cur === 'sniper' ? 0.18 : 0.55) : 1);
   const aiming = W && W.aim > 0.3 && !P.inCar; camPitch = clamp(camPitch + camDelta.y * 0.004 * sens * (settings.invertY ? -1 : 1) * (aiming ? 0.6 : 1) + inp.cy * dt * 1.8 * sens * (aiming ? 0.6 : 1), aiming ? -0.7 : -0.25, 1.2);
   if (aiming && W.lock && (camDelta.x || camDelta.y || inp.cx || inp.cy)) { W.lockYO = clamp((W.lockYO || 0) - camDelta.x * 0.003 - inp.cx * dt * 0.8, -0.3, 0.3); W.lockPO = clamp((W.lockPO || 0) + camDelta.y * 0.003 + inp.cy * dt * 0.8, -0.35, 0.4); }
   camDelta.x = camDelta.y = 0;
@@ -5730,7 +5810,9 @@ function updateCamera(dt) {
   camera.rotation.z += (Math.random() - 0.5) * shake; camera.rotation.x += (Math.random() - 0.5) * shakeAmt * 0.1;
   camera.position.x += (Math.random() - 0.5) * shakeAmt * 0.3; camera.position.y += (Math.random() - 0.5) * shakeAmt * 0.3;
   shakeAmt = Math.max(0, shakeAmt - dt * 1.4);
-  const fovT = baseFov + (P.inCar ? 2 + Math.min(car.speed, 45) * 0.28 : 0) - (W ? W.aim * 12 : 0);
+  const scoped = W && W.cur === 'sniper' && !P.inCar && W.aim > 0.5;
+  const fovT = baseFov + (P.inCar ? 2 + Math.min(car.speed, 45) * 0.28 : 0) - (W ? W.aim * (W.cur === 'sniper' ? baseFov - 11 : 12) : 0);
+  { const sc = $('scope'); if (sc && sc.classList.contains('on') !== (scoped && W.aim > 0.85)) sc.classList.toggle('on', scoped && W.aim > 0.85); }
   if (Math.abs(camera.fov - fovT) > 0.05) { camera.fov = lerp(camera.fov, fovT, Math.min(1, dt * 2)); camera.updateProjectionMatrix(); }
 }
 
@@ -5824,7 +5906,7 @@ function updatePlayer(dt) {
     if (P.crouch) P.crouch = false;
     P.vy = 3.7 + Math.min(Math.hypot(P.vx, P.vz), 6.5) * 0.08; P.y = 0.001; AU.hit(0.07, 500, 0.05);
   }
-  const armed = W.cur === 'glock';
+  const armed = W.cur !== 'fists';
   W.aim = damp(W.aim, armed && inp.aim && W.reloadT < 0 ? 1 : 0, 14, dt);
   if (armed && inp.aim && !W.prevAim) { W.lockYO = 0; W.lockPO = 0; aimAssist(); }
   W.prevAim = armed && inp.aim;
@@ -5991,9 +6073,9 @@ function updateHUD(dt) {
     } else { $('promptF').style.width = '0'; if (inp.actEdge) it.go(); }
   } else { pr.classList.add('hidden'); MS.holdT = 0; }
   $('hpF').style.width = P.hp + '%'; $('hpF').style.background = P.hp > 50 ? '#6cff8a' : P.hp > 25 ? '#ffd23f' : '#ff4a4a';
-  const armed = W.cur === 'glock' && !P.inCar;
-  document.body.classList.toggle('armed', armed); document.body.classList.toggle('hasgun', W.has.glock && !P.inCar);
-  $('ammo').classList.toggle('hidden', !armed); if (armed) $('ammoT').textContent = W.mag + ' / ' + (W.infinite ? '\u221e' : W.reserve) + (W.reloadT >= 0 ? '  RELOADING' : '');
+  const armed = W.cur !== 'fists' && !P.inCar;
+  document.body.classList.toggle('armed', armed); document.body.classList.toggle('hasgun', GUN_ORDER.some(k => W.has[k]) && !P.inCar);
+  $('ammo').classList.toggle('hidden', !armed); if (armed) $('ammoT').textContent = gunStat().name + '  ' + W.mag + ' / ' + (W.infinite ? '\u221e' : W.reserve) + (W.reloadT >= 0 ? '  RELOADING' : '');
   $('cross').classList.toggle('hidden', !(armed && W.aim > 0.5)); $('cross').classList.toggle('lock', !!W.lock || !!W.over); $('cross').classList.toggle('head', W.over === 'head');
   if (armed && W.aim > 0.5) $('cross').style.setProperty('--gap', (5 + (W.spread + Math.min(0.04, P.spd * 0.006)) * 520 + W.recoil * 8).toFixed(1) + 'px');
   $('tAim').classList.toggle('on', !!touch.aimOn);
@@ -6514,7 +6596,7 @@ function hitPerson(e, part, point, dx, dy, dz, src = 'gun', power = 1) {
   const idx = part === 'chest' ? 1 : part === 'stomach' ? 0 : part === 'legL' ? 10 : part === 'legR' ? 13 : part === 'armL' ? 4 : part === 'armR' ? 7 : 1;
   if (src === 'gun') {
     // damage by where it lands: chest 1.5, stomach 1.2, leg 0.9, arm 0.7 — 3 points is fatal (so 2-3 body shots), 2 points drops them
-    e.dmg = (e.dmg || 0) + ({ chest: 1.5, stomach: 1.2, legL: 0.9, legR: 0.9, armL: 0.7, armR: 0.7 })[part];
+    e.dmg = (e.dmg || 0) + ({ chest: 1.5, stomach: 1.2, legL: 0.9, legR: 0.9, armL: 0.7, armR: 0.7 })[part] * power;
     if (e.rag || e.pendingFall || e.dmg >= 3) { if (e.rag) e.rag.impulse(idx, dx * 3, 0.3, dz * 3); kill(e, dx * 3, 0.6, dz * 3, idx); return; }
     if (e.dmg >= 2) { buckle(e, dx, dz, idx, part.startsWith('leg')); return; }
   } else if (e.rag) { e.bleed = Math.max(0, (e.bleed ?? 8) - 2); e.rag.impulse(idx, dx * 3, 0.3, dz * 3); return; }
@@ -6632,6 +6714,7 @@ function initCombat() {
   // brass casings
   CAS.mesh = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.019, 8), std({ color: 0xc8a040, metalness: 1, roughness: 0.25 }), CAS.max); CAS.mesh.count = 0; CAS.mesh.frustumCulled = false; scene.add(CAS.mesh);
   W.dropMag = null;
+  initGuns();
 }
 function ejectCasing(pos, dir) {
   const c = { p: pos.clone(), v: new THREE.Vector3(dir.x * 2 + (Math.random() - .5), 2 + Math.random(), dir.z * 2 + (Math.random() - .5)), r: new THREE.Euler(Math.random() * 3, Math.random() * 3, 0), w: 20 + Math.random() * 20, t: 0 };
@@ -6658,10 +6741,10 @@ function castBullet(o, d, maxD, shooter) {
   }
   return best;
 }
-function fireGun(o, d, shooter, isPlayer) {
-  const hit = castBullet(o, d, isPlayer ? 120 : 80, shooter);
+function fireGun(o, d, shooter, isPlayer, power = 1, range = 0) {
+  const hit = castBullet(o, d, range || (isPlayer ? 120 : 80), shooter);
   const hp = o.clone().addScaledVector(d, hit.t);
-  if (hit.kind === 'person') hitPerson(hit.e, hit.part, hp, d.x, d.y, d.z, 'gun', 1);
+  if (hit.kind === 'person') hitPerson(hit.e, hit.part, hp, d.x, d.y, d.z, 'gun', power);
   else if (hit.kind === 'wall' || hit.kind === 'ground') {
     for (let i = 0; i < 5; i++) FXS.norm.spawn(hp.x, hp.y, hp.z, -d.x * 2 + (Math.random() - .5) * 2, Math.random() * 2, -d.z * 2 + (Math.random() - .5) * 2, 0.5, 0.06, 0xb8a890, 0.6, 6, 1, 0.5);
     FX.sparks(hp.x, hp.y, hp.z, 3, -d.x, -d.z);
@@ -6670,39 +6753,43 @@ function fireGun(o, d, shooter, isPlayer) {
   } else if (hit.kind === 'car') { FX.sparks(hp.x, hp.y, hp.z, 8, -d.x, -d.z); const [lx, lz] = hit.v.toLocal(hp.x, hp.z); hit.v.dent(lx, lz, d.x * Math.cos(hit.v.h) - d.z * Math.sin(hit.v.h), d.x * Math.sin(hit.v.h) + d.z * Math.cos(hit.v.h), 0.015, 0.12); if (hit.v.m.glass) for (const k in hit.v.m.glass) { const gm = hit.v.m.glass[k]; if (gm && hp.y > 0.95 && Math.random() < 0.25 && gm.visible) { gm.userData.mat0 = gm.userData.mat0 || gm.material; gm.material = crackMat(); gm.userData.state = 1; break; } } AU.tink(); }
   // tracer
   const tp = W.tracer.geometry.attributes.position; tp.setXYZ(0, o.x, o.y, o.z); tp.setXYZ(1, hp.x, hp.y, hp.z); tp.needsUpdate = true; W.tracer.material.opacity = 0.7; W.traceT = 0.05;
-  if (isPlayer) noiseEvent(P.x, P.z, W.suppressed ? 7 : 70, W.suppressed ? 'quiet' : 'loud');
+  if (isPlayer) { const q = W.suppressed && W.cur === 'glock'; noiseEvent(P.x, P.z, q ? 7 : 70, q ? 'quiet' : 'loud'); }
   return hit;
 }
 const aimRay = { o: new THREE.Vector3(), d: new THREE.Vector3() };
 function playerShoot() {
-  if (W.cur !== 'glock' || W.reloadT >= 0 || W.cool > 0 || P.inCar || seq) return;
+  if (W.cur === 'fists' || W.reloadT >= 0 || W.cool > 0 || P.inCar || seq || W.pumpT > 0) return;
   if (W.mag <= 0) { AU.reload('empty'); W.cool = 0.25; startReload(); return; }
-  W.mag--; W.cool = 0.13; W.recoil = W.suppressed ? 0.8 : 1; W.flashT = W.suppressed ? 0.025 : 0.05;
-  W.flash.scale.setScalar(W.suppressed ? 0.14 : 0.35);
+  const G = gunStat(), sup = W.suppressed && W.cur === 'glock';
+  W.mag--; W.cool = G.cool; W.recoil = sup ? 0.8 : Math.min(1.6, G.kick * 0.5 + 0.5); W.flashT = sup ? 0.025 : 0.05 + G.kick * 0.01;
+  W.flash.scale.setScalar(sup ? 0.14 : 0.3 + G.kick * 0.08);
   // ray from the camera through the crosshair, start beyond the player
   camera.getWorldDirection(aimRay.d);
-  const spread = W.lock ? 0.002 : (W.aim > 0.6 ? 0.006 : 0.04) + Math.min(0.04, P.spd * 0.006) + W.spread;
+  const spread = G.scope ? (W.aim > 0.8 ? 0.0008 : 0.09) : (W.lock ? 0.002 : (W.aim > 0.6 ? 0.006 : 0.04) + Math.min(0.04, P.spd * 0.006) + W.spread) * G.spread;
   aimRay.d.x += (Math.random() - .5) * spread; aimRay.d.y += (Math.random() - .5) * spread; aimRay.d.z += (Math.random() - .5) * spread; aimRay.d.normalize();
   const camToP = Math.hypot(camera.position.x - P.x, camera.position.z - P.z);
   aimRay.o.copy(camera.position).addScaledVector(aimRay.d, camToP + 0.4);
   W.spread = Math.min(0.05, W.spread + 0.012);
   const m = W.gun.muz.getWorldPosition(new THREE.Vector3());
-  const hit = fireGun(aimRay.o, aimRay.d, null, true); W.lastHit = { kind: hit.kind, t: hit.t, part: hit.part, o: aimRay.o.toArray(), d: aimRay.d.toArray() };
+  const d0 = aimRay.d.clone(); let hit = null;
+  for (let k = 0; k < G.pellets; k++) { if (k) { aimRay.d.copy(d0); aimRay.d.x += (Math.random() - .5) * G.cone; aimRay.d.y += (Math.random() - .5) * G.cone * 0.7; aimRay.d.z += (Math.random() - .5) * G.cone; aimRay.d.normalize(); } const h = fireGun(aimRay.o, aimRay.d, null, true, G.power, G.range); if (!hit || h.kind === 'person') hit = h; }
+  aimRay.d.copy(d0); W.lastHit = { kind: hit.kind, t: hit.t, part: hit.part, o: aimRay.o.toArray(), d: aimRay.d.toArray() };
   W.tracer.geometry.attributes.position.setXYZ(0, m.x, m.y, m.z);
   W.flash.position.copy(m); W.flash.material.rotation = Math.random() * TAU; W.light.position.copy(m);
   FX.smoke(m.x, m.y, m.z, 0xc8c4be, 2, 0.15, 0.7, 0.4);
   ejectCasing(W.gun.eject.getWorldPosition(new THREE.Vector3()), new THREE.Vector3(Math.cos(P.h), 0, -Math.sin(P.h)));
-  if (W.suppressed) AU.gunS(); else AU.gun(1);
+  if (sup) AU.gunS(); else AU.gun(1, undefined, undefined, G.snd);
+  if (G.pump || G.bolt) { W.pumpT = 0.5; setTimeout(() => AU.reload('rack'), 260); }
   if (hit.kind === 'person') AU.impact('flesh', hit.e.x, hit.e.z); else if (hit.kind === 'car') AU.impact('metal', aimRay.o.x + aimRay.d.x * hit.t, aimRay.o.z + aimRay.d.z * hit.t); else if (hit.kind !== 'none') AU.impact(hit.kind === 'wall' ? 'wall' : 'ground', aimRay.o.x + aimRay.d.x * hit.t, aimRay.o.z + aimRay.d.z * hit.t);
-  shakeAmt = Math.max(shakeAmt, W.suppressed ? 0.035 : 0.055);
-  const kick = 0.026 + Math.random() * 0.012; camPitch -= kick; W.rec = (W.rec || 0) + kick * 0.85; W.recVis = (W.recVis || 0) + kick; camYaw += (Math.random() - .5) * 0.012;
+  shakeAmt = Math.max(shakeAmt, sup ? 0.035 : 0.04 + G.kick * 0.03);
+  const kick = (0.026 + Math.random() * 0.012) * G.kick; camPitch -= kick; W.rec = (W.rec || 0) + kick * 0.85; W.recVis = (W.recVis || 0) + kick; camYaw += (Math.random() - .5) * 0.012;
   W.heat = Math.min(8, (W.heat || 0) + 1); if (W.mag === 0) W.slideLock = true;
   if (hit.kind === 'person') { showHit(hit.part === 'head'); }
   P.noise = 1;
 }
 function startReload() {
-  if (W.reloadT >= 0 || W.mag >= 15 || (!W.infinite && W.reserve <= 0)) return;
-  W.reloadDur = W.mag > 0 ? 1.4 : 1.85; W.reloadT = 0; W.dropped = false; W.inserted = false; W.racked = false;
+  if (W.cur === 'fists' || W.reloadT >= 0 || W.mag >= gunStat().mag || (!W.infinite && W.reserve <= 0)) return;
+  W.reloadDur = (W.mag > 0 ? 1.4 : 1.85) * (W.cur === 'shotgun' ? 1.6 : W.cur === 'sniper' ? 1.3 : 1); W.reloadT = 0; W.dropped = false; W.inserted = false; W.racked = false;
 }
 function updateReload(dt) {
   if (W.reloadT < 0) return;
@@ -6718,7 +6805,7 @@ function updateReload(dt) {
   }
   if (r > 0.75 && !W.inserted) { W.inserted = true; if (W.handMag) { W.handMag.parent.remove(W.handMag); W.handMag = null; } W.gun.mag.visible = true; AU.reload('in'); }
   if (r > 0.88 && !W.racked) { W.racked = true; W.rackT = 0.12; W.slideLock = false; AU.reload(W.reloadDur > 1.5 ? 'rack' : 'in'); }
-  if (r >= 1) { const need = 15 - W.mag; const take = W.infinite ? need : Math.min(need, W.reserve); W.mag += take; if (!W.infinite) W.reserve -= take; W.reloadT = -1; }
+  if (r >= 1) { const need = gunStat().mag - W.mag; const take = W.infinite ? need : Math.min(need, W.reserve); W.mag += take; if (!W.infinite) W.reserve -= take; W.reloadT = -1; }
 }
 function showHit(head) { const hm = $('hitm'); hm.classList.remove('show'); void hm.offsetWidth; hm.classList.toggle('head', head); hm.classList.add('show'); }
 // stomp / kick on someone lying on the ground
@@ -6747,23 +6834,23 @@ function updateWeapon(dt) {
   if (W.rec > 0) { const r = W.rec * Math.min(1, dt * 6); camPitch += r; W.rec -= r; }
   W.recVis = (W.recVis || 0) * Math.exp(-dt * 9);
   W.heat = Math.max(0, (W.heat || 0) - dt * 0.8);
-  if (W.heat > 2.5 && W.cur === 'glock' && !P.inCar && Math.random() < dt * W.heat * 2) { const m = W.gun.muz.getWorldPosition(_v1); FXS.norm.spawn(m.x, m.y, m.z, (Math.random() - .5) * 0.1, 0.25 + Math.random() * 0.2, (Math.random() - .5) * 0.1, 1.4, 0.04, 0xbdb8b0, 0.25, -0.05, 0.6, 0.12); }
+  if (W.heat > 2.5 && W.cur !== 'fists' && !P.inCar && Math.random() < dt * W.heat * 2) { const m = W.gun.muz.getWorldPosition(_v1); FXS.norm.spawn(m.x, m.y, m.z, (Math.random() - .5) * 0.1, 0.25 + Math.random() * 0.2, (Math.random() - .5) * 0.1, 1.4, 0.04, 0xbdb8b0, 0.25, -0.05, 0.6, 0.12); }
   // what's under the crosshair (for the red reticle / head dot)
   W.over = null;
-  if (W.aim > 0.5 && W.cur === 'glock') { camera.getWorldDirection(_v2); const o = camera.position.clone(); let best = 60; for (const e of humans()) { if (e === P.ent || e.dead || Math.hypot(e.x - P.x, e.z - P.z) > 60) continue; for (const [part, a, b, r] of partSegments(e)) { const t = raySegment(o, _v2.clone(), a, b, r); if (t >= 0 && t < best) { best = t; W.over = part; } } } if (W.over && segHit(o.x, o.z, o.x + _v2.x * best, o.z + _v2.z * best, o.y, o.y + _v2.y * best) >= 0) W.over = null; }
+  if (W.aim > 0.5 && W.cur !== 'fists') { camera.getWorldDirection(_v2); const o = camera.position.clone(); let best = 60; for (const e of humans()) { if (e === P.ent || e.dead || Math.hypot(e.x - P.x, e.z - P.z) > 60) continue; for (const [part, a, b, r] of partSegments(e)) { const t = raySegment(o, _v2.clone(), a, b, r); if (t >= 0 && t < best) { best = t; W.over = part; } } } if (W.over && segHit(o.x, o.z, o.x + _v2.x * best, o.z + _v2.z * best, o.y, o.y + _v2.y * best) >= 0) W.over = null; }
   if (W.flashT > 0) { W.flashT -= dt; W.flash.visible = true; W.light.intensity = 9; } else { W.flash.visible = false; W.light.intensity = 0; }
   if (W.traceT > 0) { W.traceT -= dt; if (W.traceT <= 0) W.tracer.material.opacity = 0; }
-  if (W.rackT > 0) { W.rackT -= dt; W.gun.slide.position.z = -0.03 * Math.sin(Math.max(0, W.rackT) / 0.12 * Math.PI); }
-  else W.gun.slide.position.z = W.slideLock ? -0.032 : -0.03 * Math.min(1, W.recoil * 1.6) * (W.recoil > 0.45 ? 1 : W.recoil / 0.45);
+  W.pumpT = Math.max(0, (W.pumpT || 0) - dt); const pz = W.pumpT > 0 ? -Math.sin((1 - W.pumpT / 0.5) * Math.PI) * (W.gun.pumpTravel || W.gun.boltTravel || 0) : 0;
+  if (W.gun.pumpTravel || W.gun.boltTravel) W.gun.slide.position.z = pz;
+  else if (W.rackT > 0) { W.rackT -= dt; W.gun.slide.position.z = -0.03 * Math.sin(Math.max(0, W.rackT) / 0.12 * Math.PI); }
+  else if (!(W.gun.pumpTravel || W.gun.boltTravel)) W.gun.slide.position.z = W.slideLock ? -0.032 : -0.03 * Math.min(1, W.recoil * 1.6) * (W.recoil > 0.45 ? 1 : W.recoil / 0.45);
   updateReload(dt);
-  W.gun.g.visible = W.cur === 'glock' && !P.inCar && !(P.dead);
-  if (W.gun.sup.visible !== !!W.suppressed) { W.gun.sup.visible = !!W.suppressed; W.gun.muz.position.z = W.suppressed ? 0.25 : 0.1; }
+  for (const k in (W.guns || { glock: W.gun })) (W.guns || { glock: W.gun })[k].g.visible = W.cur === k && !P.inCar && !P.dead;
+  if (W.cur === 'glock' && W.gun.sup.visible !== !!W.suppressed) { W.gun.sup.visible = !!W.suppressed; W.gun.muz.position.z = W.suppressed ? 0.25 : 0.1; }
   updateCasings(dt);
 }
 function switchWeapon() {
-  if (!W.has.glock) { toast('NO GUN YET', 1.2); return; }
-  W.cur = W.cur === 'fists' ? 'glock' : 'fists'; W.reloadT = -1; AU.click(0.7);
-  document.body.classList.toggle('armed', W.cur === 'glock');
+  cycleWeapon(1);
 }
 
 // ---------------------------------------------------------------- player health
@@ -7063,14 +7150,15 @@ Object.assign(AU, {
   casing(t, a) {
     const hard = 1; for (let i = 0; i < 3; i++) { const tt = t + 0.38 + i * (0.11 - i * 0.025) + Math.random() * 0.02; this.ring(tt, 5200 + Math.random() * 1800, 22, 0.1 * a / (i + 1) * hard, 0.07, 0.1); this.ring(tt, 8200 + Math.random() * 1500, 30, 0.05 * a / (i + 1), 0.05, 0.1); }
   },
-  gun(v = 1, x, z) {
+  gun(v = 1, x, z, kind = 'pistol') {
+    const K = { pistol: [1, 1, 1, 1], magnum: [1.35, 0.75, 1.3, 0.8], shotgun: [1.5, 0.55, 1.7, 0.6], rifle: [1.6, 1.2, 1.5, 0.7] }[kind] || [1, 1, 1, 1]; v *= K[0];
     if (!this.ctx) return; const t = this.ctx.currentTime, d = x == null ? 0 : Math.hypot(x - camera.position.x, z - camera.position.z), a = v * attn(x, z, 220), indoor = isIndoor(), wet = indoor ? 0.6 : 0.4;
     if (a <= 0.01) return;
     const near = clamp(1 - d / 60, 0, 1), far = 1 - near;
     this.blast(t, 0.012, 9000, 1.0 * a * (0.5 + near * 0.5), 0.05, 14);                 // instantaneous pressure snap
     this.burst(t, 0.03, 'highpass', 2600, 0.7, 0.9 * a * (0.4 + near * 0.6), 0.1);      // supersonic crack
-    this.blast(t + 0.002, indoor ? 0.32 : 0.22, 2400 - far * 1600, 0.95 * a, wet, 6);    // muzzle blast body
-    this.tone(t, 0.26, 'sine', 120, 0.9 * a, 34, wet * 0.6);                             // deep chest thump
+    this.blast(t + 0.002, (indoor ? 0.32 : 0.22) * K[2], (2400 - far * 1600) * K[1], 0.95 * a, wet, 6);    // muzzle blast body
+    this.tone(t, 0.26 * K[2], 'sine', 120 * K[3], 0.9 * a, 34, wet * 0.6);                             // deep chest thump
     this.tone(t, 0.12, 'triangle', 240, 0.25 * a, 80, 0.1);
     if (near > 0.2) {                                                                    // the slide racking a fresh round in
       this.burst(t + 0.016, 0.035, 'bandpass', 3800, 9, 0.24 * a, 0.05);
@@ -7633,6 +7721,141 @@ window.__SKYLIFE = SKYLIFE;
 window.__BEACH = BEACH_PTS;
 window.__WX = WATERX;
 window.__pushCircle = pushCircle; window.__RIVERS = RIVERS;
+
+// ============================================================================
+//  GUNS — Glock 19, Desert Eagle .50, pump shotgun, bolt-action sniper rifle
+//  (bought at gun stores; Q / weapon button cycles what you own)
+// ============================================================================
+const GUNS = {
+  glock:   { name: 'Glock 19',          price: 2500,  mag: 15, power: 1,    cool: 0.13, spread: 1,   pellets: 1, kick: 1,   range: 120, snd: 'pistol' },
+  deagle:  { name: 'Desert Eagle .50',  price: 6500,  mag: 7,  power: 2.1,  cool: 0.4,  spread: 1.3, pellets: 1, kick: 2.6, range: 140, snd: 'magnum' },
+  shotgun: { name: 'Pump Shotgun',      price: 9500,  mag: 6,  power: 0.62, cool: 0.9,  spread: 1,   pellets: 9, kick: 3.2, range: 45,  snd: 'shotgun', pump: true, cone: 0.085 },
+  sniper:  { name: 'Sniper Rifle',      price: 28000, mag: 5,  power: 6,    cool: 1.35, spread: 0.1, pellets: 1, kick: 3.4, range: 420, snd: 'rifle', scope: true, bolt: true },
+};
+const GUN_ORDER = ['glock', 'deagle', 'shotgun', 'sniper'];
+let GM_CACHE = null;
+function gunMats() {
+  return GM_CACHE || (GM_CACHE = {
+    black: std({ color: 0x18191b, roughness: 0.55 }), steel: std({ color: 0x2a2c2f, metalness: 0.8, roughness: 0.35 }),
+    chrome: std({ color: 0xc8ccd0, metalness: 1, roughness: 0.2 }), dark: std({ color: 0x0b0b0c, roughness: 0.5 }),
+    wood: std({ color: 0x6a3e1e, roughness: 0.55 }), glass: std({ color: 0x1a3a5a, metalness: 0.9, roughness: 0.05 }), olive: std({ color: 0x3a3f2c, roughness: 0.7 }),
+  });
+}
+const mk = (geo, m, x, y, z, p, rx = 0, ry = 0, rz = 0) => { const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.castShadow = true; p.add(o); return o; };
+// Desert Eagle: long, heavy, silver slide with the triangular barrel profile and big grip
+function buildDeagle() {
+  const M = gunMats(), g = new THREE.Group(), slide = new THREE.Group(); g.add(slide);
+  mk(new THREE.BoxGeometry(0.034, 0.03, 0.2), M.chrome, 0, -0.004, 0.012, g);
+  const grip = mk(new THREE.BoxGeometry(0.034, 0.12, 0.055), M.black, 0, -0.07, -0.06, g, -0.25);
+  for (let i = 0; i < 5; i++) mk(new THREE.BoxGeometry(0.036, 0.004, 0.05), M.dark, 0, -0.03 - i * 0.02, -0.055, g, -0.25);
+  mk(new THREE.TorusGeometry(0.024, 0.0045, 6, 14, Math.PI), M.chrome, 0, -0.024, 0.01, g, 0, Math.PI / 2, Math.PI);
+  mk(new THREE.BoxGeometry(0.033, 0.038, 0.27), M.chrome, 0, 0.028, 0.03, slide);
+  const tri = mk(new THREE.CylinderGeometry(0.008, 0.019, 0.25, 3), M.chrome, 0, 0.05, 0.035, slide, Math.PI / 2); tri.rotation.y = Math.PI; // triangular rib on top
+  for (let i = 0; i < 7; i++) mk(new THREE.BoxGeometry(0.034, 0.03, 0.002), M.steel, 0, 0.028, -0.085 + i * 0.006, slide);
+  mk(new THREE.BoxGeometry(0.005, 0.009, 0.006), M.dark, 0, 0.06, 0.16, slide); mk(new THREE.BoxGeometry(0.02, 0.009, 0.006), M.dark, 0, 0.06, -0.09, slide);
+  const mag = mk(new THREE.BoxGeometry(0.026, 0.11, 0.036), M.dark, 0, -0.075, -0.062, g, -0.25);
+  const muz = new THREE.Object3D(); muz.position.set(0, 0.028, 0.17); g.add(muz);
+  const eject = new THREE.Object3D(); eject.position.set(0.02, 0.045, 0.03); g.add(eject);
+  return { g, slide, muz, eject, mag, sup: new THREE.Object3D() };
+}
+// pump shotgun: long barrel with a tube magazine under it, sliding pump fore-end, wooden stock
+function buildShotgun() {
+  const M = gunMats(), g = new THREE.Group(), slide = new THREE.Group(); g.add(slide);
+  mk(new THREE.BoxGeometry(0.04, 0.055, 0.2), M.steel, 0, 0.0, 0.0, g);                                   // receiver
+  mk(new THREE.CylinderGeometry(0.011, 0.011, 0.52, 12), M.steel, 0, 0.018, 0.36, g, Math.PI / 2);         // barrel
+  mk(new THREE.CylinderGeometry(0.009, 0.009, 0.4, 10), M.dark, 0, -0.012, 0.3, g, Math.PI / 2);          // tube magazine
+  mk(new THREE.BoxGeometry(0.004, 0.006, 0.01), M.chrome, 0, 0.032, 0.61, g);                             // bead sight
+  const pump = mk(new THREE.CylinderGeometry(0.02, 0.02, 0.15, 10), M.wood, 0, -0.012, 0.23, slide, Math.PI / 2); for (let i = 0; i < 6; i++) mk(new THREE.TorusGeometry(0.02, 0.002, 4, 12), M.dark, 0, -0.012, 0.17 + i * 0.022, slide);
+  mk(new THREE.TorusGeometry(0.022, 0.004, 6, 14, Math.PI), M.steel, 0, -0.035, 0.0, g, 0, Math.PI / 2, Math.PI);
+  mk(new THREE.BoxGeometry(0.032, 0.09, 0.045), M.wood, 0, -0.06, -0.08, g, -0.5);                       // pistol grip
+  const st = mk(new THREE.BoxGeometry(0.036, 0.06, 0.28), M.wood, 0, -0.035, -0.24, g, 0.12);            // stock
+  mk(new THREE.BoxGeometry(0.038, 0.11, 0.02), M.black, 0, -0.055, -0.38, g, 0.12);                       // butt pad
+  const mag = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.06, 8), std({ color: 0xc8102e, roughness: 0.6 })); mag.rotation.x = Math.PI / 2; mag.position.set(0, -0.03, 0.05); g.add(mag); // shell
+  const muz = new THREE.Object3D(); muz.position.set(0, 0.018, 0.63); g.add(muz);
+  const eject = new THREE.Object3D(); eject.position.set(0.025, 0.02, 0.03); g.add(eject);
+  return { g, slide, muz, eject, mag, sup: new THREE.Object3D(), pumpTravel: 0.07 };
+}
+// bolt-action sniper: heavy fluted barrel with muzzle brake, big scope, bolt, detachable mag, bipod, cheek-rest stock
+function buildSniper() {
+  const M = gunMats(), g = new THREE.Group(), slide = new THREE.Group(); g.add(slide);
+  mk(new THREE.BoxGeometry(0.042, 0.05, 0.26), M.olive, 0, 0.0, 0.02, g);                                 // receiver / chassis
+  mk(new THREE.CylinderGeometry(0.012, 0.014, 0.62, 12), M.steel, 0, 0.012, 0.45, g, Math.PI / 2);        // barrel
+  mk(new THREE.BoxGeometry(0.03, 0.022, 0.05), M.dark, 0, 0.012, 0.78, g);                                // muzzle brake
+  mk(new THREE.BoxGeometry(0.046, 0.04, 0.3), M.olive, 0, -0.02, 0.28, g);                                // handguard
+  // scope: tube, bells, turrets, lenses
+  mk(new THREE.CylinderGeometry(0.014, 0.014, 0.26, 14), M.black, 0, 0.065, 0.03, g, Math.PI / 2);
+  mk(new THREE.CylinderGeometry(0.022, 0.015, 0.06, 14), M.black, 0, 0.065, 0.17, g, Math.PI / 2);
+  mk(new THREE.CylinderGeometry(0.019, 0.014, 0.05, 14), M.black, 0, 0.065, -0.1, g, -Math.PI / 2);
+  mk(new THREE.CylinderGeometry(0.009, 0.009, 0.025, 10), M.black, 0, 0.085, 0.03, g); mk(new THREE.CylinderGeometry(0.009, 0.009, 0.025, 10), M.black, 0.022, 0.065, 0.03, g, 0, 0, Math.PI / 2);
+  mk(new THREE.CircleGeometry(0.02, 14), M.glass, 0, 0.065, 0.201, g);
+  for (const z of [-0.04, 0.1]) mk(new THREE.BoxGeometry(0.03, 0.04, 0.02), M.dark, 0, 0.04, z, g);       // rings
+  mk(new THREE.CylinderGeometry(0.006, 0.006, 0.05, 8), M.chrome, 0.035, 0.015, -0.03, slide, 0, 0, Math.PI / 2); mk(new THREE.SphereGeometry(0.01, 8, 6), M.chrome, 0.06, 0.015, -0.03, slide); // bolt handle
+  mk(new THREE.TorusGeometry(0.022, 0.004, 6, 14, Math.PI), M.dark, 0, -0.03, -0.03, g, 0, Math.PI / 2, Math.PI);
+  mk(new THREE.BoxGeometry(0.03, 0.09, 0.04), M.olive, 0, -0.065, -0.1, g, -0.4);                         // grip
+  mk(new THREE.BoxGeometry(0.04, 0.07, 0.3), M.olive, 0, -0.02, -0.28, g, 0.05);                          // stock
+  mk(new THREE.BoxGeometry(0.036, 0.025, 0.13), M.black, 0, 0.025, -0.25, g);                             // cheek rest
+  mk(new THREE.BoxGeometry(0.042, 0.12, 0.02), M.black, 0, -0.04, -0.43, g, 0.05);
+  for (const s of [-1, 1]) mk(new THREE.CylinderGeometry(0.005, 0.005, 0.17, 6), M.dark, s * 0.012, -0.045, 0.62, g, Math.PI / 2 - 0.15, 0, s * 0.1); // bipod (folded)
+  const mag = mk(new THREE.BoxGeometry(0.03, 0.07, 0.07), M.dark, 0, -0.055, 0.04, g);
+  const muz = new THREE.Object3D(); muz.position.set(0, 0.012, 0.81); g.add(muz);
+  const eject = new THREE.Object3D(); eject.position.set(0.03, 0.02, -0.02); g.add(eject);
+  return { g, slide, muz, eject, mag, sup: new THREE.Object3D(), boltTravel: 0.06 };
+}
+function initGuns() {
+  W.guns = { glock: W.gun, deagle: buildDeagle(), shotgun: buildShotgun(), sniper: buildSniper() };
+  for (const k of ['deagle', 'shotgun', 'sniper']) { mountGun(player, W.guns[k]); W.guns[k].g.visible = false; }
+  W.ammo = {}; for (const k of GUN_ORDER) W.ammo[k] = GUNS[k].mag;
+  syncOwned();
+}
+function syncOwned() {
+  if (!W) return;
+  const owned = save.guns || {};
+  for (const k of GUN_ORDER) W.has[k] = !!owned[k] || (k === 'glock' && !!save.glock);
+  if (W.cur !== 'fists' && !W.has[W.cur]) { W.cur = 'fists'; document.body.classList.remove('armed'); }
+}
+function equipGun(k) {
+  if (W.cur !== 'fists') W.ammo[W.cur] = W.mag;
+  W.cur = k; W.reloadT = -1; W.slideLock = false;
+  if (k !== 'fists') { W.gun = W.guns[k]; W.mag = W.ammo[k] ?? GUNS[k].mag; W.gun.mag.visible = true; }
+  document.body.classList.toggle('armed', k !== 'fists'); AU.click(0.7);
+  toast(k === 'fists' ? 'FISTS' : GUNS[k].name.toUpperCase(), 1);
+}
+function cycleWeapon(dir = 1) {
+  const list = ['fists', ...GUN_ORDER.filter(k => W.has[k])];
+  if (list.length < 2) { toast('NO GUNS — VISIT A GUN SHOP', 1.6); return; }
+  equipGun(list[(list.indexOf(W.cur) + dir + list.length) % list.length]);
+}
+const gunStat = () => GUNS[W.cur] || GUNS.glock;
+
+// ---------------------------------------------------------------- gun shop menu
+const GUN_COUNTERS = [];
+function nearGunCounter() { for (const c of GUN_COUNTERS) if (Math.hypot(P.x - c.x, P.z - c.z) < 2.2) return c; return null; }
+function openShop() {
+  if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+  fillShop(); show('shop');
+}
+function fillShop() {
+  const el = $('shopList'); el.innerHTML = '';
+  $('shopCash').textContent = '$' + save.cash.toLocaleString('en-US');
+  for (const k of GUN_ORDER) {
+    const G = GUNS[k], own = W.has[k], b = document.createElement('button');
+    b.className = 'btn kb'; b.dataset.act = 'buyGun'; b.dataset.g = k;
+    const stat = `${G.mag} rds · ${G.pellets > 1 ? 'spread shot' : G.scope ? 'scope' : 'semi-auto'}`;
+    b.innerHTML = `<span>${G.name}<br><small>${stat}</small></span><span class="val">${own ? (W.cur === k ? 'EQUIPPED' : 'EQUIP') : '$' + G.price.toLocaleString('en-US')}</span>`;
+    el.appendChild(b);
+  }
+  menuShowSel();
+}
+function buyGun(k) {
+  const G = GUNS[k];
+  if (W.has[k]) { equipGun(k); fillShop(); return; }
+  if (save.cash < G.price) { toast('NOT ENOUGH CASH', 1.4); AU.beep(200, 0.2, 'square', 0.08); return; }
+  save.cash -= G.price; save.guns = save.guns || {}; save.guns[k] = true; store.set('sl.save', save);
+  syncOwned(); W.ammo[k] = G.mag; equipGun(k);
+  AU.beep(660, 0.08, 'triangle', 0.15); AU.beep(990, 0.12, 'triangle', 0.15, 0.08);
+  toast('BOUGHT ' + G.name.toUpperCase(), 1.8); fillShop();
+}
+window.__equip = equipGun;
 
 </script>
 <!-- Three.js r170 (MIT License, Copyright 2010-2024 three.js authors) -->
